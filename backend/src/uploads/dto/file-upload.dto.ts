@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsNumber, IsString } from 'class-validator';
+import { IsOptional, IsEnum, IsNumber, IsString, IsBoolean } from 'class-validator';
 
 export class FileUploadDto {
   filename: string;
@@ -24,6 +24,10 @@ export class BulkUploadOptions {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  validateOnly?: boolean = false;
 }
 
 export class UploadResultDto {

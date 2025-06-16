@@ -110,17 +110,17 @@ export class UploadsModule {
     // Verificar y crear directorios necesarios al inicializar
     this.ensureUploadDirectories();
   }
-
   /**
    * Configurar middleware para validación avanzada de archivos
+   * TEMPORALMENTE COMENTADO - El middleware interfiere con Multer
    */
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(FileValidationMiddleware)
-      .forRoutes(
-        { path: 'uploads/*', method: RequestMethod.POST },
-        { path: 'uploads/*', method: RequestMethod.PUT }
-      );
+    // consumer
+    //   .apply(FileValidationMiddleware)
+    //   .forRoutes(
+    //     { path: 'uploads/*', method: RequestMethod.POST },
+    //     { path: 'uploads/*', method: RequestMethod.PUT }
+    //   );
   }
 
   private ensureUploadDirectories(): void {

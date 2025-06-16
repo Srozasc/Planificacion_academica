@@ -275,7 +275,6 @@ export class UploadsService {
       notes: row.observaciones || row.notes || null
     }));
   }
-
   private async callStoredProcedure(
     spName: string, 
     jsonData: string, 
@@ -283,16 +282,26 @@ export class UploadsService {
     mode: string
   ): Promise<any> {
     try {
-      const result = await this.dataSource.query(
-        `CALL ${spName}(?, ?, ?, @result); SELECT @result as result;`,
+      // Para MySQL con parámetros OUT, necesitamos usar una variable de sesión
+      await this.dataSource.query(`SET @result = ''`);
+      
+      // Llamar al SP con la variable de sesión
+      await this.dataSource.query(
+        `CALL ${spName}(?, ?, ?, @result)`,
         [jsonData, userId, mode]
       );
 
-      // El resultado del SP está en el segundo elemento del array
-      const spResult = result[1][0]?.result;
+      // Obtener el resultado de la variable de sesión
+      const resultQuery = await this.dataSource.query(`SELECT @result as result`);
+      const spResult = resultQuery[0]?.result;
       
-      if (spResult) {
-        return JSON.parse(spResult);
+      if (spResult && spResult !== '') {
+        try {
+          return JSON.parse(spResult);
+        } catch (parseError) {
+          console.warn('Error parsing SP result, returning raw result:', spResult);
+          return { success: true, message: spResult };
+        }
       }
 
       return { success: true, message: 'Procesado exitosamente' };

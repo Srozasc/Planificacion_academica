@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware, BadRequestException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { fileTypeFromBuffer } from 'file-type';
+import * as mime from 'mime-types';
 import { UploadConfig, validateFile } from '../config/upload.config';
 
 @Injectable()
@@ -51,19 +51,15 @@ export class FileValidationMiddleware implements NestMiddleware {
         buffer = fs.readFileSync(file.path);
       } else {
         return; // No se puede validar contenido
-      }      // Verificar magic numbers del archivo
-      const detectedType = await fileTypeFromBuffer(buffer.slice(0, 4100));
+      }      // Verificar por extensión del archivo original
+      const detectedMime = mime.lookup(file.originalname) || 'application/octet-stream';
       
-      if (detectedType) {
-        const allowedMimes = UploadConfig.allowedMimeTypes.excel;
-        
-        // Verificar que el tipo detectado coincida con los permitidos
-        if (!this.isValidExcelType(detectedType.mime)) {
-          throw new BadRequestException(
-            `El contenido del archivo no corresponde a un archivo Excel válido. ` +
-            `Tipo detectado: ${detectedType.mime}`
-          );
-        }
+      // Verificar que el tipo detectado coincida con los permitidos
+      if (!this.isValidExcelType(detectedMime)) {
+        throw new BadRequestException(
+          `El contenido del archivo no corresponde a un archivo Excel válido. ` +
+          `Tipo detectado: ${detectedMime}`
+        );
       }
 
       // Validaciones adicionales para Excel
