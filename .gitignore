@@ -1,0 +1,253 @@
+# =====================================================
+# .gitignore - Sistema de Planificación Académica
+# Proyecto NestJS + Frontend + MySQL
+# =====================================================
+
+# ===== DEPENDENCIAS Y PAQUETES =====
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===== ARCHIVOS DE COMPILACIÓN =====
+dist/
+build/
+out/
+.output/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# ===== ARCHIVOS DE CONFIGURACIÓN LOCAL =====
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# Variables de entorno específicas del proyecto
+backend/.env
+frontend/.env
+.env.database
+.env.jwt
+.env.smtp
+
+# ===== LOGS =====
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Logs específicos del sistema académico
+backend/logs/
+frontend/logs/
+*.access.log
+*.error.log
+*.audit.log
+
+# ===== ARCHIVOS TEMPORALES =====
+*.tmp
+*.temp
+.tmp/
+.temp/
+temp/
+tmp/
+
+# Archivos de prueba temporales
+test_*.sql
+temp_*.sql
+*_test.sql
+*_temp.sql
+backup_test_*.sql
+
+# ===== CACHÉ Y ARCHIVOS TEMPORALES DE NODE =====
+.cache/
+.parcel-cache/
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ===== COVERAGE Y TESTING =====
+coverage/
+*.lcov
+.nyc_output/
+.coverage/
+junit.xml
+test-results/
+
+# ===== IDE Y EDITORES =====
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== SISTEMA OPERATIVO =====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===== ARCHIVOS DE BASE DE DATOS =====
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Dumps y backups de MySQL
+*.sql.gz
+*.sql.bz2
+backup_*.sql
+dump_*.sql
+*_backup.sql
+*_dump.sql
+
+# Archivos de datos sensibles
+data/
+uploads/
+storage/
+
+# ===== ARCHIVOS DE DEPLOYMENT =====
+.vercel/
+.netlify/
+.serverless/
+.azure/
+.aws/
+
+# ===== ARCHIVOS DE DOCUMENTACIÓN TEMPORAL =====
+*.draft.md
+*.temp.md
+*_draft.*
+*_temp.*
+
+# ===== ARCHIVOS DE CERTIFICADOS Y CLAVES =====
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+keys/
+certificates/
+ssl/
+
+# Credenciales y archivos sensibles de documentación
+Documentacion/credenciales*.txt
+Documentacion/passwords*.txt
+Documentacion/keys*.txt
+Documentacion/secrets*.txt
+
+# ===== ARCHIVOS DE MONITOREO =====
+*.pid
+*.seed
+*.pid.lock
+
+# ===== ARCHIVOS DE WEBPACK/BUNDLERS =====
+.webpack/
+.rollup.cache/
+.parcel-cache/
+
+# ===== ARCHIVOS ESPECÍFICOS DEL PROYECTO =====
+
+# Archivos de migración temporal
+backend/src/database/migrations/temp_*.sql
+backend/src/database/migrations/*_temp.sql
+
+# Archivos de configuración de desarrollo
+backend/ormconfig.json
+backend/database.json
+typeorm-config.json
+
+# Reportes y archivos generados
+reports/
+exports/
+generated/
+*.csv
+*.xlsx
+*.pdf
+
+# Archivos de carga masiva temporales
+bulk_load_*.json
+import_*.json
+export_*.json
+
+# ===== ARCHIVOS DE CONTENIDO ESTÁTICO =====
+# Imágenes temporales y de prueba
+*.tmp.jpg
+*.tmp.jpeg
+*.tmp.png
+*.tmp.gif
+*.tmp.svg
+test_images/
+temp_images/
+
+# ===== OTROS =====
+.yarn/install-state.gz
+.pnp.*
+*.tgz
+.npm-debug.log
+
+# Archivos de sesión
+.sessions/
+sessions/
+
+# Archivos de queue/jobs
+.queue/
+queue/
+
+# Archivos de configuración local específicos
+config.local.json
+settings.local.json
+
+# ===== ARCHIVOS DE DESARROLLO Y SCRIPTS TEMPORALES =====
+# Scripts de desarrollo temporal
+backend/create-*-table.js
+backend/create-*-direct.js
+backend/recreate-*-table.js
+backend/fix-*.js
+backend/check-*.js
+backend/debug_*.sql
+
+# Scripts de migración temporal
+backend/scripts/temp_*.js
+backend/scripts/debug_*.js
+backend/scripts/test_*.js
+
+# ===== ARCHIVOS ESPECÍFICOS DEL SISTEMA ACADÉMICO =====
+# Respaldos temporales de datos académicos
+academic_backup_*.json
+teachers_backup_*.json
+payment_codes_backup_*.json
+course_reports_backup_*.json
+
+# Archivos de importación/exportación temporales
+import_academic_*.xlsx
+import_teachers_*.xlsx
+import_payment_*.xlsx
+import_courses_*.xlsx
+export_academic_*.xlsx
+export_teachers_*.xlsx
+
+# Logs específicos del sistema
+academic_system.log
+database_operations.log
+sp_execution.log

@@ -1,0 +1,861 @@
+## Tarea 0: Configuración Inicial del Entorno y Proyectos
+
+### Paso 0.1: Configuración de la Base de Datos MySQL
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se creará la base de datos MySQL que albergará toda la información de la aplicación. Se configurará el usuario y los permisos necesarios para que la aplicación backend pueda conectarse y operar.
+##### Desglose de Tareas
+###### SubTarea 0.1.1: Creación de la Base de Datos
+*   Descripción del cambio: Crear una nueva base de datos (schema) en el servidor MySQL.
+*   ruta/relativa/del/archivo/modificado: N/A (Operación en el servidor MySQL)
+*   Operación realizada: Crear
+###### SubTarea 0.1.2: Creación del Usuario de Aplicación
+*   Descripción del cambio: Crear un nuevo usuario en MySQL que será utilizado por la aplicación backend para conectarse a la base de datos.
+*   ruta/relativa/del/archivo/modificado: N/A (Operación en el servidor MySQL)
+*   Operación realizada: Crear
+###### SubTarea 0.1.3: Asignación de Permisos al Usuario
+*   Descripción del cambio: Otorgar al usuario de aplicación los permisos necesarios (SELECT, INSERT, UPDATE, DELETE, EXECUTE en SPs, CREATE TEMPORARY TABLES) sobre la base de datos creada.
+*   ruta/relativa/del/archivo/modificado: N/A (Operación en el servidor MySQL)
+*   Operación realizada: Actualizar (permisos)
+#### Otros Comentarios del Paso 0.1: Configuración de la Base de Datos MySQL
+*   Cualquier otra tarea crítica de la que dependa este paso: Servidor MySQL instalado y en ejecución.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar los comandos SQL para crear la base de datos, el usuario y asignar permisos. Documentar las credenciales (host, puerto, nombre de la BD, usuario, contraseña) para su uso en la configuración del backend.
+
+### Paso 0.2: Inicialización del Proyecto Backend (NestJS)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se creará la estructura base del proyecto backend utilizando NestJS CLI, se configurará la conexión a la base de datos MySQL, y se instalarán las dependencias iniciales.
+##### Desglose de Tareas
+###### SubTarea 0.2.1: Creación del Proyecto NestJS
+*   Descripción del cambio: Utilizar NestJS CLI para generar un nuevo proyecto.
+*   ruta/relativa/del/archivo/modificado: `backend/` (toda la estructura base)
+*   Operación realizada: Crear
+###### SubTarea 0.2.2: Instalación de Dependencias Esenciales
+*   Descripción del cambio: Instalar paquetes npm/yarn para MySQL (`mysql2`), TypeORM (`@nestjs/typeorm`, `typeorm`), configuración (`@nestjs/config`), validación (`class-validator`, `class-transformer`), JWT (`@nestjs/jwt`, `passport-jwt`), Passport (`passport`, `@nestjs/passport`), Excel (`exceljs`), WebSockets (`@nestjs/platform-socket.io`, `socket.io`), Puppeteer (`puppeteer`).
+*   ruta/relativa/del/archivo/modificado: `backend/package.json`
+*   Operación realizada: Actualizar
+###### SubTarea 0.2.3: Configuración de Variables de Entorno
+*   Descripción del cambio: Crear un archivo `.env` para almacenar variables de entorno (credenciales de BD, secreto JWT, puerto de la aplicación, etc.).
+*   ruta/relativa/del/archivo/modificado: `backend/.env`
+*   Operación realizada: Crear
+###### SubTarea 0.2.4: Implementación del Módulo de Configuración
+*   Descripción del cambio: Crear y configurar `ConfigModule` de NestJS para cargar y proveer las variables de entorno a la aplicación.
+*   ruta/relativa/del/archivo/modificado: `backend/src/app.module.ts`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `backend/src/config/app.config.ts` (si se usa un archivo de config tipado)
+*   Operación realizada: Crear
+###### SubTarea 0.2.5: Implementación del Módulo y Configuración de TypeORM
+*   Descripción del cambio: Crear un módulo `DatabaseModule` y configurar `TypeOrmModule` para conectar con la base de datos MySQL utilizando las variables de entorno.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/database.module.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/typeorm.config.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/app.module.ts` (importar DatabaseModule)
+*   Operación realizada: Actualizar
+###### SubTarea 0.2.6: Configuración Global de Pipes y Filtros
+*   Descripción del cambio: Configurar `ValidationPipe` globalmente para DTOs. Opcionalmente, un `HttpExceptionFilter` global.
+*   ruta/relativa/del/archivo/modificado: `backend/src/main.ts`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `backend/src/common/filters/http-exception.filter.ts`
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 0.2: Inicialización del Proyecto Backend (NestJS)
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 0.1 completado. Node.js y npm/yarn instalados. NestJS CLI instalado globalmente.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Asegurarse de que las variables en `.env` coincidan con la configuración de la BD del Paso 0.1.
+
+### Paso 0.3: Inicialización del Proyecto Frontend (React)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se creará la estructura base del proyecto frontend utilizando Create React App (o Vite) con TypeScript, se instalarán las dependencias iniciales y se configurará la estructura de carpetas.
+##### Desglose de Tareas
+###### SubTarea 0.3.1: Creación del Proyecto React con TypeScript
+*   Descripción del cambio: Utilizar CRA (ej: `npx create-react-app frontend --template typescript`) o Vite (ej: `npm create vite@latest frontend -- --template react-ts`) para generar el proyecto.
+*   ruta/relativa/del/archivo/modificado: `frontend/` (toda la estructura base)
+*   Operación realizada: Crear
+###### SubTarea 0.3.2: Instalación de Dependencias Esenciales
+*   Descripción del cambio: Instalar paquetes npm/yarn para enrutamiento (`react-router-dom`), llamadas API (`axios`), gestión de estado (`zustand`), UI/estilos (`tailwindcss`, `fullcalendar`, `react-hook-form`, `headlessui`/`radix-ui`), iconos (`react-icons` o similar).
+*   ruta/relativa/del/archivo/modificado: `frontend/package.json`
+*   Operación realizada: Actualizar
+###### SubTarea 0.3.3: Configuración de Tailwind CSS
+*   Descripción del cambio: Inicializar y configurar Tailwind CSS en el proyecto.
+*   ruta/relativa/del/archivo/modificado: `frontend/tailwind.config.js`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `frontend/postcss.config.js`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `frontend/src/index.css` (o `global.css`)
+*   Operación realizada: Actualizar (para incluir directivas de Tailwind)
+###### SubTarea 0.3.4: Estructura de Carpetas Inicial
+*   Descripción del cambio: Crear la estructura de carpetas base según lo definido en "Sistema de Archivos" (components, features, services, store, etc.).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/` (múltiples subdirectorios)
+*   Operación realizada: Crear
+###### SubTarea 0.3.5: Configuración Base de Axios
+*   Descripción del cambio: Crear una instancia de Axios (`apiClient.ts`) con la URL base del backend (obtenida de variables de entorno) y posibles interceptores (ej: para añadir token JWT).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/services/apiClient.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `frontend/.env` (para `REACT_APP_API_URL` o `VITE_API_URL`)
+*   Operación realizada: Crear
+###### SubTarea 0.3.6: Configuración del Enrutador Principal
+*   Descripción del cambio: Configurar `BrowserRouter` y las rutas iniciales (ej: `/login`, `/dashboard`) en `App.tsx`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/App.tsx`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `frontend/src/main.tsx` (o `index.tsx`) (para envolver App con BrowserRouter)
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 0.3: Inicialización del Proyecto Frontend (React)
+*   Cualquier otra tarea crítica de la que dependa este paso: Node.js y npm/yarn instalados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Configurar la variable de entorno para la URL de la API del backend.
+
+---
+
+## Tarea 1: Sistema de Acceso y Autenticación
+
+### Paso 1.1: Diseño e Implementación de Esquema de BD para Autenticación
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán las tablas necesarias en la base de datos MySQL para almacenar información de usuarios, roles, permisos y la relación entre roles y permisos.
+##### Desglose de Tareas
+###### SubTarea 1.1.1: Crear Tabla `Roles`
+*   Descripción del cambio: Tabla para almacenar los roles del sistema (Administrador, Director/Jefe de Programa, Usuario Lector).
+*   Campos: `id` (PK, INT, AUTO_INCREMENT), `name` (VARCHAR(50), UNIQUE, NOT NULL), `description` (TEXT, NULLABLE).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/001-create-roles-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 1.1.2: Crear Tabla `Users`
+*   Descripción del cambio: Tabla para almacenar la información de los usuarios.
+*   Campos: `id` (PK, INT, AUTO_INCREMENT), `email_institucional` (VARCHAR(255), UNIQUE, NOT NULL), `password_hash` (VARCHAR(255), NULLABLE), `name` (VARCHAR(255), NOT NULL), `role_id` (FK a `Roles.id`, INT, NOT NULL), `is_active` (BOOLEAN, DEFAULT TRUE), `created_at` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP), `updated_at` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/002-create-users-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 1.1.3: Crear Tabla `Permissions`
+*   Descripción del cambio: Tabla para definir permisos granulares en el sistema.
+*   Campos: `id` (PK, INT, AUTO_INCREMENT), `name` (VARCHAR(100), UNIQUE, NOT NULL, ej: "manage_users", "view_schedule_all_areas", "edit_schedule_own_area"), `description` (TEXT, NULLABLE).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/003-create-permissions-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 1.1.4: Crear Tabla `RolePermissions`
+*   Descripción del cambio: Tabla pivot para la relación muchos-a-muchos entre Roles y Permisos.
+*   Campos: `role_id` (FK a `Roles.id`, INT, NOT NULL), `permission_id` (FK a `Permissions.id`, INT, NOT NULL), PRIMARY KEY (`role_id`, `permission_id`).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/004-create-role-permissions-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 1.1.5: Poblar Tablas `Roles`, `Permissions` y `RolePermissions` con Datos Iniciales
+*   Descripción del cambio: Insertar los roles base ("Administrador", "Director/Jefe de Programa", "Usuario Lector"), los permisos iniciales necesarios para el MVP y sus asignaciones.
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración/seeding (ej: `backend/src/database/migrations/005-seed-auth-data.sql`)
+*   Operación realizada: Crear (registros)
+#### Otros Comentarios del Paso 1.1: Diseño e Implementación de Esquema de BD para Autenticación
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 0.1 completado.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar los scripts SQL de migración en la base de datos. Considerar una herramienta de migración (como la integrada en TypeORM o Flyway/Liquibase si se gestionan SPs externamente).
+
+### Paso 1.2: Implementación de SPs de Autenticación
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán los Procedimientos Almacenados (SPs) en MySQL para manejar la lógica de autenticación de usuarios y la obtención de sus permisos, manteniendo esta lógica centralizada en la BD.
+##### Desglose de Tareas
+###### SubTarea 1.2.1: Crear SP `sp_AuthenticateUser`
+*   Descripción del cambio: SP para verificar las credenciales del usuario (email y hash de contraseña) contra la tabla `Users`.
+*   Parámetros: `IN p_email VARCHAR(255)`, `IN p_password_hash VARCHAR(255)`, `OUT o_user_id INT`, `OUT o_role_name VARCHAR(50)`, `OUT o_user_name VARCHAR(100)`, `OUT o_status_code VARCHAR(50)`.
+*   Lógica: Busca usuario por email. Si existe y está activo, compara `p_password_hash` con el `password_hash` almacenado (asumiendo que el backend ya hashea la contraseña de entrada si es necesario, o el SP recibe la contraseña en claro y la hashea/compara). Devuelve ID, rol, nombre y un código de estado (SUCCESS, INVALID_CREDENTIALS, USER_NOT_FOUND, ACCOUNT_DISABLED).
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_AuthenticateUser.sql`
+*   Operación realizada: Crear
+###### SubTarea 1.2.2: Crear SP `sp_GetUserPermissions`
+*   Descripción del cambio: SP para obtener la lista de nombres de permisos para un `user_id` dado, basado en su rol.
+*   Parámetros: `IN p_user_id INT`.
+*   Lógica: Obtiene el `role_id` del usuario desde la tabla `Users`. Luego, consulta `RolePermissions` y `Permissions` para devolver una lista de los `name` de los permisos asociados a ese rol.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GetUserPermissions.sql`
+*   Operación realizada: Crear
+###### SubTarea 1.2.3: Crear SP `sp_CreateUser` (para carga de usuarios o creación por admin)
+*   Descripción del cambio: SP para crear un nuevo usuario.
+*   Parámetros: `IN p_email_institucional VARCHAR(255)`, `IN p_password_hash VARCHAR(255)`, `IN p_name VARCHAR(255)`, `IN p_role_id INT`, `OUT o_user_id INT`, `OUT o_status_code VARCHAR(50)`.
+*   Lógica: Verifica si el email ya existe. Si no, inserta el nuevo usuario. Devuelve el ID del nuevo usuario y un código de estado (SUCCESS, EMAIL_EXISTS).
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_CreateUser.sql`
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 1.2: Implementación de SPs de Autenticación
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 1.1 completado.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar los scripts SQL para crear los SPs en la base de datos.
+
+### Paso 1.3: Desarrollo del Módulo de Autenticación Backend (NestJS)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se implementará el módulo `AuthModule` en NestJS que expondrá los endpoints de login, gestionará la creación de tokens JWT y validará los tokens para el acceso a rutas protegidas.
+##### Desglose de Tareas
+###### SubTarea 1.3.1: Crear `AuthModule`, `AuthController`, `AuthService`
+*   Descripción del cambio: Generar los archivos base para el módulo de autenticación usando NestJS CLI (`nest g mo auth`, `nest g co auth --no-spec`, `nest g s auth --no-spec`).
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.module.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.controller.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.service.ts`
+*   Operación realizada: Crear
+###### SubTarea 1.3.2: Configurar `JwtModule`
+*   Descripción del cambio: Importar y configurar `JwtModule` en `AuthModule` con el secreto y tiempo de expiración del token desde las variables de entorno.
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.module.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 1.3.3: Implementar `LoginDto`
+*   Descripción del cambio: Crear el Data Transfer Object para el payload de login con validaciones (`class-validator`).
+*   Campos: `email_institucional` (string, IsEmail), `password` (string, IsNotEmpty).
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/dto/login.dto.ts`
+*   Operación realizada: Crear
+###### SubTarea 1.3.4: Implementar Lógica de Login en `AuthService`
+*   Descripción del cambio: Método `login(loginDto)`:
+    1.  (Opcional, si se hashea en backend) Hashear la contraseña recibida.
+    2.  Llamar al SP `sp_AuthenticateUser` usando el `EntityManager` de TypeORM o un cliente SQL directo.
+    3.  Si la autenticación es exitosa, obtener `userId`, `roleName`, `userName` del SP.
+    4.  Llamar al SP `sp_GetUserPermissions` para obtener los permisos del usuario.
+    5.  Generar un token JWT (`JwtService.sign`) con `userId`, `roleName`, `userName` y `permissions` en el payload.
+    6.  Devolver el token y la información básica del usuario.
+    7.  Si falla, lanzar `UnauthorizedException`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.service.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 1.3.5: Implementar Endpoint de Login en `AuthController`
+*   Descripción del cambio: Crear un endpoint `POST /auth/login` que reciba `LoginDto` y llame a `AuthService.login()`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.controller.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 1.3.6: Implementar `JwtStrategy`
+*   Descripción del cambio: Crear una estrategia Passport (`JwtStrategy`) para validar los tokens JWT. Extraerá el payload del token y buscará el usuario (o simplemente validará que el `userId` en el payload es válido y activo si se desea una validación más ligera).
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/strategies/jwt.strategy.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.module.ts` (registrar la estrategia)
+*   Operación realizada: Actualizar
+###### SubTarea 1.3.7: Implementar Endpoint de Perfil de Usuario
+*   Descripción del cambio: Crear un endpoint `GET /auth/profile` protegido por `JwtAuthGuard` que devuelva la información del usuario autenticado (extraída del objeto `request.user` inyectado por Passport).
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/auth.controller.ts`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/guards/jwt-auth.guard.ts` (puede ser un simple export de `AuthGuard('jwt')`)
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 1.3: Desarrollo del Módulo de Autenticación Backend (NestJS)
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 0.2, 1.1, 1.2 completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Asegurarse de que el secreto JWT esté configurado en `.env`. Probar los endpoints con una herramienta como Postman.
+
+### Paso 1.4: Desarrollo de la Interfaz de Login y Gestión de Sesión Frontend (React)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se creará la página de login en React, se implementará la lógica para llamar a la API de login, y se gestionará el token JWT en el lado del cliente para mantener la sesión del usuario.
+##### Desglose de Tareas
+###### SubTarea 1.4.1: Crear Componente `LoginPage`
+*   Descripción del cambio: Crear un componente de página para el login.
+*   Incluirá un formulario (`react-hook-form`) con campos para "Email Institucional" y "Contraseña".
+*   Botón de "Ingresar".
+*   Manejo de estados de carga y errores.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/auth/LoginPage.tsx`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `frontend/src/App.tsx` (añadir ruta para `/login`)
+*   Operación realizada: Actualizar
+###### SubTarea 1.4.2: Crear Servicio `auth.service.ts` (Frontend)
+*   Descripción del cambio: Crear un servicio para encapsular las llamadas a la API de autenticación.
+*   Método `login(credentials)`: Llama a `POST /auth/login` del backend con `axios`.
+*   Método `getProfile()`: Llama a `GET /auth/profile`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/auth/services/auth.service.ts`
+*   Operación realizada: Crear
+###### SubTarea 1.4.3: Crear Store de Autenticación (Zustand)
+*   Descripción del cambio: Crear un store con Zustand para manejar el estado global de autenticación.
+*   Estado: `user` (objeto o null), `token` (string o null), `isAuthenticated` (boolean), `isLoading` (boolean), `error` (string o null).
+*   Acciones: `loginUser(credentials)`, `logoutUser()`, `setProfile()`.
+    *   `loginUser`: Llama a `auth.service.ts.login()`. En éxito, guarda token (localStorage) y datos del usuario en el store, y navega al dashboard.
+    *   `logoutUser`: Limpia token de localStorage y resetea el estado del store. Navega a login.
+    *   `setProfile`: Llama a `auth.service.ts.getProfile()` (si hay token) para cargar perfil al iniciar app.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/store/auth.store.ts`
+*   Operación realizada: Crear
+###### SubTarea 1.4.4: Integrar Lógica de Login en `LoginPage`
+*   Descripción del cambio: En `LoginPage.tsx`, al enviar el formulario, llamar a la acción `loginUser` del store de Zustand.
+*   Mostrar feedback de carga y errores.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/auth/LoginPage.tsx`
+*   Operación realizada: Actualizar
+###### SubTarea 1.4.5: Lógica de Carga de Sesión al Iniciar la Aplicación
+*   Descripción del cambio: En `App.tsx` o un componente de layout principal, al montar, verificar si existe un token en localStorage.
+*   Si existe, intentar cargar el perfil del usuario usando la acción `setProfile` del store.
+*   Configurar el interceptor de Axios (`apiClient.ts`) para añadir el token JWT a las cabeceras de todas las peticiones si está presente en el store.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/App.tsx`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `frontend/src/services/apiClient.ts`
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 1.4: Desarrollo de la Interfaz de Login y Gestión de Sesión Frontend (React)
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 1.3 completado.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar el flujo de login completo desde la UI.
+
+### Paso 1.5: Implementación de Protección de Rutas (Backend y Frontend)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se asegurará que solo los usuarios autenticados puedan acceder a ciertas rutas/endpoints, y que los usuarios con roles específicos tengan acceso a funcionalidades particulares.
+##### Desglose de Tareas
+###### SubTarea 1.5.1: Aplicar `JwtAuthGuard` en Endpoints Backend
+*   Descripción del cambio: Añadir el decorador `@UseGuards(JwtAuthGuard)` a los controladores o endpoints del backend que requieran autenticación (ej: todos excepto `/auth/login`).
+*   ruta/relativa/del/archivo/modificado: (Ejemplos) `backend/src/users/users.controller.ts`, `backend/src/scheduling/scheduling.controller.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 1.5.2: Crear Decorador `Roles` y `RolesGuard` Backend
+*   Descripción del cambio:
+    *   `RolesDecorator (@Roles(...roles: string[]))`: Para especificar los roles permitidos en un endpoint.
+    *   `RolesGuard`: Un guard que verifica si el rol del usuario (obtenido del payload del JWT) está incluido en los roles especificados por el decorador `@Roles`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/decorators/roles.decorator.ts`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `backend/src/auth/guards/roles.guard.ts`
+*   Operación realizada: Crear
+###### SubTarea 1.5.3: Aplicar `RolesGuard` en Endpoints Backend Específicos
+*   Descripción del cambio: Usar `@UseGuards(JwtAuthGuard, RolesGuard)` y `@Roles('Administrador')` (por ejemplo) en endpoints que requieren un rol específico.
+*   ruta/relativa/del/archivo/modificado: (Ejemplo) `backend/src/users/users.controller.ts` (para crear/eliminar usuarios)
+*   Operación realizada: Actualizar
+###### SubTarea 1.5.4: Crear Componente `ProtectedRoute` Frontend
+*   Descripción del cambio: Un componente HOC o wrapper en React que verifique el estado de autenticación del store de Zustand.
+*   Si el usuario no está autenticado, redirige a `/login`.
+*   Opcionalmente, puede tomar una prop `allowedRoles` y verificar contra el rol del usuario en el store. Si no tiene el rol, redirige a una página de "No Autorizado" o al dashboard.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/routes/ProtectedRoute.tsx`
+*   Operación realizada: Crear
+###### SubTarea 1.5.5: Aplicar `ProtectedRoute` a Rutas del Frontend
+*   Descripción del cambio: Envolver las rutas que requieren autenticación (ej: `/dashboard`, `/schedule`, `/reports`) con el componente `ProtectedRoute`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/App.tsx` (o donde se definan las rutas)
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 1.5: Implementación de Protección de Rutas (Backend y Frontend)
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 1.3 y 1.4 completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar el acceso a rutas protegidas sin estar logueado y con diferentes roles (si se crean usuarios de prueba con roles distintos).
+
+*(Los demás bloques seguirían una estructura similar, desglosando cada funcionalidad en pasos de BD, SPs, Backend y Frontend. Por la extensión, me detendré aquí, pero este es el nivel de detalle esperado para el resto del plan de acción.)*
+
+---
+
+*(Continuación del plan de acción para las demás funcionalidades principales...)*
+*(Este es un ejemplo de cómo continuar. Se deben detallar los Bloques 2, 3, 4 y 5 con el mismo nivel de granularidad)*
+
+---
+
+## Tarea 2: Carga y Validación Inicial de Datos Maestros
+
+### Paso 2.1: Diseño e Implementación de Esquema de BD para Datos Maestros
+#### Explicación técnica detallada: Crear tablas para Estructura Académica, Cursables, Docentes, Siglas de Pago.
+##### Desglose de Tareas
+###### SubTarea 2.1.1: Crear Tabla `AcademicStructures`
+*   Descripción: Almacena asignaturas, planes, etc. Campos: `id`, `code`, `name`, `credits`, `plan_id`, etc.
+*   ruta/relativa: `backend/src/database/migrations/006-create-academic-structures-table.sql`
+*   Operación: Crear
+###### SubTarea 2.1.2: Crear Tabla `Teachers`
+*   Descripción: Nómina de docentes. Campos: `id`, `rut`, `name`, `email`, `category_id`, `contract_type_id`, etc. (FK a `PaymentCodes` para categoría/tipo si aplica).
+*   ruta/relativa: `backend/src/database/migrations/007-create-teachers-table.sql`
+*   Operación: Crear
+###### SubTarea 2.1.3: Crear Tabla `PaymentCodes` (Siglas de Pago)
+*   Descripción: Códigos de pago y sus factores. Campos: `id`, `code_name`, `factor`, `description`.
+*   ruta/relativa: `backend/src/database/migrations/008-create-payment-codes-table.sql`
+*   Operación: Crear
+###### SubTarea 2.1.4: Crear Tabla `CourseReportsData` (Reporte de Cursables)
+*   Descripción: Datos de estudiantes cursables por asignatura. Campos: `id`, `academic_structure_id` (FK), `student_count`, `term`, `year`.
+*   ruta/relativa: `backend/src/database/migrations/009-create-course-reports-data-table.sql`
+*   Operación: Crear
+#### Otros Comentarios: Ejecutar migraciones.
+
+### Paso 2.2: Implementación de SPs para Carga y Validación de Datos Maestros
+#### Explicación técnica detallada: SPs que reciben JSON con datos de Excel, validan e insertan/actualizan.
+##### Desglose de Tareas
+###### SubTarea 2.2.1: Crear SP `sp_LoadAcademicStructure`
+*   Descripción: Procesa JSON de Estructura Académica. Valida duplicados, integridad referencial.
+*   ruta/relativa: `backend/src/database/stored-procedures/sp_LoadAcademicStructure.sql`
+*   Operación: Crear
+###### SubTarea 2.2.2: Crear SP `sp_LoadTeachers`
+*   Descripción: Procesa JSON de Nómina de Docentes. Valida formato RUT, email, existencia de códigos de pago.
+*   ruta/relativa: `backend/src/database/stored-procedures/sp_LoadTeachers.sql`
+*   Operación: Crear
+###### SubTarea 2.2.3: Crear SP `sp_LoadPaymentCodes`
+*   Descripción: Procesa JSON de Siglas de Pago.
+*   ruta/relativa: `backend/src/database/stored-procedures/sp_LoadPaymentCodes.sql`
+*   Operación: Crear
+###### SubTarea 2.2.4: Crear SP `sp_LoadCourseReportsData`
+*   Descripción: Procesa JSON de Reporte de Cursables. Valida existencia de `academic_structure_id`.
+*   ruta/relativa: `backend/src/database/stored-procedures/sp_LoadCourseReportsData.sql`
+*   Operación: Crear
+#### Otros Comentarios: Probar SPs con datos de ejemplo.
+
+### Paso 2.3: Desarrollo del Módulo de Cargas Backend (NestJS)
+#### Explicación técnica detallada: API para recibir archivos Excel, parsearlos y llamar a los SPs.
+##### Desglose de Tareas
+###### SubTarea 2.3.1: Crear `UploadsModule`, `UploadsController`, `UploadsService`
+*   Descripción: Estructura del módulo.
+*   ruta/relativa: `backend/src/uploads/*`
+*   Operación: Crear
+###### SubTarea 2.3.2: Configurar Multer para Subida de Archivos
+*   Descripción: En `UploadsModule` o globalmente.
+*   ruta/relativa: `backend/src/uploads/uploads.module.ts`
+*   Operación: Actualizar
+###### SubTarea 2.3.3: Implementar Endpoints de Carga en `UploadsController`
+*   Descripción: `POST /uploads/academic-structure`, `POST /uploads/teachers`, etc. Usar `@UseInterceptors(FileInterceptor('file'))`.
+*   ruta/relativa: `backend/src/uploads/uploads.controller.ts`
+*   Operación: Actualizar
+###### SubTarea 2.3.4: Implementar Lógica de Parseo y Llamada a SPs en `UploadsService`
+*   Descripción: Para cada tipo de carga: leer Excel con `exceljs`, validar estructura básica, convertir a JSON, llamar al SP correspondiente, formatear respuesta (éxito/errores).
+*   ruta/relativa: `backend/src/uploads/uploads.service.ts`
+*   Operación: Actualizar
+#### Otros Comentarios: Proteger endpoints con `JwtAuthGuard` y `RolesGuard` (Admin).
+
+### Paso 2.4: Desarrollo de la Interfaz de Carga de Archivos Frontend (React)
+#### Explicación técnica detallada: UI para seleccionar tipo de archivo, subirlo y ver resultados.
+##### Desglose de Tareas
+###### SubTarea 2.4.1: Crear `DataUploadPage.tsx`
+*   Descripción: Página con selector de tipo de datos a cargar y componente de subida.
+*   ruta/relativa: `frontend/src/features/dataUpload/DataUploadPage.tsx`
+*   Operación: Crear
+###### SubTarea 2.4.2: Crear Componente `FileUploadArea.tsx`
+*   Descripción: Componente reutilizable para seleccionar archivo (drag-n-drop opcional).
+*   ruta/relativa: `frontend/src/features/dataUpload/components/FileUploadArea.tsx`
+*   Operación: Crear
+###### SubTarea 2.4.3: Crear `upload.service.ts` (Frontend)
+*   Descripción: Funciones para llamar a los endpoints de carga del backend.
+*   ruta/relativa: `frontend/src/features/dataUpload/services/upload.service.ts`
+*   Operación: Crear
+###### SubTarea 2.4.4: Implementar Lógica de Subida y Feedback
+*   Descripción: En `DataUploadPage.tsx`, manejar la subida del archivo, mostrar progreso, y presentar el resumen o errores devueltos por la API.
+*   ruta/relativa: `frontend/src/features/dataUpload/DataUploadPage.tsx`
+*   Operación: Actualizar
+###### SubTarea 2.4.5: Enlaces para Descargar Plantillas
+*   Descripción: Proveer enlaces para que el usuario descargue plantillas Excel de ejemplo. (Los archivos de plantilla pueden estar en `frontend/public/templates/`).
+*   ruta/relativa: `frontend/src/features/dataUpload/DataUploadPage.tsx`
+*   Operación: Actualizar
+#### Otros Comentarios: Asegurar buen manejo de errores y feedback claro al usuario.
+
+---
+
+## Tarea 3: Programación Académica Colaborativa en Calendario Interactivo
+
+### Paso 3.1: Diseño e Implementación de Esquema de BD para Programación Académica
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán las tablas necesarias para almacenar los eventos de programación, su estado, y cualquier información de configuración relevante para el calendario.
+##### Desglose de Tareas
+###### SubTarea 3.1.1: Crear Tabla `EventStatuses` (o verificar si ya existe una genérica)
+*   Descripción: Tabla para los estados de un evento de programación (Borrador, En Revisión, Aprobado, Rechazado). Si no se creó una tabla genérica de estados antes.
+*   Campos: `id` (PK, INT, AUTO_INCREMENT), `name` (VARCHAR(50), UNIQUE, NOT NULL), `description` (TEXT, NULLABLE).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/010-create-event-statuses-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 3.1.2: Crear Tabla `ScheduleEvents`
+*   Descripción: Tabla principal para los eventos de programación académica.
+*   Campos: `id` (PK, INT, AUTO_INCREMENT), `academic_structure_id` (FK a `AcademicStructures.id`, INT, NOT NULL), `teacher_id` (FK a `Teachers.id`, INT, NOT NULL), `area_id` (INT, NOT NULL, representa el programa/área), `start_datetime` (DATETIME, NOT NULL), `end_datetime` (DATETIME, NOT NULL), `day_of_week` (VARCHAR(10), NOT NULL, ej: "Lunes", "Martes"), `classroom` (VARCHAR(50), NULLABLE), `vacancies` (INT, NULLABLE), `status_id` (FK a `EventStatuses.id`, INT, NOT NULL, DEFAULT al ID de "Borrador"), `approval_comment` (TEXT, NULLABLE), `created_by_user_id` (FK a `Users.id`, INT, NOT NULL), `created_at` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP), `updated_at` (TIMESTAMP, DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP).
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/011-create-schedule-events-table.sql`)
+*   Operación realizada: Crear
+###### SubTarea 3.1.3: Poblar Tabla `EventStatuses` con Datos Iniciales
+*   Descripción: Insertar los estados base ("Borrador", "En Revisión", "Aprobado", "Rechazado").
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración/seeding (ej: `backend/src/database/migrations/012-seed-event-statuses-data.sql`)
+*   Operación realizada: Crear (registros)
+###### SubTarea 3.1.4: Crear Tabla `Configuration` (si no existe) o añadir claves para el calendario
+*   Descripción: Almacenar configuraciones globales como horas máximas por docente, unidad de hora (cronológica/académica).
+*   Campos (si nueva): `id` (PK, INT, AUTO_INCREMENT), `config_key` (VARCHAR(100), UNIQUE, NOT NULL), `config_value` (VARCHAR(255), NOT NULL), `description` (TEXT, NULLABLE).
+*   Claves a añadir/verificar: `max_teacher_hours_weekly`, `time_unit` (ej: 'chronological_60', 'academic_45').
+*   ruta/relativa/del/archivo/modificado: Script SQL de migración (ej: `backend/src/database/migrations/013-create-or-update-configuration-table.sql`)
+*   Operación realizada: Crear/Actualizar
+#### Otros Comentarios del Paso 3.1: Diseño e Implementación de Esquema de BD para Programación Académica
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos de Tarea 0 y Tarea 2 (BD) completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar los scripts SQL de migración/seeding.
+
+### Paso 3.2: Implementación de SPs para Gestión de Eventos de Programación
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán SPs para obtener, crear, actualizar y eliminar eventos, incluyendo las validaciones de negocio cruciales (solapamiento, horas máximas, etc. - cumpliendo con Funcionalidad 4).
+##### Desglose de Tareas
+###### SubTarea 3.2.1: Crear SP `sp_GetScheduleEvents`
+*   Descripción: Obtiene los eventos de programación para un rango de fechas y opcionalmente un área/programa.
+*   Parámetros: `IN p_area_id INT NULLABLE`, `IN p_start_date DATE`, `IN p_end_date DATE`.
+*   Lógica: Selecciona eventos de `ScheduleEvents` uniéndolos con `AcademicStructures`, `Teachers`, `EventStatuses` para obtener información completa.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GetScheduleEvents.sql`
+*   Operación realizada: Crear
+###### SubTarea 3.2.2: Crear SP `sp_ValidateAndSaveScheduleEvent` (CRÍTICO - Incluye Funcionalidad 4)
+*   Descripción: SP central para crear o actualizar un evento. Realiza todas las validaciones de negocio.
+*   Parámetros: `IN p_event_data JSON` (contiene todos los campos del evento, incluyendo un `id` si es actualización), `IN p_user_id INT`, `OUT o_event_id INT`, `OUT o_status_code VARCHAR(50)`, `OUT o_error_message TEXT`.
+*   Lógica de Validación (dentro del SP):
+    1.  Extraer datos del JSON.
+    2.  **Validación de Solapamiento de Docente:** Verificar que el docente no tenga otro evento en el mismo horario (excluir el evento actual si es una actualización).
+    3.  **(Opcional) Validación de Solapamiento de Aula:** Si se gestionan aulas, verificar que el aula no esté ocupada.
+    4.  **Validación de Horas Máximas por Docente:** Consultar `Configuration` o `TeacherContracts` y la carga actual del docente en el período para verificar que no exceda el límite.
+    5.  **Validación de Existencia de Asignatura:** Verificar que `academic_structure_id` sea válido.
+    6.  **(Opcional) Validación de Compatibilidad Docente/Asignatura.**
+    7.  Si alguna validación falla, setear `o_status_code = 'VALIDATION_ERROR'` y `o_error_message`.
+    8.  Si todas las validaciones pasan:
+        *   Si `p_event_data` tiene `id`, actualizar el evento existente en `ScheduleEvents`.
+        *   Si no, insertar un nuevo evento en `ScheduleEvents` (con `status_id` inicial "Borrador" y `created_by_user_id`).
+        *   Setear `o_status_code = 'SUCCESS'` y `o_event_id` con el ID del evento.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_ValidateAndSaveScheduleEvent.sql`
+*   Operación realizada: Crear
+###### SubTarea 3.2.3: Crear SP `sp_DeleteScheduleEvent`
+*   Descripción: Elimina (lógicamente o físicamente) un evento de programación.
+*   Parámetros: `IN p_event_id INT`, `IN p_user_id INT` (para auditoría o validación de permisos si es necesario), `OUT o_status_code VARCHAR(50)`.
+*   Lógica: Elimina el registro de `ScheduleEvents` o actualiza un campo `is_deleted = TRUE`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_DeleteScheduleEvent.sql`
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 3.2: Implementación de SPs para Gestión de Eventos de Programación
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 3.1 completado.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar los scripts SQL para crear los SPs. Probar exhaustivamente `sp_ValidateAndSaveScheduleEvent` con diversos escenarios de validación.
+
+### Paso 3.3: Desarrollo del Módulo de Programación Backend (NestJS)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se implementará el módulo `SchedulingModule` en NestJS, incluyendo los endpoints HTTP para CRUD de eventos y el Gateway de Socket.IO para la colaboración en tiempo real.
+##### Desglose de Tareas
+###### SubTarea 3.3.1: Crear `SchedulingModule`, `SchedulingController`, `SchedulingService`, `SchedulingGateway`
+*   Descripción: Generar archivos base (`nest g mo scheduling`, `nest g co scheduling`, `nest g s scheduling`, `nest g ga scheduling`).
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/*`
+*   Operación realizada: Crear
+###### SubTarea 3.3.2: Implementar DTOs para Eventos
+*   Descripción: `CreateEventDto.ts`, `UpdateEventDto.ts`, `ScheduleEventDto.ts` (para respuestas). Con validaciones de `class-validator`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/dto/*`
+*   Operación realizada: Crear
+###### SubTarea 3.3.3: Implementar Lógica en `SchedulingService`
+*   Descripción:
+    *   `findAll(areaId, startDate, endDate)`: Llama a `sp_GetScheduleEvents`.
+    *   `create(createEventDto, userId)`: Llama a `sp_ValidateAndSaveScheduleEvent`. Si éxito, devuelve el evento. Si error de validación, lanza `BadRequestException` o `UnprocessableEntityException`.
+    *   `update(eventId, updateEventDto, userId)`: Llama a `sp_ValidateAndSaveScheduleEvent`. Misma lógica de error/éxito.
+    *   `remove(eventId, userId)`: Llama a `sp_DeleteScheduleEvent`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.service.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 3.3.4: Implementar Endpoints HTTP en `SchedulingController`
+*   Descripción:
+    *   `GET /schedules`: Llama a `SchedulingService.findAll`.
+    *   `POST /schedules`: Llama a `SchedulingService.create`.
+    *   `PUT /schedules/:id`: Llama a `SchedulingService.update`.
+    *   `DELETE /schedules/:id`: Llama a `SchedulingService.remove`.
+    *   Proteger todos con `JwtAuthGuard`. Aplicar `RolesGuard` según sea necesario (ej: solo Directores pueden crear/editar eventos de su área).
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.controller.ts`
+*   Operación realizada: Actualizar
+###### SubTarea 3.3.5: Implementar `SchedulingGateway` (Socket.IO)
+*   Descripción:
+    *   Namespace `/scheduling`.
+    *   `handleConnection`, `handleDisconnect`.
+    *   Método para que los clientes se suscriban a un "room" por `areaId` (ej: `@SubscribeMessage('join_area')`).
+    *   Métodos públicos en el Gateway (ej: `emitEventCreated(areaId, eventData)`, `emitEventUpdated(areaId, eventData)`, `emitEventDeleted(areaId, eventId)`) que serán llamados desde `SchedulingService` tras una operación CRUD exitosa.
+    *   Estos métodos emitirán a los clientes en el room del `areaId` correspondiente.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.gateway.ts`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.service.ts` (para llamar a los métodos de emisión del gateway)
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 3.3: Desarrollo del Módulo de Programación Backend (NestJS)
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 1.3, 3.1, 3.2 completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar endpoints HTTP y la emisión/recepción de mensajes WebSocket.
+
+### Paso 3.4: Desarrollo de la Interfaz de Calendario Interactivo Frontend (React)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se implementará la vista del calendario usando FullCalendar, se permitirá la interacción CRUD con eventos, y se integrará con Socket.IO para actualizaciones en tiempo real.
+##### Desglose de Tareas
+###### SubTarea 3.4.1: Crear `SchedulingPage.tsx` y Componente `CalendarView.tsx`
+*   Descripción: `SchedulingPage` será el contenedor. `CalendarView` encapsulará la instancia de `FullCalendar`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/SchedulingPage.tsx`
+*   Operación realizada: Crear
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/CalendarView.tsx`
+*   Operación realizada: Crear
+###### SubTarea 3.4.2: Configurar FullCalendar en `CalendarView.tsx`
+*   Descripción:
+    *   Inicializar FullCalendar con plugins (dayGrid, timeGrid, list, interaction).
+    *   Configurar vistas (día, semana, mes).
+    *   Propiedad `events` para cargar eventos desde la API (usando `useEffect` y `schedule.service.ts.getEvents()`).
+    *   Manejar eventos de FullCalendar: `dateClick` o `select` (para crear), `eventClick` (para ver/editar), `eventDrop` y `eventResize` (para actualizar).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/CalendarView.tsx`
+*   Operación realizada: Actualizar
+###### SubTarea 3.4.3: Crear Componente `EventModal.tsx`
+*   Descripción: Modal para crear y editar eventos. Contendrá un formulario (`react-hook-form`) con campos para asignatura, docente, horarios, aula, vacantes, etc.
+*   Selectores para asignatura y docente (pueden necesitar sus propios servicios y stores para cargar datos maestros).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/EventModal.tsx`
+*   Operación realizada: Crear
+###### SubTarea 3.4.4: Crear `schedule.service.ts` (Frontend)
+*   Descripción:
+    *   Métodos para CRUD de eventos (`getEvents`, `createEvent`, `updateEvent`, `deleteEvent`) llamando a la API HTTP del backend.
+    *   Lógica para conectar a Socket.IO (namespace `/scheduling`).
+    *   Función para emitir `join_area` al conectar o cambiar de área.
+    *   Listeners para `event_created`, `event_updated`, `event_deleted` emitidos por el servidor.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/services/schedule.service.ts`
+*   Operación realizada: Crear
+###### SubTarea 3.4.5: Integrar CRUD y Lógica de Modal
+*   Descripción:
+    *   En `CalendarView.tsx`, los manejadores de eventos de FullCalendar abrirán `EventModal.tsx` con datos (o vacío para crear).
+    *   Al guardar en `EventModal.tsx`, llamar al método correspondiente de `schedule.service.ts` (create/update).
+    *   Tras una operación exitosa (HTTP), FullCalendar debería actualizarse (o esperar la actualización por Socket.IO).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/CalendarView.tsx`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/EventModal.tsx`
+*   Operación realizada: Actualizar
+###### SubTarea 3.4.6: Integrar Actualizaciones en Tiempo Real (Socket.IO)
+*   Descripción:
+    *   En `schedule.service.ts` o en `CalendarView.tsx`, cuando se recibe un evento de Socket.IO:
+        *   `event_created`: Añadir el nuevo evento a FullCalendar (`calendarApi.addEvent()`).
+        *   `event_updated`: Encontrar el evento en FullCalendar por ID y actualizar sus propiedades (`event.setProp()`, `event.setStart()`, etc., o remover y re-añadir).
+        *   `event_deleted`: Encontrar el evento y removerlo (`event.remove()`).
+    *   Asegurar que el usuario se una al "room" del `areaId` correcta. El `areaId` podría ser un filtro/selector en la `SchedulingPage`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/services/schedule.service.ts` (o `CalendarView.tsx`)
+*   Operación realizada: Actualizar
+###### SubTarea 3.4.7: Implementar Filtro por Área/Programa (si aplica)
+*   Descripción: Si los Directores solo ven/editan su área, añadir un selector o obtener el `areaId` del perfil del usuario y pasarlo a las llamadas API y a la suscripción de Socket.IO.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/SchedulingPage.tsx`
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 3.4: Desarrollo de la Interfaz de Calendario Interactivo Frontend (React)
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 3.3 completado. Los datos maestros (asignaturas, docentes) deben poder cargarse para los selectores del modal.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar el flujo completo de CRUD de eventos, incluyendo la colaboración simultánea entre dos navegadores/usuarios.
+
+---
+
+## Tarea 4: Generación de Reportes Esenciales (Nota: Funcionalidad 4 de Validaciones ya integrada en SPs)
+
+### Paso 4.1: Diseño e Implementación de SPs para Reportes
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán SPs que consultarán y agregarán datos para generar la información base de cada reporte.
+##### Desglose de Tareas
+###### SubTarea 4.1.1: Crear SP `sp_GenerateProgrammingReportData`
+*   Descripción: Obtiene datos detallados de eventos para el reporte de programación.
+*   Parámetros: `IN p_filters JSON` (ej: `{ "areaId": 1, "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }`).
+*   Lógica: Similar a `sp_GetScheduleEvents` pero puede incluir más campos o un formato específico para el reporte.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GenerateProgrammingReportData.sql`
+*   Operación realizada: Crear
+###### SubTarea 4.1.2: Crear SP `sp_GeneratePaymentReportData`
+*   Descripción: Calcula horas y montos para el reporte de pago de docentes.
+*   Parámetros: `IN p_filters JSON` (ej: `{ "areaId": 1, "bimestre": "Q1", "year": 2023 }`).
+*   Lógica:
+    1.  Obtener eventos del período/filtros.
+    2.  Consultar `Configuration` para `time_unit` (cronológica/académica).
+    3.  Calcular horas totales por docente según `time_unit`.
+    4.  Obtener `factor_de_pago` de `PaymentCodes` o `TeacherContracts`.
+    5.  Calcular total a pagar.
+    6.  (Opcional) Distribuir horas por mes si el bimestre abarca varios.
+    7.  Devolver dataset con docente, horas, factor, total.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GeneratePaymentReportData.sql`
+*   Operación realizada: Crear
+###### SubTarea 4.1.3: Crear SP `sp_GenerateTeacherLoadReportData`
+*   Descripción: Obtiene el detalle de la carga horaria para un docente específico en un período.
+*   Parámetros: `IN p_filters JSON` (ej: `{ "teacherId": 10, "periodStartDate": "YYYY-MM-DD", "periodEndDate": "YYYY-MM-DD" }`).
+*   Lógica: Seleccionar todos los eventos asignados al docente en el período, detallando asignatura, plan, horarios. Calcular totales.
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GenerateTeacherLoadReportData.sql`
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 4.1: Diseño e Implementación de SPs para Reportes
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 2.1, 3.1, 3.2 completados (necesita tablas de docentes, eventos, config).
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar scripts SQL y probar SPs con datos de prueba para asegurar cálculos correctos.
+
+### Paso 4.2: Desarrollo del Módulo de Reportes Backend (NestJS)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se implementará el módulo `ReportsModule` que expondrá endpoints para solicitar los diferentes reportes, llamará a los SPs y generará los archivos Excel/PDF.
+##### Desglose de Tareas
+###### SubTarea 4.2.1: Crear `ReportsModule`, `ReportsController`, `ReportsService`
+*   Descripción: Estructura del módulo (`nest g mo reports`, etc.).
+*   ruta/relativa/del/archivo/modificado: `backend/src/reports/*`
+*   Operación realizada: Crear
+###### SubTarea 4.2.2: Implementar DTOs para Filtros de Reportes
+*   Descripción: Ej: `ProgrammingReportFilterDto.ts`, `PaymentReportFilterDto.ts`. Con validaciones.
+*   ruta/relativa/del/archivo/modificado: `backend/src/reports/dto/*`
+*   Operación realizada: Crear
+###### SubTarea 4.2.3: Implementar Lógica de Generación de Reportes en `ReportsService`
+*   Descripción:
+    *   Método para cada reporte (ej: `generateProgrammingReport(filters)`).
+    *   Llamar al SP correspondiente para obtener los datos.
+    *   Si el formato es Excel: Usar `exceljs` para crear el `Workbook` y `Worksheet`, poblarlo con los datos y devolver el buffer del archivo.
+    *   Si el formato es PDF:
+        1.  Crear una plantilla HTML simple (puede estar en una carpeta `templates`).
+        2.  Renderizar la plantilla HTML con los datos del SP (usando un motor de plantillas simple o interpolación de strings).
+        3.  Usar `Puppeteer` para convertir el HTML a un buffer PDF.
+*   ruta/relativa/del/archivo/modificado: `backend/src/reports/services/reports.service.ts`
+*   Operación realizada: Actualizar
+*   ruta/relativa/del/archivo/modificado: `backend/src/reports/templates/teacher_load_report.html` (ejemplo de plantilla)
+*   Operación realizada: Crear
+###### SubTarea 4.2.4: Implementar Endpoints en `ReportsController`
+*   Descripción:
+    *   `GET /reports/programming?format=excel&...filters`: Llama a `ReportsService.generateProgrammingReport`.
+    *   `GET /reports/payment?format=excel&...filters`: Llama a `ReportsService.generatePaymentReport`.
+    *   `GET /reports/teacher-load?format=pdf&...filters`: Llama a `ReportsService.generateTeacherLoadReport`.
+    *   Usar `@Res()` para manejar la respuesta y enviar el archivo con `Content-Type` y `Content-Disposition` adecuados.
+    *   Proteger con `JwtAuthGuard` y `RolesGuard`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/reports/reports.controller.ts`
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 4.2: Desarrollo del Módulo de Reportes Backend (NestJS)
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 4.1 completado. `exceljs` y `puppeteer` instalados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar la generación de cada tipo de reporte con diferentes filtros.
+
+### Paso 4.3: Desarrollo de la Interfaz de Solicitud de Reportes Frontend (React)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se creará una página donde los usuarios puedan seleccionar el tipo de reporte, aplicar filtros y descargar el archivo generado.
+##### Desglose de Tareas
+###### SubTarea 4.3.1: Crear `ReportsPage.tsx`
+*   Descripción: Página principal para la generación de reportes.
+*   Incluirá selectores para tipo de reporte y formularios dinámicos para los filtros correspondientes a cada tipo.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/reports/ReportsPage.tsx`
+*   Operación realizada: Crear
+###### SubTarea 4.3.2: Crear Componentes de Formulario de Filtros
+*   Descripción: Componentes reutilizables o específicos para los filtros de cada reporte (ej: `DateRangePicker.tsx`, `TeacherSelector.tsx`).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/reports/components/*`
+*   Operación realizada: Crear
+###### SubTarea 4.3.3: Crear `report.service.ts` (Frontend)
+*   Descripción: Funciones para llamar a los endpoints de generación de reportes del backend.
+*   Deben manejar la respuesta como un `blob` y provocar la descarga del archivo.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/reports/services/report.service.ts`
+*   Operación realizada: Crear
+###### SubTarea 4.3.4: Implementar Lógica de Solicitud y Descarga
+*   Descripción: En `ReportsPage.tsx`:
+    *   Al enviar el formulario de filtros, llamar al método correspondiente de `report.service.ts`.
+    *   Cuando se recibe el `blob` de respuesta:
+        ```javascript
+        // const url = window.URL.createObjectURL(new Blob([response.data]));
+        // const link = document.createElement('a');
+        // link.href = url;
+        // const contentDisposition = response.headers['content-disposition'];
+        // let fileName = 'report.xlsx'; // default
+        // if (contentDisposition) {
+        //   const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        //   if (fileNameMatch.length === 2) fileName = fileNameMatch[1];
+        // }
+        // link.setAttribute('download', fileName);
+        // document.body.appendChild(link);
+        // link.click();
+        // link.remove();
+        // window.URL.revokeObjectURL(url);
+        ```
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/reports/ReportsPage.tsx`
+*   Operación realizada: Actualizar
+#### Otros Comentarios del Paso 4.3: Desarrollo de la Interfaz de Solicitud de Reportes Frontend (React)
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 4.2 completado.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar la descarga de todos los tipos de reportes desde la UI.
+
+---
+
+## Tarea 5: Flujo de Aprobación de Programación
+
+### Paso 5.1: Implementación de SPs para Gestión de Estados de Aprobación
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán SPs para cambiar el estado de un evento de programación (ej: de Borrador a En Revisión, de En Revisión a Aprobado/Rechazado).
+##### Desglose de Tareas
+###### SubTarea 5.1.1: Crear SP `sp_UpdateEventStatus`
+*   Descripción: Actualiza el `status_id` y `approval_comment` de un evento en `ScheduleEvents`.
+*   Parámetros: `IN p_event_id INT`, `IN p_new_status_id INT`, `IN p_user_id INT` (quién realiza la acción), `IN p_comment TEXT NULLABLE`, `OUT o_status_code VARCHAR(50)`.
+*   Lógica:
+    1.  Verificar que el `p_event_id` exista.
+    2.  Verificar que `p_new_status_id` sea un estado válido.
+    3.  **(Importante) Validación de Transición:** Verificar que la transición de estado sea permitida según el estado actual del evento y el rol del `p_user_id` (ej: solo Admin puede aprobar). Esta lógica puede estar en el SP o en el servicio del backend. Idealmente, una parte en el SP para proteger la BD.
+    4.  Actualizar `status_id` y `approval_comment` en `ScheduleEvents`.
+    5.  Setear `o_status_code` (SUCCESS, INVALID_TRANSITION, EVENT_NOT_FOUND).
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_UpdateEventStatus.sql`
+*   Operación realizada: Crear
+#### Otros Comentarios del Paso 5.1: Implementación de SPs para Gestión de Estados de Aprobación
+*   Cualquier otra tarea crítica de la que dependa este paso: Paso 3.1 completado (tabla `ScheduleEvents` y `EventStatuses`).
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Ejecutar script SQL y probar el SP con diferentes escenarios de transición.
+
+### Paso 5.2: Desarrollo del Módulo de Aprobaciones Backend (NestJS)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se crearán endpoints para que los usuarios puedan solicitar revisión, aprobar o rechazar eventos de programación.
+##### Desglose de Tareas
+###### SubTarea 5.2.1: Crear `ApprovalModule`, `ApprovalController`, `ApprovalService` (o integrar en `SchedulingModule`)
+*   Descripción: Estructura del módulo. Puede ser un módulo separado o sus funcionalidades pueden integrarse en `SchedulingModule` si son simples. Asumiremos integración en `SchedulingController` por simplicidad, pero con lógica en un `ApprovalService` si se vuelve complejo.
+*   ruta/relativa/del/archivo/modificado: (Si separado) `backend/src/approval/*`. (Si integrado) `backend/src/scheduling/*`
+*   Operación realizada: Crear/Actualizar
+###### SubTarea 5.2.2: Implementar DTOs para Acciones de Aprobación
+*   Descripción: Ej: `ApprovalActionDto.ts { comment?: string }`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/dto/approval-action.dto.ts` (o `backend/src/approval/dto/*`)
+*   Operación realizada: Crear
+###### SubTarea 5.2.3: Implementar Lógica en `ApprovalService` (o `SchedulingService`)
+*   Descripción:
+    *   Método `requestReview(eventId, userId, dto)`: Llama a `sp_UpdateEventStatus` para cambiar a "En Revisión".
+    *   Método `approveEvent(eventId, userId, dto)`: Llama a `sp_UpdateEventStatus` para cambiar a "Aprobado".
+    *   Método `rejectEvent(eventId, userId, dto)`: Llama a `sp_UpdateEventStatus` para cambiar a "Rechazado" (o "Borrador").
+    *   Cada método debe verificar si el SP devolvió SUCCESS. Si no, lanzar excepción apropiada.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.service.ts` (o `backend/src/approval/approval.service.ts`)
+*   Operación realizada: Actualizar
+###### SubTarea 5.2.4: Implementar Endpoints en `SchedulingController` (o `ApprovalController`)
+*   Descripción:
+    *   `POST /schedules/:id/request-review`
+    *   `POST /schedules/:id/approve`
+    *   `POST /schedules/:id/reject`
+    *   Todos reciben el `ApprovalActionDto` opcional.
+    *   Proteger con `JwtAuthGuard` y `RolesGuard` muy específicos (ej: `approve` solo para 'Administrador').
+    *   Al actualizar el estado, emitir un evento `event_updated` vía `SchedulingGateway` para que los calendarios se actualicen.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.controller.ts` (o `backend/src/approval/approval.controller.ts`)
+*   Operación realizada: Actualizar
+###### SubTarea 5.2.5: (Opcional) Endpoint para Cola de Aprobaciones
+*   Descripción: `GET /approvals/queue?areaId=X&status=pending_review`: Para que los administradores vean qué eventos están pendientes de su aprobación. Llama a un SP `sp_GetApprovalQueue`.
+*   ruta/relativa/del/archivo/modificado: `backend/src/scheduling/scheduling.controller.ts` (o `backend/src/approval/approval.controller.ts`)
+*   Operación realizada: Crear (endpoint)
+*   ruta/relativa/del/archivo/modificado: `backend/src/database/stored-procedures/sp_GetApprovalQueue.sql`
+*   Operación realizada: Crear (SP)
+#### Otros Comentarios del Paso 5.2: Desarrollo del Módulo de Aprobaciones Backend (NestJS)
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 3.3, 5.1 completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar los endpoints de cambio de estado y la cola de aprobaciones.
+
+### Paso 5.3: Desarrollo de la Interfaz de Flujo de Aprobación Frontend (React)
+#### Explicación técnica detallada de lo que estamos logrando en este paso
+Se modificarán las vistas existentes para mostrar el estado de los eventos y se añadirán botones/acciones para el flujo de aprobación. Se creará un dashboard para administradores.
+##### Desglose de Tareas
+###### SubTarea 5.3.1: Actualizar Visualización de Eventos en Calendario
+*   Descripción: En `CalendarView.tsx`, mostrar el estado del evento (ej: color de fondo, ícono) basado en el campo `status.name` del objeto evento.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/CalendarView.tsx`
+*   Operación realizada: Actualizar
+###### SubTarea 5.3.2: Añadir Botones de Acción en `EventModal.tsx`
+*   Descripción:
+    *   Si el evento está "Borrador" y el usuario es Director, mostrar botón "Enviar a Revisión".
+    *   Si el evento está "En Revisión" y el usuario es Administrador, mostrar botones "Aprobar", "Rechazar".
+    *   Al hacer clic, llamar al servicio correspondiente (`schedule.service.ts` o un nuevo `approval.service.ts`).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/components/EventModal.tsx`
+*   Operación realizada: Actualizar
+###### SubTarea 5.3.3: Crear (o extender) `schedule.service.ts` o crear `approval.service.ts` (Frontend)
+*   Descripción: Añadir funciones para llamar a los endpoints de `/request-review`, `/approve`, `/reject`.
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/scheduling/services/schedule.service.ts` (o `frontend/src/features/approval/services/approval.service.ts`)
+*   Operación realizada: Actualizar/Crear
+###### SubTarea 5.3.4: (Opcional) Crear `ApprovalDashboardPage.tsx` para Administradores
+*   Descripción:
+    *   Página que muestra una tabla/lista de eventos "En Revisión" (obtenidos de `/approvals/queue`).
+    *   Permitir acciones de aprobar/rechazar desde esta vista (individual o masivo si se implementa).
+*   ruta/relativa/del/archivo/modificado: `frontend/src/features/approvalWorkflow/ApprovalDashboardPage.tsx`
+*   Operación realizada: Crear
+###### SubTarea 5.3.5: Actualizar Estado en UI tras Acción
+*   Descripción: Después de una acción de aprobación exitosa, el backend emitirá `event_updated` por Socket.IO. El calendario ya debería estar escuchando y actualizándose (ver Paso 3.4.6). Confirmar que esto funciona para cambios de estado.
+*   ruta/relativa/del/archivo/modificado: N/A (Verificación de comportamiento existente)
+*   Operación realizada: N/A
+#### Otros Comentarios del Paso 5.3: Desarrollo de la Interfaz de Flujo de Aprobación Frontend (React)
+*   Cualquier otra tarea crítica de la que dependa este paso: Pasos 3.4, 5.2 completados.
+*   Cualquier tarea manual crítica que el usuario deba realizar para completar este paso: Probar el flujo de aprobación completo desde la UI con diferentes roles de usuario.
+
+---
+
+## Tarea 6: Pruebas y Ajustes Finales del MVP
+
+### Paso 6.1: Pruebas Unitarias y de Integración (Backend)
+#### Explicación técnica detallada: Asegurar que los componentes individuales y su interacción funcionen correctamente.
+##### Desglose de Tareas
+###### SubTarea 6.1.1: Pruebas Unitarias de Servicios y Controladores
+*   Descripción: Escribir pruebas para la lógica de negocio en servicios (mockeando llamadas a SPs) y para la respuesta de controladores (mockeando servicios).
+*   ruta/relativa: `backend/src/**/*.spec.ts`
+*   Operación: Crear/Actualizar
+###### SubTarea 6.1.2: Pruebas de SPs
+*   Descripción: Scripts SQL para probar directamente los SPs con datos de entrada variados y verificar sus salidas y efectos secundarios en la BD.
+*   ruta/relativa: `backend/src/database/tests/*` (o similar)
+*   Operación: Crear
+###### SubTarea 6.1.3: Pruebas de Integración de Endpoints
+*   Descripción: Usar Supertest (integrado con NestJS) para probar el flujo completo de los endpoints API, incluyendo la interacción con la base de datos (puede ser una BD de prueba).
+*   ruta/relativa: `backend/test/*.e2e-spec.ts`
+*   Operación: Crear/Actualizar
+#### Otros Comentarios: Enfocarse en los flujos críticos y validaciones.
+
+### Paso 6.2: Pruebas Unitarias y de Componentes (Frontend)
+#### Explicación técnica detallada: Asegurar que los componentes UI y la lógica del cliente funcionen.
+##### Desglose de Tareas
+###### SubTarea 6.2.1: Pruebas Unitarias de Servicios y Stores
+*   Descripción: Probar la lógica en servicios (mockeando llamadas API) y las transiciones de estado en stores de Zustand.
+*   ruta/relativa: `frontend/src/**/*.test.ts` (o `*.spec.ts`)
+*   Operación: Crear/Actualizar
+###### SubTarea 6.2.2: Pruebas de Componentes
+*   Descripción: Usar React Testing Library para probar el renderizado de componentes, interacciones del usuario y la lógica visual.
+*   ruta/relativa: `frontend/src/**/*.test.tsx` (o `*.spec.tsx`)
+*   Operación: Crear/Actualizar
+#### Otros Comentarios: Priorizar componentes con lógica compleja o interacciones cruciales.
+
+### Paso 6.3: Pruebas End-to-End (E2E)
+#### Explicación técnica detallada: Simular flujos de usuario completos a través de la UI.
+##### Desglose de Tareas
+###### SubTarea 6.3.1: Configuración de Herramienta E2E
+*   Descripción: Configurar Cypress o Playwright en el proyecto frontend.
+*   ruta/relativa: (Carpeta raíz de la herramienta E2E, ej: `frontend/cypress/`)
+*   Operación: Crear
+###### SubTarea 6.3.2: Escribir Casos de Prueba E2E
+*   Descripción: Crear pruebas para los flujos principales: login, carga de un tipo de dato, creación/edición de un evento en calendario, generación de un reporte, aprobación de un evento.
+*   ruta/relativa: (Dentro de la carpeta de la herramienta E2E)
+*   Operación: Crear
+#### Otros Comentarios: Las pruebas E2E pueden ser más lentas de escribir y mantener, enfocarse en los "happy paths" de las funcionalidades más importantes.
+
+### Paso 6.4: Revisión de UI/UX y Ajustes
+#### Explicación técnica detallada: Revisar la usabilidad general, consistencia visual y experiencia de usuario.
+##### Desglose de Tareas
+###### SubTarea 6.4.1: Revisión General de la Interfaz
+*   Descripción: Navegar por toda la aplicación, identificando inconsistencias, problemas de diseño, o flujos confusos.
+*   ruta/relativa: N/A (Revisión visual y funcional)
+*   Operación: N/A
+###### SubTarea 6.4.2: Implementación de Mejoras de Usabilidad
+*   Descripción: Corregir los problemas identificados. Puede implicar cambios en CSS, estructura de componentes, o mensajes al usuario.
+*   ruta/relativa: (Múltiples archivos frontend)
+*   Operación: Actualizar
+#### Otros Comentarios: Considerar feedback de usuarios de prueba si es posible.
+
+### Paso 6.5: Documentación y Preparación para Despliegue
+#### Explicación técnica detallada: Documentar el proyecto y preparar scripts/configuraciones para producción.
+##### Desglose de Tareas
+###### SubTarea 6.5.1: Documentación de APIs (Backend)
+*   Descripción: Usar Swagger/OpenAPI (NestJS tiene integración) para generar documentación de los endpoints.
+*   ruta/relativa: (Configuración en `main.ts` y decoradores en controladores)
+*   Operación: Actualizar
+###### SubTarea 6.5.2: READMEs y Guías de Configuración
+*   Descripción: Actualizar/crear README.md para frontend y backend con instrucciones de instalación, configuración y ejecución.
+*   ruta/relativa: `frontend/README.md`, `backend/README.md`
+*   Operación: Actualizar
+###### SubTarea 6.5.3: Scripts de Build para Producción
+*   Descripción: Asegurar que los comandos `npm run build` (o similar) para frontend y backend generen artefactos optimizados para producción.
+*   ruta/relativa: `frontend/package.json`, `backend/package.json`
+*   Operación: Verificar/Actualizar
+###### SubTarea 6.5.4: Configuración de Variables de Entorno para Producción
+*   Descripción: Documentar las variables de entorno necesarias para un despliegue en producción.
+*   ruta/relativa: N/A (Documentación)
+*   Operación: N/A
+#### Otros Comentarios: Esta fase es crucial para la mantenibilidad y el traspaso del proyecto.
+
+---

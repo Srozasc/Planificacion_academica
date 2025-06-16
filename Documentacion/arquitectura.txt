@@ -1,0 +1,96 @@
+## Funcionalidades de Lanzamiento (MVP)
+
+### Gestión de Acceso y Usuarios
+Permite la autenticación segura de usuarios mediante credenciales institucionales y la administración de diferentes niveles de acceso y permisos. Facilita la incorporación de usuarios al sistema.
+*   Integración con sistema de login institucional existente.
+*   Definición de roles: Administrador, Director/Jefe de Programa, Usuario Lector.
+*   Asignación de permisos específicos por rol para visualización y edición.
+*   Carga masiva de usuarios mediante archivo Excel.
+*   Interfaz para gestión manual de usuarios (CRUD) por el Administrador.
+### Tecnología Involucrada
+*   **Backend:** Node.js, NestJS, TypeScript, Passport.js (JWT, OAuth2/SAML), `exceljs`.
+*   **Frontend:** React.js, TypeScript, Axios.
+*   **Base de Datos:** MySQL (para almacenar usuarios, roles, permisos).
+### Requisitos Principales
+*   Seguridad en la autenticación y autorización.
+*   Integración fluida con el sistema de autenticación institucional.
+*   Clara diferenciación de capacidades según el rol del usuario.
+
+### Carga y Validación Inicial de Datos Maestros
+Permite la importación masiva de datos fundamentales para la programación académica (estructura académica, docentes, etc.) mediante archivos Excel estructurados, con validaciones automáticas de formato e integridad.
+*   Carga de archivos Excel para: Estructura Académica, Reporte de Cursables, Nómina de Docentes, Siglas de Pago.
+*   Validación automática del formato y estructura de los archivos cargados.
+*   Alertas sobre errores o columnas incompatibles.
+*   Posibilidad de definir/usar una plantilla estándar para archivos Excel.
+*   Validaciones de integridad de datos contra la base de datos (ej: existencia de códigos, etc.) mediante SPs.
+### Tecnología Involucrada
+*   **Backend:** Node.js, NestJS, TypeScript, `exceljs`.
+*   **Frontend:** React.js, TypeScript (para interfaz de carga).
+*   **Base de Datos:** MySQL (SPs para validación e inserción de datos maestros).
+### Requisitos Principales
+*   Robustez en la validación de datos para prevenir inconsistencias.
+*   Interfaz intuitiva para la carga de archivos.
+*   Retroalimentación clara al usuario sobre el resultado de la carga y posibles errores.
+
+### Programación Académica Colaborativa en Calendario Interactivo
+Proporciona una interfaz de calendario visual e interactiva donde múltiples usuarios autorizados pueden trabajar simultáneamente en la asignación de docentes, horarios y asignaturas, con validaciones en tiempo real.
+*   Visualización del calendario por día, semana y mes.
+*   Asignación directa de docentes a bloques horarios/asignaturas desde el calendario.
+*   Edición de eventos existentes (docente, horario, vacantes, categoría, etc.).
+*   Sincronización en tiempo real de los cambios para todos los usuarios colaborando.
+*   Implementación de validaciones de negocio críticas durante la creación/modificación de eventos (invocando SPs).
+### Tecnología Involucrada
+*   **Frontend:** React.js, TypeScript, FullCalendar.js, Zustand/Redux Toolkit, Axios.
+*   **Backend:** Node.js, NestJS, TypeScript, Socket.IO.
+*   **Base de Datos:** MySQL (SPs para CRUD de eventos y validaciones en tiempo real).
+### Requisitos Principales
+*   Interfaz de calendario intuitiva y fácil de usar.
+*   Manejo eficiente de la concurrencia para evitar conflictos.
+*   Aplicación de reglas de negocio directamente en la interacción con el calendario.
+
+### Validaciones de Negocio Automatizadas
+Asegura la coherencia y correctitud de la programación académica mediante un conjunto de reglas de negocio y restricciones que se aplican automáticamente, principalmente a nivel de base de datos.
+*   Detección de asignaturas no válidas o inexistentes en el plan.
+*   Verificación de compatibilidad docente/asignatura.
+*   Control de límite de carga horaria máxima por docente.
+*   Prevención de doble asignación de docentes en horarios solapados.
+*   Validación de la existencia de la asignatura según el plan académico.
+### Tecnología Involucrada
+*   **Base de Datos:** MySQL (Procedimientos Almacenados y Triggers para implementar la lógica de validación).
+*   **Backend:** Node.js, NestJS, TypeScript (para invocar SPs y manejar respuestas).
+### Requisitos Principales
+*   Las validaciones deben ser robustas y cubrir todos los escenarios críticos identificados.
+*   Los mensajes de error deben ser claros y ayudar al usuario a corregir el problema.
+*   La lógica de validación debe estar centralizada (principalmente en BD) para consistencia.
+
+### Generación de Reportes Esenciales
+Proporciona la capacidad de generar reportes clave en formatos estándar (Excel, PDF) para la toma de decisiones y procesos administrativos, basados en la información actualizada de la programación.
+*   Reporte de Programación (Excel): Detalle de eventos, asignaturas, docentes, fechas, horas.
+*   Reporte de Pago (Excel): Cálculo de horas totales por docente, aplicación de factor de pago, distribución de horas.
+*   Reporte de Carga Horaria por Docente (PDF): Detallando plan y eventos asociados.
+*   Configuración de la "Unidad de Hora" (cronológica/académica) para los cálculos.
+### Tecnología Involucrada
+*   **Backend:** Node.js, NestJS, TypeScript, `exceljs`, `Puppeteer`.
+*   **Base de Datos:** MySQL (Vistas y SPs para agregación y cálculo de datos para reportes).
+*   **Frontend:** React.js, TypeScript (para solicitar reportes y mostrar opciones).
+### Requisitos Principales
+*   Precisión en los cálculos y datos presentados en los reportes.
+*   Generación de reportes en tiempo real con la información más actual.
+*   Formatos de salida usables y bien estructurados (Excel, PDF).
+
+### Flujo de Aprobación de Programación
+Implementa un mecanismo simple de revisión y aprobación para formalizar la programación académica, permitiendo un control sobre el estado de los eventos.
+*   Definición de estados para los eventos de programación (ej: Borrador, En Revisión, Aprobado).
+*   Workflow: Programación → Revisión → Aprobación.
+*   El Administrador (u otro rol designado) puede revisar y aprobar/rechazar programaciones.
+*   Visualización clara del estado de cada evento o conjunto de programaciones.
+### Tecnología Involucrada
+*   **Base de Datos:** MySQL (tablas para estados, SPs para transiciones de estado).
+*   **Backend:** Node.js, NestJS, TypeScript (API para gestionar el flujo).
+*   **Frontend:** React.js, TypeScript (UI para visualizar estados y realizar acciones de aprobación).
+### Requisitos Principales
+*   Claridad en el proceso de aprobación y los roles involucrados.
+*   Capacidad de rastrear el estado de la programación.
+*   Notificaciones básicas o indicadores visuales del estado.
+
+

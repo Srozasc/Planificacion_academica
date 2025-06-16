@@ -1,0 +1,276 @@
+Especificaciones de Funcionalidades
+Funcionalidad 1: Gestión de Usuarios y Autenticación
+Objetivo de la funcionalidad:
+Permitir el acceso seguro y diferenciado a la plataforma mediante un sistema de credenciales y roles, incluyendo la carga inicial de usuarios.
+Relaciones con APIs (Backend - app/api/v1/endpoints/auth.py):
+POST /api/v1/auth/login:
+Request Body: schemas.user.UserLogin (username, password)
+Response: schemas.token.Token (access_token, token_type) o error 401/400.
+GET /api/v1/users/me:
+Request Header: Authorization: Bearer <JWT>
+Response: schemas.user.UserResponse (id, username, email, role, is_active) o error 401.
+POST /api/v1/users/bulk-upload: (Requiere rol Administrador)
+Request Header: Authorization: Bearer <JWT>
+Request Body: UploadFile (archivo Excel)
+Response: schemas.msg.Msg (ej. {"msg": "Usuarios cargados exitosamente"}) o error 400/403/500.
+(Opcional MVP) POST /api/v1/auth/request-password-reset
+(Opcional MVP) POST /api/v1/auth/reset-password/{token}
+Requisitos detallados de la funcionalidad:
+Modelo de Usuario (Backend - app/db/models/user.py):
+Campos: id (PK, UUID/int), username (string, unique, indexed), email (string, unique, nullable), hashed_password (string), role (enum: 'Administrador', 'Planificador'), is_active (boolean, default True), created_at, updated_at.
+Esquemas Pydantic (Backend - app/schemas/user.py, app/schemas/token.py):
+UserBase, UserCreate (para creación, puede incluir password plano), UserUpdate, UserResponse (para respuestas API, sin hashed_password), UserLogin.
+Token, TokenData (para contenido del JWT).
+Seguridad de Contraseñas (Backend - app/core/security.py):
+Utilizar passlib con bcrypt o argon2 para hashear y verificar contraseñas.
+No almacenar contraseñas en texto plano.
+Autenticación JWT (Backend - app/core/security.py, app/api/v1/deps.py):
+Generar JWT al hacer login exitoso.
+El JWT debe contener user_id (o sub), role y exp (expiración).
+Utilizar una clave secreta fuerte y configurarla mediante variables de entorno.
+Implementar una dependencia (get_current_active_user) para proteger endpoints y obtener el usuario actual.
+Roles y Permisos (Backend):
+Definir roles 'Administrador' y 'Planificador'.
+El endpoint bulk-upload debe ser accesible solo por 'Administrador'.
+Otros endpoints pueden requerir solo estar autenticado o roles específicos según se defina.
+Carga Inicial de Usuarios (Backend - app/services/user_service.py, app/utils/file_processors.py):
+El administrador podrá subir un archivo Excel con columnas: username, email (opcional), password (temporal, el usuario deberá cambiarla o se generará una aleatoria y se le enviará), role.
+El sistema debe parsear el Excel, validar los datos (ej. role válido, formato de username).
+Para cada usuario válido, crear la entrada en la BD con la contraseña hasheada.
+Gestionar errores durante la carga (ej. usuario duplicado, datos inválidos) y reportarlos.
+Interfaz de Login (Frontend - src/pages/LoginPage.jsx, src/components/auth/LoginForm.jsx):
+Formulario con campos para username y password.
+Manejo de errores de validación (campos vacíos) y errores del servidor (credenciales incorrectas).
+Al loguearse exitosamente, almacenar el JWT (ej. en localStorage o sessionStorage) y redirigir al usuario a la página principal/dashboard.
+Actualizar el estado global de autenticación.
+Interfaz de Carga Masiva (Frontend - src/pages/DataManagementPage.jsx o una sección de admin):
+Un componente FileUploader para seleccionar el archivo Excel.
+Botón para iniciar la carga.
+Feedback al usuario sobre el progreso y resultado de la carga (éxito, errores).
+Esta interfaz debe ser visible/accesible solo para usuarios con rol 'Administrador'.
+Gestión de Sesión (Frontend):
+Al cargar la aplicación, verificar si existe un JWT válido.
+Si existe, obtener los datos del usuario (/users/me) y mantenerlo logueado.
+Opción de "Cerrar Sesión" que elimine el JWT y redirija a la página de login.
+Manejo de expiración de token (ej. redirigir a login o intentar refrescar si se implementa refresh token).
+Recuperación de Contraseña (Opcional MVP):
+Flujo de "Olvidé mi contraseña" que envía un enlace de reseteo a un email registrado.
+Página para ingresar nueva contraseña usando el token del enlace.
+Guía detallada de implementación:
+Backend:
+a. Definir modelos SQLAlchemy y esquemas Pydantic para User, Token.
+b. Implementar funciones en security.py: create_access_token, verify_password, get_password_hash.
+c. Implementar UserService: create_user, get_user_by_username, authenticate_user, process_bulk_user_upload (este último usará file_processors.py).
+d. Crear endpoints en auth.py:
+* /login: Llama a authenticate_user y create_access_token.
+* /users/me: Protegido, devuelve datos del usuario actual.
+* /users/bulk-upload: Protegido (admin), llama a process_bulk_user_upload.
+e. Configurar Alembic y generar la migración inicial para la tabla de usuarios.
+Frontend:
+a. Crear AuthContext para gestionar el estado de autenticación y datos del usuario.
+b. Implementar tokenService.js para manejar el almacenamiento/recuperación/eliminación del JWT.
+c. Desarrollar LoginForm.jsx y LoginPage.jsx.
+d. Implementar llamadas a la API (authApi.js) para login y get_me.
+e. Crear ProtectedRoute.jsx para restringir acceso a rutas basadas en autenticación y rol.
+f. Desarrollar el componente de carga masiva para usuarios administradores.
+g. Implementar la lógica de "Cerrar Sesión".
+Funcionalidad 2: Carga y Gestión de Datos Maestros
+Objetivo de la funcionalidad:
+Permitir a un administrador importar y mantener actualizada la información base (Estructura Académica, Reporte de Cursables, Nómina de Docentes) mediante la carga de archivos Excel.
+Relaciones con APIs (Backend - app/api/v1/endpoints/data_masters.py):
+Todos estos endpoints requieren rol Administrador para POST, y rol Planificador/Administrador para GET.
+POST /api/v1/data-masters/academic-structures/upload:
+Request Body: UploadFile (Excel con Estructura Académica).
+Response: schemas.msg.Msg o error.
+GET /api/v1/data-masters/academic-structures:
+Response: Lista de schemas.data_master_schemas.AcademicStructureResponse o similar.
+POST /api/v1/data-masters/course-reports/upload:
+Request Body: UploadFile (Excel con Reporte de Cursables).
+Response: schemas.msg.Msg o error.
+GET /api/v1/data-masters/course-reports:
+Response: Lista de schemas.data_master_schemas.CourseReportResponse o similar.
+POST /api/v1/data-masters/teachers/upload:
+Request Body: UploadFile (Excel con Nómina de Docentes).
+Response: schemas.msg.Msg o error.
+GET /api/v1/data-masters/teachers:
+Response: Lista de schemas.data_master_schemas.TeacherResponse.
+Requisitos detallados de la funcionalidad:
+Modelos de Datos Maestros (Backend - app/db/models/):
+AcademicPlan: id, name, code, active.
+Subject (Asignatura): id, name, code, level, plan_id (FK a AcademicPlan), hours_per_week.
+Teacher: id, first_name, last_name, email, specialty (opcional).
+ProjectedCourse (del Reporte de Cursables): id, subject_id (FK), bimester, year, projected_students.
+Se deben definir claramente las relaciones entre estos modelos.
+Esquemas Pydantic (Backend - app/schemas/data_master_schemas.py):
+Esquemas para creación, actualización y respuesta de cada modelo de dato maestro.
+Procesamiento de Archivos Excel (Backend - app/utils/file_processors.py, app/services/data_master_service.py):
+Para cada tipo de insumo (Estructura Académica, Cursables, Nómina):
+Definir la estructura esperada del Excel (hojas, columnas, tipos de datos).
+Utilizar pandas u openpyxl para leer los datos.
+Validar los datos: campos obligatorios, tipos de datos, valores permitidos, referencias (ej. que un plan de estudios exista).
+Manejar errores de validación de forma granular, idealmente indicando fila y columna del error.
+Lógica para la inserción/actualización en la BD:
+Decidir estrategia de actualización: ¿Borrar y reemplazar todo para el bimestre actual? ¿Actualizar registros existentes y agregar nuevos? (Para MVP, borrar y reemplazar para un bimestre específico puede ser más simple).
+Considerar transacciones de BD para asegurar atomicidad en la carga.
+Interfaz de Carga (Frontend - src/pages/DataManagementPage.jsx, src/components/data_masters/DataUploadSection.jsx):
+Secciones separadas para cada tipo de dato maestro (Estructura Académica, Cursables, Nómina).
+Componente FileUploader para cada sección.
+Indicaciones claras para el usuario sobre el formato esperado del archivo.
+Feedback detallado sobre el proceso de carga: progreso, éxito, errores (con detalles si es posible).
+Opción de descargar plantillas Excel de ejemplo.
+Visualización de Datos Cargados (Frontend - src/pages/DataManagementPage.jsx):
+Tablas simples para mostrar los datos maestros cargados (ej. lista de docentes, lista de planes activos).
+Paginación si los datos son extensos.
+Indicador de "Última actualización" para cada tipo de dato.
+Disponibilidad para Planificación:
+Los datos cargados deben ser accesibles por el módulo de "Planificación Académica Colaborativa" para poblar selectores, validar, etc.
+Guía detallada de implementación:
+Backend:
+a. Definir modelos SQLAlchemy y esquemas Pydantic para cada dato maestro.
+b. Implementar DataMasterService:
+* Métodos como process_academic_structure_excel, process_teachers_excel, etc.
+* Estos métodos usarán file_processors.py para la lógica de parseo y validación.
+* Manejarán la lógica de persistencia en la BD.
+* Métodos para obtener los datos (ej. get_active_teachers, get_subjects_by_plan).
+c. Crear endpoints en data_masters.py protegidos por rol 'Administrador' para POST y 'Planificador'/'Administrador' para GET.
+d. Generar migraciones de BD para las nuevas tablas.
+Frontend:
+a. Desarrollar DataManagementPage.jsx.
+b. Crear componentes reutilizables DataUploadSection.jsx y DataTable.jsx.
+c. Implementar llamadas a la API (dataMastersApi.js) para subir archivos y obtener datos.
+d. Mostrar feedback al usuario de forma clara durante y después de la carga.
+e. Presentar los datos cargados en tablas.
+Funcionalidad 3: Planificación Académica Colaborativa
+Objetivo de la funcionalidad:
+Proveer una interfaz de calendario interactiva donde los usuarios autorizados puedan crear, asignar docentes, modificar y eliminar eventos académicos (asignaturas/secciones) de forma concurrente, con cambios reflejados en tiempo real.
+Relaciones con APIs (Backend - app/api/v1/endpoints/planning.py):
+GET /api/v1/planning/schedules/{schedule_id}/events:
+Response: Lista de schemas.planning_schemas.AcademicEventResponse.
+Parámetros de query opcionales para filtrar por rango de fechas, plan, etc.
+POST /api/v1/planning/schedules/{schedule_id}/events:
+Request Body: schemas.planning_schemas.AcademicEventCreate.
+Response: schemas.planning_schemas.AcademicEventResponse del evento creado.
+PUT /api/v1/planning/events/{event_id}:
+Request Body: schemas.planning_schemas.AcademicEventUpdate.
+Response: schemas.planning_schemas.AcademicEventResponse del evento actualizado.
+DELETE /api/v1/planning/events/{event_id}:
+Response: Status 204 No Content o schemas.msg.Msg.
+WebSocket Endpoint: ws /ws/planning/{schedule_id} (o un nombre más genérico si se manejan múltiples tipos de notificaciones por el mismo canal).
+Mensajes enviados por el servidor: { "type": "EVENT_CREATED", "payload": AcademicEventResponse }, { "type": "EVENT_UPDATED", "payload": AcademicEventResponse }, { "type": "EVENT_DELETED", "payload": { "event_id": "..." } }.
+Mensajes enviados por el cliente (opcional, dependiendo de la estrategia de sincronización): Podrían ser los mismos eventos de C/U/D para que el backend los valide y redistribuya, o simplemente notificaciones de "estoy editando X".
+Requisitos detallados de la funcionalidad:
+Modelo de Evento Académico (Backend - app/db/models/academic_event.py):
+Campos: id (PK), schedule_id (FK a una tabla Schedule que define el bimestre/periodo), subject_id (FK), start_time, end_time, vacancies (número de vacantes), location (opcional, ej. aula), notes (opcional).
+Relación muchos-a-muchos con Teacher (un evento puede tener múltiples docentes, un docente múltiples eventos). Crear tabla de asociación academic_event_teachers.
+Esquemas Pydantic (Backend - app/schemas/planning_schemas.py):
+AcademicEventBase, AcademicEventCreate (incluye lista de teacher_ids), AcademicEventUpdate, AcademicEventResponse (incluye lista de objetos TeacherResponse completos).
+Interfaz de Calendario (Frontend - src/components/planning/CalendarView.jsx):
+Utilizar una librería como FullCalendar o react-big-calendar.
+Vista bimestral por defecto.
+Mostrar eventos con información clave: nombre de asignatura, docente(s), horario.
+Permitir hacer clic en un slot vacío para crear evento, o arrastrar para seleccionar rango horario.
+Permitir hacer clic en un evento existente para editarlo o ver detalles.
+(Opcional MVP) Arrastrar y soltar eventos para reprogramarlos.
+Creación/Edición de Eventos (Frontend - src/components/planning/EventModal.jsx):
+Modal con formulario:
+Selector de Plan de Estudios (carga datos de data-masters).
+Selector de Asignatura (filtrado por plan, carga datos de data-masters).
+Campo para Nivel de Asignatura (puede autocompletarse desde Subject).
+Campo para Número de Vacantes.
+Selector de Fecha y Hora de inicio/fin.
+Selector múltiple de Docentes (carga datos de data-masters/teachers).
+Campo para Ubicación (opcional).
+Campo para Notas (opcional).
+Validaciones en el frontend (campos obligatorios, formato de fecha/hora).
+Lógica de Negocio y Validaciones (Backend - app/services/planning_service.py):
+Al crear/actualizar evento:
+Validar que los subject_id y teacher_ids existan.
+Validar que el horario no se solape con otros eventos del mismo docente (si no es co-docencia permitida) o misma ubicación (si se gestionan aulas). Para MVP, la validación de solapamiento de docentes es clave.
+Persistir el evento y sus relaciones con docentes.
+Colaboración en Tiempo Real (Backend - app/services/websocket_manager.py, Frontend - PlanningContext.jsx o similar):
+Backend:
+Implementar un WebSocketManager que gestione conexiones activas por schedule_id.
+Tras una operación CRUD exitosa en un evento, el PlanningService notificará al WebSocketManager.
+El WebSocketManager transmitirá el cambio (tipo de acción y payload del evento) a todos los clientes conectados a ese schedule_id.
+Frontend:
+Establecer una conexión WebSocket al cargar la página de planificación para el schedule_id actual.
+Escuchar mensajes del servidor.
+Al recibir un mensaje de EVENT_CREATED, EVENT_UPDATED, EVENT_DELETED, actualizar el estado local de los eventos y re-renderizar el calendario.
+Mecanismo de Sincronización (MVP: "Última escritura gana" con refresco):
+Si dos usuarios editan el mismo evento casi simultáneamente, la última solicitud que llegue al backend será la que persista.
+El refresco en tiempo real informará al otro usuario del cambio.
+Visualmente, si un usuario está editando un evento que es modificado por otro, se podría cerrar el modal de edición del primer usuario y mostrar una notificación del cambio.
+Eliminación de Eventos:
+Confirmación antes de eliminar.
+Eliminar el evento y sus asociaciones.
+Notificar a otros clientes vía WebSocket.
+Guía detallada de implementación:
+Backend:
+a. Definir modelos SQLAlchemy y esquemas Pydantic para AcademicEvent, Schedule (si se requiere una entidad explícita para el bimestre), y la tabla de asociación academic_event_teachers.
+b. Implementar PlanningService:
+* Métodos CRUD para AcademicEvent.
+* Lógica de validación (disponibilidad de docentes, etc.).
+* Integración con WebSocketManager para emitir eventos tras C/U/D.
+c. Implementar WebSocketManager:
+* connect(websocket: WebSocket, schedule_id: str)
+* disconnect(websocket: WebSocket, schedule_id: str)
+* broadcast(schedule_id: str, message: dict)
+d. Crear endpoints REST en planning.py y el endpoint WebSocket.
+e. Generar migraciones de BD.
+Frontend:
+a. Integrar la librería de calendario.
+b. Desarrollar CalendarView.jsx para mostrar eventos y manejar interacciones.
+c. Desarrollar EventModal.jsx con los campos necesarios, obteniendo datos de los selectores desde los datos maestros.
+d. Implementar llamadas a la API REST (planningApi.js) para CRUD de eventos.
+e. En PlanningContext.jsx (o similar):
+* Gestionar el estado de los eventos.
+* Establecer y manejar la conexión WebSocket.
+* Actualizar el estado local al recibir mensajes del WebSocket.
+f. Asegurar que los cambios se reflejen en tiempo real en el calendario para todos los usuarios conectados al mismo schedule_id.
+Funcionalidad 4: Generación de Reportes Esenciales (Excel)
+Objetivo de la funcionalidad:
+Permitir a los usuarios descargar dos tipos de reportes en formato Excel: un listado completo de los eventos generados y un resumen de la cantidad de horas asignadas a cada docente.
+Relaciones con APIs (Backend - app/api/v1/endpoints/reports.py):
+GET /api/v1/reports/events/excel:
+Parámetros de query opcionales (ej. schedule_id, start_date, end_date).
+Response: Archivo Excel (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) con Content-Disposition: attachment; filename="reporte_eventos.xlsx".
+GET /api/v1/reports/teacher-hours/excel:
+Parámetros de query opcionales (ej. schedule_id).
+Response: Archivo Excel con Content-Disposition: attachment; filename="reporte_horas_docentes.xlsx".
+Requisitos detallados de la funcionalidad:
+Reporte de Eventos Generados (Excel):
+Columnas: Plan de Estudios (nombre/código), Asignatura (nombre/código), Nivel Asignatura, Docente(s) Asignado(s) (nombres), Número de Vacantes, Fecha Inicio, Hora Inicio, Fecha Fin, Hora Fin, Ubicación (si aplica), Duración (calculada).
+Los datos deben reflejar el estado actual de la programación para el schedule_id o rango de fechas especificado.
+Reporte de Horas Docentes (Excel):
+Columnas: Docente (nombre completo), Plan de Estudios (nombre/código), Asignatura (nombre/código), Cantidad de Horas (suma total de horas para esa combinación docente-asignatura-plan).
+El cálculo de horas debe ser preciso, considerando la duración de cada evento.
+Agrupar por docente, luego por plan y asignatura.
+Generación de Excel (Backend - app/services/report_service.py):
+Utilizar openpyxl o XlsxWriter para crear los archivos Excel en memoria.
+FastAPI debe devolver una StreamingResponse o FileResponse para enviar el archivo al cliente.
+Formateo básico (negritas para encabezados, anchos de columna adecuados).
+Interfaz de Descarga (Frontend - src/pages/DashboardPage.jsx o src/components/reports/ReportDownloadButton.jsx):
+Botones claramente identificados para descargar cada tipo de reporte.
+(Opcional MVP) Filtros básicos en el frontend (ej. seleccionar bimestre/schedule) que se pasarán como query params a la API.
+Precisión y Compatibilidad:
+Los reportes deben ser precisos y consistentes con los datos en la aplicación.
+Los archivos Excel generados deben ser compatibles con versiones comunes de Microsoft Excel y otros lectores de hojas de cálculo.
+Guía detallada de implementación:
+Backend:
+a. Implementar ReportService:
+* generate_events_report(db: Session, schedule_id: Optional[str] = None, ...):
+* Obtener los datos de eventos de la BD, incluyendo información relacionada (asignatura, plan, docentes).
+* PSEUDOCÓDIGO para la lógica de construcción del Excel:
+python # workbook = Workbook() # sheet = workbook.active # sheet.title = "Eventos Académicos" # headers = ["Plan de Estudios", "Asignatura", ...] # sheet.append(headers) # for event_data in fetched_events: # row_data = [ # event_data.subject.academic_plan.name, # event_data.subject.name, # # ... más campos formateados # ", ".join([teacher.full_name for teacher in event_data.teachers]) # ] # sheet.append(row_data) # # Guardar en un stream de bytes # virtual_workbook = BytesIO() # workbook.save(virtual_workbook) # virtual_workbook.seek(0) # return virtual_workbook
+* generate_teacher_hours_report(db: Session, schedule_id: Optional[str] = None, ...):
+* Obtener los eventos, calcular la duración de cada uno.
+* Agrupar por docente, plan, asignatura y sumar las horas.
+* Construir el Excel de manera similar.
+b. Crear endpoints en reports.py que llamen a los métodos del servicio y devuelvan StreamingResponse.
+Frontend:
+a. Desarrollar componentes ReportDownloadButton.jsx o secciones en la página principal.
+b. Implementar llamadas a la API (reportsApi.js) que inicien la descarga del archivo. El navegador gestionará la descarga directamente.
+* PSEUDOCÓDIGO para la llamada en frontend:
+javascript // async function downloadEventsReport(scheduleId) { // const response = await reportsApi.getEventsExcel(scheduleId); // Asume que reportsApi maneja el blob // const url = window.URL.createObjectURL(new Blob([response.data])); // const link = document.createElement('a'); // link.href = url; // link.setAttribute('download', 'reporte_eventos.xlsx'); // document.body.appendChild(link); // link.click(); // link.parentNode.removeChild(link); // } // O más simple si el backend envía Content-Disposition: // window.open(`/api/v1/reports/events/excel?schedule_id=${scheduleId}`, '_blank');
+c. Proporcionar feedback visual mínimo (ej. "Generando reporte...") si la generación en el backend es prolongada, aunque para MVP se espera que sea rápida.
+Start typing a prompt

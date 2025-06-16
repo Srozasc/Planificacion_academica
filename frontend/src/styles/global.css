@@ -1,0 +1,56 @@
+/* Global styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+#root {
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+/* Asegurar que no hay desbordamiento */
+html, body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Fix para navegadores específicos */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  body {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}

@@ -1,0 +1,579 @@
+## Sistema de Archivos
+
+### Repositorio Frontend (React.js + TypeScript)
+frontend/
+├── public/
+│ ├── index.html
+│ └── ... (otros assets públicos como favicons)
+├── src/
+│ ├── App.tsx # Componente raíz de la aplicación y enrutador principal
+│ ├── main.tsx # Punto de entrada de la aplicación React
+│ ├── assets/ # Imágenes, fuentes, etc.
+│ │ └── ...
+│ ├── components/ # Componentes UI reutilizables y genéricos
+│ │ ├── common/ # Botones, Inputs, Modales, Spinners, etc.
+│ │ │ ├── Button.tsx
+│ │ │ └── ...
+│ │ ├── layout/ # Componentes de estructura (Navbar, Sidebar, Footer)
+│ │ │ ├── Navbar.tsx
+│ │ │ └── MainLayout.tsx
+│ │ └── specific/ # Componentes muy específicos de una vista, pero reutilizables en ella
+│ ├── features/ # Lógica y UI específica por funcionalidad principal
+│ │ ├── auth/
+│ │ │ ├── components/ # Componentes UI para autenticación (LoginForm)
+│ │ │ ├── hooks/ # Hooks específicos para autenticación
+│ │ │ ├── services/ # auth.service.ts (llamadas API)
+│ │ │ └── LoginPage.tsx
+│ │ ├── userManagement/
+│ │ │ ├── components/ # UserTable.tsx, UserForm.tsx, UserImportModal.tsx
+│ │ │ ├── services/ # user.service.ts
+│ │ │ └── UserManagementPage.tsx
+│ │ ├── scheduling/
+│ │ │ ├── components/ # CalendarView.tsx, EventModal.tsx, TeacherSelector.tsx
+│ │ │ ├── hooks/ # useCalendarEvents.ts
+│ │ │ ├── services/ # schedule.service.ts
+│ │ │ ├── types/ # Tipos específicos para eventos de calendario
+│ │ │ └── SchedulingPage.tsx
+│ │ ├── dataUpload/
+│ │ │ ├── components/ # FileUploadArea.tsx, UploadProgress.tsx
+│ │ │ ├── services/ # upload.service.ts
+│ │ │ └── DataUploadPage.tsx
+│ │ ├── reports/
+│ │ │ ├── components/ # ReportGeneratorForm.tsx
+│ │ │ ├── services/ # report.service.ts
+│ │ │ └── ReportsPage.tsx
+│ │ └── approvalWorkflow/
+│ │ ├── components/ # ApprovalQueue.tsx, EventStatusIndicator.tsx
+│ │ ├── services/ # approval.service.ts
+│ │ └── ApprovalDashboardPage.tsx
+│ ├── hooks/ # Hooks globales reutilizables
+│ │ └── useDebounce.ts
+│ ├── services/ # Configuración base de Axios, interceptores
+│ │ └── apiClient.ts
+│ ├── store/ # Gestión de estado global (Zustand)
+│ │ ├── auth.store.ts
+│ │ └── ...
+│ ├── styles/ # Estilos globales, variables CSS, tema (Tailwind config aquí)
+│ │ └── global.css
+│ ├── types/ # Interfaces y tipos globales
+│ │ └── index.ts
+│ ├── utils/ # Funciones de utilidad generales
+│ │ └── formatters.ts
+│ └── routes/ # Definición de rutas y componentes protegidos
+│ └── ProtectedRoute.tsx
+├── .env # Variables de entorno
+├── .eslintrc.js
+├── .prettierrc.js
+├── package.json
+├── tsconfig.json
+└── tailwind.config.js
+
+
+### Repositorio Backend (NestJS + TypeScript)
+backend/
+├── src/
+│ ├── main.ts # Punto de entrada de la aplicación NestJS
+│ ├── app.module.ts # Módulo raíz
+│ ├── app.controller.ts # Controlador raíz (opcional)
+│ ├── app.service.ts # Servicio raíz (opcional)
+│ ├── auth/ # Módulo de Autenticación
+│ │ ├── auth.module.ts
+│ │ ├── auth.controller.ts
+│ │ ├── auth.service.ts
+│ │ ├── strategies/ # jwt.strategy.ts, (opcional: saml.strategy.ts)
+│ │ ├── guards/ # jwt-auth.guard.ts, roles.guard.ts
+│ │ ├── decorators/ # roles.decorator.ts, user.decorator.ts
+│ │ └── dto/ # login.dto.ts, token-payload.dto.ts
+│ ├── users/ # Módulo de Gestión de Usuarios
+│ │ ├── users.module.ts
+│ │ ├── users.controller.ts
+│ │ ├── users.service.ts
+│ │ ├── entities/ # user.entity.ts (si se usa TypeORM directamente)
+│ │ └── dto/ # create-user.dto.ts, update-user.dto.ts
+│ ├── uploads/ # Módulo de Carga de Archivos
+│ │ ├── uploads.module.ts
+│ │ ├── uploads.controller.ts
+│ │ ├── uploads.service.ts
+│ │ └── dto/ # file-upload.dto.ts
+│ ├── scheduling/ # Módulo de Programación Académica
+│ │ ├── scheduling.module.ts
+│ │ ├── scheduling.controller.ts
+│ │ ├── scheduling.service.ts
+│ │ ├── scheduling.gateway.ts # WebSocket Gateway (Socket.IO)
+│ │ ├── entities/ # schedule-event.entity.ts
+│ │ └── dto/ # create-event.dto.ts, update-event.dto.ts
+│ ├── reports/ # Módulo de Generación de Reportes
+│ │ ├── reports.module.ts
+│ │ ├── reports.controller.ts
+│ │ ├── reports.service.ts
+│ │ └── dto/ # report-query.dto.ts
+│ ├── approval/ # Módulo de Flujo de Aprobación
+│ │ ├── approval.module.ts
+│ │ ├── approval.controller.ts
+│ │ ├── approval.service.ts
+│ │ └── dto/ # approve-event.dto.ts
+│ ├── common/ # Utilidades, interceptores, filtros comunes
+│ │ ├── filters/ # http-exception.filter.ts
+│ │ ├── interceptors/ # logging.interceptor.ts
+│ │ └── pipes/ # validation.pipe.ts
+│ ├── config/ # Configuración de la aplicación (env vars, db)
+│ │ └── app.config.ts
+│ ├── database/ # Configuración de base deatos, migraciones y SPs
+│ │ ├── database.module.ts
+│ │ ├── typeorm.config.ts # Configuración de TypeORM
+│ │ ├── migrations/ # Archivos de migración de TypeORM
+│ │ └── stored-procedures/ # Scripts SQL de los SPs versionados
+│ │ ├── sp_AuthenticateUser.sql
+│ │ ├── sp_CreateScheduleEvent.sql
+│ │ └── ...
+├── test/ # Pruebas e2e y unitarias
+├── .env
+├── .eslintrc.js
+├── .prettierrc.js
+├── nest-cli.json
+├── package.json
+└── tsconfig.json
+
+
+## Especificaciones de Funcionalidades
+
+### Funcionalidad 1: Sistema de Acceso y Autenticación
+**Objetivo de la funcionalidad:**
+Permitir a los usuarios acceder al sistema utilizando sus credenciales institucionales o credenciales gestionadas internamente. Asegurar que solo usuarios autorizados puedan acceder y que sus permisos sean correctamente aplicados.
+
+**Relaciones con APIs:**
+*   `POST /auth/login`: Autentica al usuario y devuelve un token JWT.
+    *   Request Body: `LoginDto { email_institucional: string, password?: string, institutional_token?: string }` (password o institutional_token según el método)
+    *   Response Body: `{ accessToken: string, user: { id: number, name: string, email: string, role: string } }`
+*   `POST /auth/logout`: Invalida la sesión del usuario (si se maneja stateful en backend, o simplemente el frontend borra el token).
+*   `GET /auth/profile`: Devuelve la información del usuario autenticado actualmente (basado en JWT).
+    *   Response Body: `{ id: number, name: string, email: string, role: string, permissions: string[] }`
+*   (Potencial) `GET /auth/institutional/callback`: Endpoint para el callback de un proveedor OAuth2/SAML si se integra login institucional de esa manera.
+
+**Requisitos detallados de la funcionalidad:**
+1.  **Integración con Login Institucional (MVP Simplificado o Completo):**
+    *   **Simplificado (si aplica):** Los usuarios son pre-cargados y se les asigna una contraseña inicial. El campo "email institucional" se usa como username.
+    *   **Completo (si SAML/OAuth2):** Redirección al IdP institucional. Recepción y validación del token/aserción. Mapeo del usuario institucional a un usuario local. Creación de usuario local si no existe.
+2.  **Login Local:** Formulario con campos para email institucional y contraseña.
+3.  **Validación de Credenciales:**
+    *   El `AuthService` invocará un procedimiento almacenado `sp_AuthenticateUser(IN email, IN password_hash_o_token_institucional, OUT user_id, OUT role, OUT status)`.
+    *   El SP se encargará de verificar las credenciales contra la tabla `Users`. Si es login institucional complejo, el SP podría solo verificar la existencia del usuario mapeado.
+4.  **Generación de Token JWT:** Tras una autenticación exitosa, se genera un JWT conteniendo `userId`, `role`, `email`.
+5.  **Almacenamiento Seguro de Contraseñas:** Si se usa login local, las contraseñas deben ser hasheadas (ej: bcrypt) antes de almacenarse y al compararse. El SP `sp_AuthenticateUser` recibiría el hash.
+6.  **Protección de Rutas:**
+    *   Backend: `JwtAuthGuard` en NestJS para proteger endpoints. `RolesGuard` para verificar roles.
+    *   Frontend: Rutas protegidas que redirigen a login si no hay token válido o faltan permisos.
+7.  **Gestión de Roles y Permisos:**
+    *   Roles predefinidos: Administrador, Director/Jefe de Programa, Usuario Lector.
+    *   Los permisos asociados a cada rol se definirán en la base de datos (tabla `RolePermissions`) y se cargarán al generar el JWT o al consultar el perfil.
+8.  **Logout:**
+    *   Frontend: Borrar el JWT del almacenamiento local (localStorage/sessionStorage). Redirigir a login.
+    *   Backend (opcional): Si se implementa lista negra de tokens, añadir el JWT a la lista.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   Crear tablas: `Users` (id, email_institucional, password_hash, name, role_id, created_at, updated_at), `Roles` (id, name), `Permissions` (id, name, description), `RolePermissions` (role_id, permission_id).
+    *   Crear `sp_AuthenticateUser(IN p_email VARCHAR(255), IN p_password_hash VARCHAR(255), OUT o_user_id INT, OUT o_role_name VARCHAR(50), OUT o_status VARCHAR(50), OUT o_user_name VARCHAR(100))`.
+        *   `o_status` podría ser 'SUCCESS', 'INVALID_CREDENTIALS', 'USER_NOT_FOUND', 'ACCOUNT_DISABLED'.
+    *   Crear `sp_GetUserPermissions(IN p_user_id INT)` que devuelva una lista de nombres de permisos.
+2.  **Backend (NestJS - `auth` module):**
+    *   Configurar `JwtModule` (secret, expiration).
+    *   Implementar `JwtStrategy` para validar tokens JWT.
+    *   Implementar `AuthService`:
+        *   `login(loginDto)`: Llamar a `sp_AuthenticateUser`. Si es exitoso, generar JWT.
+        *   `validateUserById(payload)`: Usado por `JwtStrategy`, recupera usuario de BD.
+    *   Implementar `AuthController`:
+        *   `login()` endpoint.
+        *   `profile()` endpoint (protegido con `JwtAuthGuard`).
+    *   Implementar `JwtAuthGuard` y `RolesGuard`.
+3.  **Frontend (React - `features/auth`):**
+    *   Crear `LoginPage.tsx` con formulario de login.
+    *   Crear `auth.service.ts` para llamar a `/auth/login` y `/auth/profile`.
+    *   Usar Zustand (`auth.store.ts`) para almacenar el token JWT, información del usuario y estado de autenticación.
+    *   Implementar lógica en `App.tsx` o un `LayoutComponent` para verificar el estado de autenticación y redirigir/mostrar contenido apropiado.
+    *   Crear `ProtectedRoute.tsx` para envolver rutas que requieren autenticación.
+
+---
+
+### Funcionalidad 2: Carga y Validación Inicial de Datos Maestros
+**Objetivo de la funcionalidad:**
+Permitir a los administradores cargar información base esencial (Estructura Académica, Cursables, Docentes, Siglas de Pago) mediante archivos Excel estructurados, validando su formato e integridad antes de persistirlos.
+
+**Relaciones con APIs:**
+*   `POST /uploads/academic-structure`: Sube archivo Excel de Estructura Académica.
+*   `POST /uploads/course-reports`: Sube archivo Excel de Reporte de Cursables.
+*   `POST /uploads/teachers`: Sube archivo Excel de Nómina de Docentes.
+*   `POST /uploads/payment-codes`: Sube archivo Excel de Siglas de Pago.
+    *   Todos usan `multipart/form-data`.
+    *   Request: Archivo Excel.
+    *   Response: `{ success: boolean, message: string, errors?: [{ row: number, column: string, error: string }], summary?: { created: number, updated: number, skipped: number } }`
+
+**Requisitos detallados de la funcionalidad:**
+1.  **Interfaz de Carga:** Permitir al usuario seleccionar el tipo de archivo a cargar y el archivo Excel correspondiente.
+2.  **Recepción de Archivo:** El backend (NestJS) recibirá el archivo.
+3.  **Parseo de Excel:** Usar `exceljs` para leer el contenido del archivo Excel hoja por hoja.
+4.  **Validación de Formato y Estructura:**
+    *   Verificar que las columnas esperadas existan y estén en el orden correcto (o mapearlas por nombre).
+    *   Verificar tipos de datos básicos por columna (ej: números, fechas, texto no vacío).
+    *   Esta validación se realiza en el `UploadsService` antes de llamar al SP.
+5.  **Invocación de SPs para Carga y Validación de Negocio:**
+    *   Para cada tipo de archivo, existirá un SP dedicado (ej: `sp_LoadAcademicStructure(IN jsonData JSON)`, `sp_LoadTeachers(IN jsonData JSON)`).
+    *   El `jsonData` será un array de objetos, donde cada objeto representa una fila del Excel.
+    *   Los SPs realizarán:
+        *   Validaciones de integridad referencial (ej: que un código de asignatura exista en la estructura académica).
+        *   Validaciones de duplicados.
+        *   Inserción o actualización de los datos en las tablas correspondientes.
+        *   Devolverán un resumen de la operación y una lista detallada de errores por fila/columna.
+6.  **Retroalimentación al Usuario:**
+    *   Mostrar progreso de la carga y procesamiento.
+    *   Al finalizar, mostrar un resumen (registros cargados, actualizados, errores).
+    *   Si hay errores, permitir descargar un reporte de errores o mostrarlos en la UI.
+7.  **Plantillas Estándar:** Proporcionar plantillas Excel descargables para cada tipo de carga para asegurar el formato correcto.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   Crear tablas: `AcademicStructures`, `CourseReportsData`, `Teachers`, `PaymentCodes`.
+    *   Crear SPs:
+        *   `sp_LoadAcademicStructure(IN p_jsonData JSON, OUT o_summary JSON, OUT o_errors JSON)`
+        *   `sp_LoadCourseReports(IN p_jsonData JSON, OUT o_summary JSON, OUT o_errors JSON)`
+        *   `sp_LoadTeachers(IN p_jsonData JSON, OUT o_summary JSON, OUT o_errors JSON)`
+        *   `sp_LoadPaymentCodes(IN p_jsonData JSON, OUT o_summary JSON, OUT o_errors JSON)`
+        *   Pseudocódigo para un SP de carga:
+            ```sql
+            -- sp_LoadTeachers(IN p_jsonData JSON, ...)
+            -- DECLARE variables for summary (created_count, updated_count, error_count)
+            -- DECLARE variables for error tracking (row_index, column_name, error_message)
+            -- CREATE TEMPORARY TABLE temp_errors (row_idx INT, col_name VARCHAR(100), msg TEXT);
+            -- Loop through each item in p_jsonData:
+            --   EXTRACT data from JSON item (teacher_id, name, email, category, etc.)
+            --   VALIDATE data (e.g., email format, category exists)
+            --   IF validation_fails THEN
+            --     INSERT INTO temp_errors (...);
+            --     INCREMENT error_count;
+            --     CONTINUE loop;
+            --   END IF;
+            --   IF teacher_id EXISTS IN TeachersTable THEN
+            --     UPDATE TeachersTable SET ... WHERE id = teacher_id;
+            --     INCREMENT updated_count;
+            --   ELSE
+            --     INSERT INTO TeachersTable (...);
+            --     INCREMENT created_count;
+            --   END IF;
+            -- END LOOP;
+            -- SET o_summary = JSON_OBJECT('created', created_count, 'updated', updated_count, ...);
+            -- SET o_errors = (SELECT JSON_ARRAYAGG(JSON_OBJECT('row', row_idx, ...)) FROM temp_errors);
+            -- DROP TEMPORARY TABLE temp_errors;
+            ```
+2.  **Backend (NestJS - `uploads` module):**
+    *   Configurar `MulterModule` para la gestión de subida de archivos.
+    *   `UploadsController`: Endpoints para cada tipo de archivo, usando `@UseInterceptors(FileInterceptor('file'))`.
+    *   `UploadsService`:
+        *   Métodos para cada tipo de carga (ej: `processTeachersFile(file)`).
+        *   Usar `exceljs` para parsear el archivo.
+        *   Realizar validaciones estructurales y de formato básicas.
+        *   Convertir datos parseados a formato JSON para el SP.
+        *   Llamar al SP correspondiente en la BD.
+        *   Formatear la respuesta del SP para el frontend.
+3.  **Frontend (React - `features/dataUpload`):**
+    *   `DataUploadPage.tsx`: Selector de tipo de archivo, componente de subida.
+    *   `FileUploadArea.tsx`: Componente para arrastrar y soltar o seleccionar archivo.
+    *   `upload.service.ts`: Funciones para llamar a los endpoints de subida.
+    *   Mostrar progreso y resultados (éxito, errores, resumen) en la UI.
+    *   Opción para descargar plantillas.
+
+---
+
+### Funcionalidad 3: Programación Académica Colaborativa en Calendario Interactivo
+**Objetivo de la funcionalidad:**
+Proporcionar una interfaz de calendario donde múltiples usuarios (Directores/Jefes de Programa) puedan crear, ver, modificar y eliminar eventos de programación académica para sus áreas de forma simultánea, con validaciones en tiempo real y reflejo inmediato de los cambios.
+
+**Relaciones con APIs:**
+*   `GET /schedules?areaId=X&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD`: Obtiene eventos de programación para un área y rango de fechas.
+    *   Response: `ScheduleEventDto[]`
+*   `POST /schedules`: Crea un nuevo evento de programación.
+    *   Request Body: `CreateEventDto { asignaturaId: number, docenteId: number, startDate: string, endDate: string, diaSemana: string, horaInicio: string, horaFin: string, aula?: string, vacantes?: number, areaId: number }`
+    *   Response: `ScheduleEventDto`
+*   `PUT /schedules/{eventId}`: Actualiza un evento existente.
+    *   Request Body: `UpdateEventDto { ... }` (similar a CreateEventDto, todos los campos opcionales)
+    *   Response: `ScheduleEventDto`
+*   `DELETE /schedules/{eventId}`: Elimina un evento.
+    *   Response: `204 No Content`
+*   **WebSocket (Socket.IO) - Namespace `/scheduling`:**
+    *   Server emite `event_created`, `event_updated`, `event_deleted` con el `ScheduleEventDto` correspondiente a los clientes suscritos al área afectada.
+    *   Cliente emite (opcional, si se requiere para acciones específicas no cubiertas por HTTP): `subscribe_to_area { areaId: X }`
+
+**Requisitos detallados de la funcionalidad:**
+1.  **Visualización de Calendario:**
+    *   Usar `FullCalendar.js` en el frontend.
+    *   Vistas por día, semana, mes.
+    *   Filtrar eventos por área del Director/Jefe de Programa.
+    *   Mostrar información clave del evento en el calendario (asignatura, docente).
+2.  **Creación de Eventos:**
+    *   Click en un slot de tiempo o arrastrar para seleccionar rango.
+    *   Modal para ingresar detalles del evento (asignatura, docente, aula, etc.).
+    *   Listas desplegables para seleccionar asignaturas y docentes (pre-cargados).
+3.  **Modificación de Eventos:**
+    *   Click en un evento para abrir modal de edición.
+    *   Arrastrar y soltar eventos para cambiar fecha/hora.
+    *   Redimensionar eventos para cambiar duración.
+4.  **Eliminación de Eventos:** Botón de eliminar en modal o menú contextual.
+5.  **Validaciones en Tiempo Real (invocando SPs desde el backend):**
+    *   Al crear/modificar, el backend llamará a `sp_ValidateAndSaveScheduleEvent`.
+    *   Este SP verificará:
+        *   Solapamiento de horarios para el mismo docente.
+        *   Solapamiento de horarios para la misma aula (si se gestionan aulas).
+        *   Límite de horas máximas por docente (configurable).
+        *   Existencia y validez de la asignatura en el plan.
+        *   Compatibilidad docente/asignatura (si existe dicha regla).
+    *   Si la validación falla, el SP devuelve un error que el backend transmite al frontend.
+6.  **Colaboración en Tiempo Real:**
+    *   Cuando un usuario crea/modifica/elimina un evento exitosamente (validación de SP OK):
+        *   La API del backend NestJS actualiza la BD.
+        *   El `SchedulingGateway` (Socket.IO) emite un mensaje (`event_created`, `event_updated`, `event_deleted`) a todos los clientes conectados que estén visualizando esa área.
+        *   El frontend recibe el mensaje y actualiza el calendario (`FullCalendar.js` API) sin necesidad de recargar toda la data.
+7.  **Persistencia:** Todos los eventos y sus detalles se almacenan en la tabla `ScheduleEvents`.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   Tabla `ScheduleEvents` (id, asignatura_id, docente_id, start_datetime, end_datetime, dia_semana, aula, vacantes, area_id, status_id, created_by_user_id, created_at, updated_at).
+    *   SP `sp_GetScheduleEvents(IN p_area_id INT, IN p_start_date DATE, IN p_end_date DATE)`: Devuelve eventos para el calendario.
+    *   SP `sp_ValidateAndSaveScheduleEvent(IN p_event_data JSON, IN p_user_id INT, OUT o_event_id INT, OUT o_status VARCHAR(50), OUT o_error_message TEXT)`:
+        *   Este SP es CRÍTICO. Contendrá toda la lógica de validación de negocio.
+        *   Si `p_event_data` incluye un `id`, es una actualización; si no, es una creación.
+        *   Realiza todas las validaciones (solapamiento, horas docente, etc.).
+        *   Si hay error, `o_status = 'VALIDATION_ERROR'`, `o_error_message` con el detalle.
+        *   Si OK, inserta/actualiza en `ScheduleEvents`, `o_status = 'SUCCESS'`, `o_event_id` con el ID del evento.
+    *   SP `sp_DeleteScheduleEvent(IN p_event_id INT, IN p_user_id INT, OUT o_status VARCHAR(50))`.
+2.  **Backend (NestJS - `scheduling` module):**
+    *   `SchedulingController`: Endpoints HTTP para CRUD de eventos.
+        *   Los métodos POST/PUT llamarán a `SchedulingService` que a su vez llamará a `sp_ValidateAndSaveScheduleEvent`.
+        *   Si el SP devuelve error, el controlador devuelve un `400 Bad Request` o `422 Unprocessable Entity` con el mensaje.
+        *   Si el SP es exitoso, el controlador invoca al `SchedulingGateway` para emitir el cambio.
+    *   `SchedulingService`: Lógica para interactuar con los SPs.
+    *   `SchedulingGateway`:
+        *   Manejar conexiones WebSocket (`handleConnection`, `handleDisconnect`).
+        *   Método para emitir cambios (ej: `emitEventUpdate(areaId, eventData)`).
+        *   (Opcional) Método para que clientes se suscriban a actualizaciones de un área: `@SubscribeMessage('subscribe_to_area') handleSubscribe(client: Socket, payload: { areaId: number })`.
+3.  **Frontend (React - `features/scheduling`):**
+    *   `SchedulingPage.tsx`: Contenedor principal del calendario.
+    *   `CalendarView.tsx`: Componente que integra `FullCalendar.js`.
+        *   Configurar `FullCalendar` con vistas, `eventSources` (para cargar eventos desde la API).
+        *   Manejar eventos de FullCalendar: `eventClick`, `dateClick`, `eventDrop`, `eventResize`.
+        *   Estos manejadores abrirán `EventModal.tsx` o llamarán directamente a `schedule.service.ts`.
+    *   `EventModal.tsx`: Formulario para crear/editar detalles del evento.
+    *   `schedule.service.ts`:
+        *   Funciones para CRUD de eventos vía API HTTP.
+        *   Lógica para conectar a Socket.IO (`/scheduling` namespace).
+        *   Escuchar eventos (`event_created`, `event_updated`, `event_deleted`) y actualizar los eventos en `FullCalendar` (usando `addEvent`, `getEventById().setProp()`, `getEventById().remove()`).
+    *   Usar Zustand o context para manejar el estado de los eventos del calendario si es necesario, o confiar en `FullCalendar` y recargas selectivas.
+
+---
+
+### Funcionalidad 4: Validaciones de Negocio Automatizadas
+**(Esta funcionalidad es transversal y se implementa principalmente en los SPs invocados por otras funcionalidades como "Programación Académica" y "Carga de Datos")**
+
+**Objetivo de la funcionalidad:**
+Asegurar la integridad, coherencia y cumplimiento de las reglas de negocio de la programación académica de forma automática durante la creación, modificación o carga de datos.
+
+**Relaciones con APIs:**
+No hay APIs directas para "validaciones". Las validaciones son parte del flujo de otras APIs (ej. `POST /schedules`, `POST /uploads/...`). Las respuestas de error de esas APIs reflejarán los fallos de validación.
+
+**Requisitos detallados de la funcionalidad (implementados en SPs):**
+1.  **Detección de Asignaturas No Válidas:** Al cargar datos o crear un evento, verificar que el ID/código de la asignatura exista en la tabla `AcademicStructures`.
+2.  **Verificación de Compatibilidad Docente/Asignatura (Opcional, si aplica):** Si existe una tabla `TeacherSubjectCompatibilities`, verificar que el docente asignado esté habilitado para impartir la asignatura.
+3.  **Límite de Carga Horaria por Docente:**
+    *   Una tabla `Configuration` o `TeacherContracts` almacenará las horas máximas permitidas por docente (semanal/mensual/bimestral).
+    *   Al asignar un evento a un docente, el SP `sp_ValidateAndSaveScheduleEvent` calculará la carga horaria acumulada del docente en el período relevante y la comparará con su límite.
+4.  **Evitar Doble Asignación de Docentes en Horarios Cruzados:**
+    *   El SP `sp_ValidateAndSaveScheduleEvent` consultará los eventos existentes del docente y verificará que el nuevo evento no se solape con ninguno.
+    *   Lógica de comparación de rangos de tiempo: `(StartA < EndB) and (EndA > StartB)`.
+5.  **Validación de Existencia de la Asignatura Según Plan:** Similar al punto 1, pero puede involucrar verificar que la asignatura pertenezca a un plan académico activo o al área del programa que está programando.
+6.  **Validación de Horarios de Funcionamiento (Opcional):** Si la institución tiene horarios de apertura/cierre, validar que los eventos se programen dentro de esos límites.
+7.  **Consistencia de Siglas de Pago:** Al cargar nómina de docentes o eventos, verificar que las siglas de pago asociadas existan en la tabla `PaymentCodes`.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   **Diseño de Tablas de Soporte:**
+        *   `Configuration` (key, value) para parámetros globales (ej: max_horas_docente_general).
+        *   `TeacherContracts` (teacher_id, max_weekly_hours, max_monthly_hours, start_date, end_date) para límites específicos.
+        *   (Opcional) `TeacherSubjectCompatibilities` (teacher_id, subject_id).
+    *   **Implementación en SPs existentes:**
+        *   `sp_ValidateAndSaveScheduleEvent`: Será el principal SP para validaciones de programación.
+            *   Pseudocódigo para validación de solapamiento de docente:
+                ```sql
+                -- INSIDE sp_ValidateAndSaveScheduleEvent
+                -- DECLARE p_new_start_datetime, p_new_end_datetime, p_docente_id from p_event_data
+                -- DECLARE p_event_id_to_exclude (if updating, this is the current event's ID)
+                -- SELECT COUNT(*) INTO conflict_count
+                -- FROM ScheduleEvents
+                -- WHERE docente_id = p_docente_id
+                --   AND id != p_event_id_to_exclude -- Important for updates
+                --   AND ( (start_datetime < p_new_end_datetime) AND (end_datetime > p_new_start_datetime) );
+                -- IF conflict_count > 0 THEN
+                --   SET o_status = 'VALIDATION_ERROR';
+                --   SET o_error_message = 'Docente ya asignado en horario solapado.';
+                --   RETURN;
+                -- END IF;
+                ```
+            *   Pseudocódigo para validación de horas máximas:
+                ```sql
+                -- INSIDE sp_ValidateAndSaveScheduleEvent
+                -- DECLARE p_docente_id, p_new_event_duration_hours, p_week_of_event
+                -- SELECT SUM(TIMESTAMPDIFF(HOUR, start_datetime, end_datetime)) INTO current_weekly_hours
+                -- FROM ScheduleEvents
+                -- WHERE docente_id = p_docente_id
+                --   AND WEEK(start_datetime) = p_week_of_event -- Simplified week calculation
+                --   AND id != p_event_id_to_exclude;
+                -- SELECT max_weekly_hours INTO docente_max_hours FROM TeacherContracts WHERE teacher_id = p_docente_id; -- Or from Configuration
+                -- IF (current_weekly_hours + p_new_event_duration_hours) > docente_max_hours THEN
+                --   SET o_status = 'VALIDATION_ERROR';
+                --   SET o_error_message = 'Supera horas máximas semanales para el docente.';
+                --   RETURN;
+                -- END IF;
+                ```
+        *   `sp_LoadAcademicStructure`, `sp_LoadTeachers`, etc.: Incluirán validaciones de integridad referencial y de datos específicos a la carga.
+2.  **Backend (NestJS):**
+    *   Asegurar que los servicios que llaman a estos SPs manejen adecuadamente las respuestas de error y las propaguen al frontend con mensajes claros.
+3.  **Frontend (React):**
+    *   Mostrar los mensajes de error devueltos por el backend de forma clara al usuario, idealmente cerca del campo o acción que causó el error.
+
+---
+
+### Funcionalidad 5: Generación de Reportes Esenciales
+**Objetivo de la funcionalidad:**
+Permitir a los usuarios generar reportes clave sobre la programación académica y la carga docente en formatos Excel y PDF, con cálculos y datos precisos basados en la información del sistema.
+
+**Relaciones con APIs:**
+*   `GET /reports/programming?format=excel&areaId=X&startDate=...&endDate=...`: Genera reporte de programación.
+*   `GET /reports/payment?format=excel&areaId=X&bimestre=Y&year=Z`: Genera reporte de pago.
+*   `GET /reports/teacher-load?format=pdf&teacherId=X&period=...`: Genera reporte de carga horaria por docente.
+    *   Query params variarán según el reporte.
+    *   `format` puede ser `excel` o `pdf`.
+    *   Response: El archivo binario del reporte (Excel o PDF) con `Content-Type` apropiado.
+
+**Requisitos detallados de la funcionalidad:**
+1.  **Interfaz de Selección de Reporte:**
+    *   Permitir al usuario seleccionar el tipo de reporte.
+    *   Mostrar filtros relevantes para cada reporte (fechas, área, docente, bimestre, etc.).
+2.  **Reporte de Programación (Excel):**
+    *   Columnas: Evento ID, Asignatura (Nombre, Código), Docente (Nombre, RUT/ID), Fecha Inicio, Fecha Fin, Hora Inicio, Hora Fin, Día Semana, Aula, Vacantes, Estado.
+    *   Datos obtenidos y formateados por `sp_GenerateProgrammingReportData`.
+3.  **Reporte de Pago (Excel):**
+    *   Columnas: Docente (Nombre, RUT/ID), Categoría Docente, Total Horas Cronológicas, Total Horas Académicas (según config), Factor de Pago, Sigla de Pago, Total a Pagar.
+    *   Distribución de horas por días/meses según lógica configurable del bimestre.
+    *   Cálculos realizados por `sp_GeneratePaymentReportData`. Este SP necesita acceso a la configuración de "Unidad de Hora".
+4.  **Reporte de Carga Horaria (PDF):**
+    *   Información por docente: Nombre, RUT/ID, Período del reporte.
+    *   Listado de asignaturas/eventos asignados: Plan, Asignatura, Horario, Fechas, Horas semanales.
+    *   Total de horas en el período.
+    *   Datos obtenidos por `sp_GenerateTeacherLoadReportData`.
+5.  **Configuración de Unidad de Hora:**
+    *   Parámetro global en tabla `Configuration` (ej: `unit_of_time = 'academic_45min'` o `unit_of_time = 'chronological_60min'`).
+    *   Los SPs de reporte de pago usarán esta configuración.
+6.  **Generación de Archivos:**
+    *   Backend (NestJS):
+        *   Para Excel: Usar `exceljs` para crear el archivo a partir de los datos del SP.
+        *   Para PDF: Usar `Puppeteer` para renderizar una plantilla HTML (poblada con datos del SP) a PDF.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   Tabla `Configuration` debe tener la `unit_of_time` y factores de pago si no están en `PaymentCodes`.
+    *   SP `sp_GenerateProgrammingReportData(IN p_filters JSON)`: Devuelve dataset para reporte de programación.
+    *   SP `sp_GeneratePaymentReportData(IN p_filters JSON)`:
+        *   Debe obtener `unit_of_time` de `Configuration`.
+        *   Calcular horas cronológicas y académicas.
+        *   Aplicar factores de pago.
+        *   Distribuir horas si es necesario.
+        *   Devuelve dataset para reporte de pago.
+    *   SP `sp_GenerateTeacherLoadReportData(IN p_filters JSON)`: Devuelve dataset para reporte de carga horaria.
+2.  **Backend (NestJS - `reports` module):**
+    *   `ReportsController`: Endpoints para cada tipo de reporte.
+    *   `ReportsService`:
+        *   Métodos para cada reporte (ej: `generateProgrammingReport(filters)`).
+        *   Llamar al SP correspondiente para obtener los datos.
+        *   Si `format=excel`: Usar `exceljs` para construir el `Worksheet` y `Workbook`. Escribir a un buffer y devolver como stream.
+            ```typescript
+            // Pseudocode en ReportsService
+            // async generateExcelReport(dataFromSP: any[], columns: any[]): Promise<Buffer> {
+            //   const workbook = new ExcelJS.Workbook();
+            //   const worksheet = workbook.addWorksheet('Report');
+            //   worksheet.columns = columns.map(col => ({ header: col.header, key: col.key, width: col.width }));
+            //   worksheet.addRows(dataFromSP);
+            //   return await workbook.xlsx.writeBuffer() as Buffer;
+            // }
+            ```
+        *   Si `format=pdf`:
+            *   Tener una plantilla HTML simple (ej: usando Handlebars o EJS) para el reporte.
+            *   Poblar la plantilla con los datos del SP.
+            *   Usar `Puppeteer` para generar el PDF a partir del HTML renderizado.
+            ```typescript
+            // Pseudocode en ReportsService
+            // async generatePdfReport(htmlContent: string): Promise<Buffer> {
+            //   const browser = await puppeteer.launch();
+            //   const page = await browser.newPage();
+            //   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+            //   const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+            //   await browser.close();
+            //   return pdfBuffer;
+            // }
+            ```
+        *   Establecer `Content-Type` y `Content-Disposition` en la respuesta HTTP.
+3.  **Frontend (React - `features/reports`):**
+    *   `ReportsPage.tsx`: Formularios para seleccionar tipo de reporte y filtros.
+    *   `report.service.ts`: Funciones para llamar a los endpoints de reportes.
+        *   Al recibir la respuesta (blob), crear un Object URL y simular un click en un enlace `<a>` para iniciar la descarga.
+
+---
+
+### Funcionalidad 6: Flujo de Aprobación de Programación
+**Objetivo de la funcionalidad:**
+Implementar un workflow simple para que la programación académica pase por estados de revisión y aprobación, permitiendo un control formal antes de considerarla definitiva.
+
+**Relaciones con APIs:**
+*   `POST /schedules/{eventId}/request-review`: Cambia el estado de un evento a "En Revisión".
+*   `POST /schedules/{eventId}/approve`: Cambia el estado de un evento a "Aprobado" (solo Admin/Aprobador).
+*   `POST /schedules/{eventId}/reject`: Cambia el estado de un evento a "Rechazado" o "Borrador" (solo Admin/Aprobador), opcionalmente con un comentario.
+    *   Todos estos podrían tener un body opcional: `{ comment?: string }`.
+    *   Response: `ScheduleEventDto` actualizado.
+*   `GET /approvals/queue?areaId=X&status=pending_review`: Obtiene lista de eventos pendientes de aprobación para un área.
+
+**Requisitos detallados de la funcionalidad:**
+1.  **Estados de Evento:**
+    *   `ScheduleEvents` tabla tendrá una columna `status_id` (FK a `EventStatuses` tabla).
+    *   Posibles estados: Borrador, En Revisión, Aprobado, Rechazado.
+2.  **Transiciones de Estado:**
+    *   Director/Jefe de Programa puede pasar de "Borrador" a "En Revisión".
+    *   Administrador (o rol Aprobador) puede pasar de "En Revisión" a "Aprobado" o "Rechazado".
+    *   Si "Rechazado", puede volver a "Borrador" para corrección.
+3.  **Interfaz de Usuario:**
+    *   En el calendario, los eventos mostrarán su estado (ej: con colores o iconos).
+    *   Directores verán botón "Enviar a Revisión".
+    *   Administradores/Aprobadores verán botones "Aprobar", "Rechazar" en un dashboard de aprobaciones o al ver detalles del evento.
+4.  **Dashboard de Aprobaciones (para Admin/Aprobador):**
+    *   Lista de eventos "En Revisión", filtrables por área.
+    *   Permitir acciones de aprobar/rechazar masivamente o individualmente.
+5.  **Notificaciones (Futuro, pero a considerar):** Notificar al Director cuando su programación es aprobada/rechazada.
+
+**Guía detallada de implementación:**
+1.  **Base de Datos (MySQL):**
+    *   Crear tabla `EventStatuses` (id, name, description).
+    *   Añadir `status_id` (FK a `EventStatuses`) y `approval_comment` (TEXT) a `ScheduleEvents`.
+    *   SP `sp_UpdateEventStatus(IN p_event_id INT, IN p_new_status_id INT, IN p_user_id INT, IN p_comment TEXT, OUT o_status VARCHAR(50))`:
+        *   Verificar que la transición de estado sea válida según el rol del `p_user_id` y el estado actual del evento.
+        *   Actualizar `status_id` y `approval_comment` en `ScheduleEvents`.
+2.  **Backend (NestJS - `approval` module y modificar `scheduling` module):**
+    *   `ApprovalController`: Endpoints para cambiar estado (`/schedules/{eventId}/approve`, etc.).
+        *   Usar `RolesGuard` para asegurar que solo usuarios correctos puedan ejecutar estas acciones.
+        *   Llamarán a `ApprovalService`.
+    *   `ApprovalService`:
+        *   Métodos como `requestReview(eventId, userId)`, `approveEvent(eventId, userId, comment)`.
+        *   Estos métodos llamarán a `sp_UpdateEventStatus`.
+    *   Modificar `SchedulingController` y `SchedulingService` para que al crear eventos, se les asigne un estado inicial ("Borrador").
+    *   Al emitir eventos por Socket.IO (`event_updated`), incluir el nuevo estado.
+3.  **Frontend (React - `features/approvalWorkflow` y modificar `features/scheduling`):**
+    *   Actualizar `EventModal.tsx` y la visualización en `CalendarView.tsx` para mostrar el estado y los botones de acción según el rol del usuario y el estado actual del evento.
+    *   Crear `ApprovalDashboardPage.tsx` para Administradores/Aprobadores:
+        *   Tabla de eventos pendientes.
+        *   Llamar a `approval.service.ts` para acciones.
+    *   `approval.service.ts`: Funciones para llamar a los endpoints de cambio de estado.
+	
