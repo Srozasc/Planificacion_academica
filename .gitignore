@@ -123,8 +123,19 @@ dump_*.sql
 
 # Archivos de datos sensibles
 data/
-uploads/
+# uploads/ - Comentado: queremos versionar el código del módulo
 storage/
+
+# Archivos de upload temporales y procesados (mantener código del módulo)
+backend/src/uploads/temp/
+backend/src/uploads/processed/
+backend/src/uploads/failed/
+!backend/src/uploads/temp/.gitkeep
+!backend/src/uploads/processed/.gitkeep  
+!backend/src/uploads/failed/.gitkeep
+# Excluir archivos Excel específicos
+*.xlsx
+*.xls
 
 # ===== ARCHIVOS DE DEPLOYMENT =====
 .vercel/

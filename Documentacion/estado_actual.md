@@ -671,7 +671,7 @@ Se han adelantado funcionalidades para optimizar el desarrollo. El orden real di
 │ - Permissions  │    │ - Route Guard   │    │ - Profile Data  │
 │ - Session State│    │ - Redirections  │    │ - Token Valid   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+````
 
 ### 🔐 Flujo Completo Implementado
 
@@ -1014,44 +1014,7 @@ Los módulos de datos maestros están completamente implementados y verificados 
 - ✅ **Manejo de errores**: BadRequestException para archivos inválidos
 - ✅ **Limpieza automática**: fs.unlinkSync tras procesamiento
 
-#### **Integración con Backend** ✅ FUNCIONAL  
-- ✅ **TypeORM DataSource**: Inyección para llamadas a SPs
-- ✅ **Stored Procedures**: Llamadas directas con parámetros JSON
-- ✅ **Respuesta estructurada**: JSON con estadísticas detalladas
-- ✅ **Transaccional**: Aprovecha transacciones de los SPs
-
-#### **Mapeo de Datos** ✅ IMPLEMENTADO
-- ✅ **Estructuras académicas**: code, name, type, credits, plan_code, etc.
-- ✅ **Docentes**: rut, name, email, category_code, contract_hours, etc.
-- ✅ **Códigos de pago**: code, name, category, hourly_rate, valid_from, etc.
-- ✅ **Reportes cursables**: academic_structure_id, term, year, student_count, etc.
-
-### 📋 ARCHIVOS GENERADOS:
-
-**ESTRUCTURA COMPLETA DEL MÓDULO:**
-- ✅ `src/uploads/uploads.module.ts` - Módulo principal con Multer configurado
-- ✅ `src/uploads/uploads.controller.ts` - 4 endpoints REST con validaciones
-- ✅ `src/uploads/uploads.service.ts` - Lógica de procesamiento Excel y SPs
-- ✅ `src/uploads/dto/file-upload.dto.ts` - DTOs y enums para cargas
-- ✅ `src/uploads/temp/.gitkeep` - Carpeta temporal protegida
-- ✅ `src/uploads/templates/README.md` - Documentación de plantillas Excel
-- ✅ `src/uploads/README.md` - Documentación completa del módulo
-
-**CONFIGURACIÓN Y DEPENDENCIAS:**
-- ✅ **Dependencias instaladas**: xlsx, @types/xlsx, multer, @types/multer  
-- ✅ **Multer configurado**: diskStorage, fileFilter, limits
-- ✅ **TypeORM integrado**: DataSource injection para DB access
-- ✅ **Compilación exitosa**: npm run build sin errores
-
-### 🧪 CARACTERÍSTICAS VALIDADAS:
-
-#### **Procesamiento de Archivos** ✅ VERIFICADO
-- ✅ **Excel parsing**: XLSX.readFile y sheet_to_json funcionando
-- ✅ **Header detection**: Primera fila como columnas automáticamente
-- ✅ **Flexible mapping**: Acepta nombres en español e inglés
-- ✅ **Null handling**: Manejo apropiado de celdas vacías
-
-#### **Integración API** ✅ VERIFICADO
+#### **Integración con Backend** ✅ VERIFICADO
 - ✅ **Endpoints funcionales**: 4 rutas POST configuradas
 - ✅ **Validation pipes**: ParseFilePipe con FileTypeValidator
 - ✅ **Error handling**: BadRequestException para casos de error
@@ -1073,19 +1036,230 @@ Los módulos de datos maestros están completamente implementados y verificados 
 
 ---
 
-## 🏆 RESUMEN FINAL: SUBTAREA 2.2 COMPLETADA AL 100%
+## 🎉 SUBTAREA 2.3.2 COMPLETADA: CONFIGURACIÓN AVANZADA DE MULTER
 
-### ✅ TODOS LOS STORED PROCEDURES IMPLEMENTADOS
+### ✅ CONFIGURACIÓN AVANZADA DE MULTER IMPLEMENTADA
 
-**STORED PROCEDURES COMPLETADOS:**
-- `sp_LoadTeachers`: Carga masiva de docentes
-- `sp_LoadAcademicStructure`: Carga masiva de estructura académica
-- `sp_LoadCourseReportsData`: Carga masiva de datos de reportes académicos
-- `sp_AuthenticateUser`: Autenticación de usuarios
+**CARACTERÍSTICAS PRINCIPALES IMPLEMENTADAS:**
 
-**DOCUMENTACIÓN Y PRUEBAS COMPLETADAS:**
-- ✅ Documentación completa de SPs y ejemplos de uso
-- ✅ Pruebas exhaustivas de carga y validación de datos
-- ✅ Respuestas estructuradas y manejo de errores implementados
+#### **Configuración Asíncroca y por Entorno** ✅ COMPLETADO
+- ✅ **Environment-based config**: Memoria para tests, disco para producción
+- ✅ **Dynamic directories**: Creación automática de directorios por tipo
+- ✅ **Flexible storage**: diskStorage/memoryStorage según configuración
+- ✅ **Unique filenames**: Timestamp + hash para evitar colisiones
 
-**ESTADO FINAL:** ✅ **COMPLETADO** - Todas las funcionalidades de carga y validación de datos maestras implementadas y verificadas.
+#### **Validaciones Estrictas Multicapa** ✅ COMPLETADO
+- ✅ **MIME type validation**: Verificación de Content-Type
+- ✅ **Extension validation**: Solo .xlsx y .xls permitidos
+- ✅ **Magic numbers verification**: Validación del contenido real con file-type
+- ✅ **Size limits**: 10MB configurable via UPLOAD_MAX_SIZE
+- ✅ **Field limits**: Máximo 10 campos adicionales por request
+
+#### **Estructura de Directorios Organizada** ✅ COMPLETADO
+```
+src/uploads/
+├── temp/                    # Archivos temporales por tipo
+│   ├── academic-structures/ 
+│   ├── teachers/
+│   ├── payment-codes/
+│   └── course-reports/
+├── processed/              # Archivos procesados exitosamente
+├── failed/                 # Archivos con errores
+└── templates/              # Plantillas y documentación
+```
+
+#### **Servicios Auxiliares Integrados** ✅ COMPLETADO
+
+**FileCleanupService** ✅ IMPLEMENTADO
+- ✅ **Cron-based cleanup**: Limpieza automática cada hora
+- ✅ **Manual cleanup**: Endpoints de administración
+- ✅ **Type-specific cleanup**: Limpieza por tipo de archivo
+- ✅ **Statistics**: Métricas detalladas de archivos por directorio
+- ✅ **Configurable retention**: Tiempos de retención por tipo
+
+**FileValidationMiddleware** ✅ IMPLEMENTADO
+- ✅ **Route-specific**: Se aplica solo a rutas de upload
+- ✅ **Content validation**: Verificación de magic numbers
+- ✅ **Upload type validation**: Validaciones específicas por endpoint
+- ✅ **Error handling**: BadRequestException con mensajes claros
+
+**UploadLoggingInterceptor** ✅ IMPLEMENTADO
+- ✅ **Detailed logging**: Info completa de cada upload
+- ✅ **Performance metrics**: Tiempos de procesamiento
+- ✅ **User tracking**: IP y user-agent del cliente
+- ✅ **Success/failure tracking**: Logging diferenciado por resultado
+
+#### **Endpoints de Administración** ✅ COMPLETADO
+- ✅ **GET /uploads/admin/stats**: Estadísticas de archivos
+- ✅ **DELETE /uploads/admin/cleanup**: Limpieza manual global
+- ✅ **DELETE /uploads/admin/cleanup/:type**: Limpieza por tipo específico
+
+#### **Configuración Centralizada** ✅ COMPLETADO
+- ✅ **UploadConfig**: Configuración unificada en config/upload.config.ts
+- ✅ **Environment variables**: Soporte para UPLOAD_MAX_SIZE y NODE_ENV
+- ✅ **Validation functions**: Helpers reutilizables para validaciones
+- ✅ **Directory management**: Constantes centralizadas de directorios
+
+#### **Integración Completa** ✅ COMPLETADO
+- ✅ **Module integration**: UploadsModule con ScheduleModule para cron
+- ✅ **Middleware configuration**: FileValidationMiddleware en rutas POST/PUT
+- ✅ **Interceptor application**: UploadLoggingInterceptor a nivel controlador
+- ✅ **Service injection**: FileCleanupService inyectado en controlador
+- ✅ **TypeScript compilation**: Sin errores de compilación
+
+#### **Seguridad Avanzada** ✅ COMPLETADO
+- ✅ **File sanitization**: Nombres de archivo sanitizados automáticamente
+- ✅ **Path preservation**: preservePath: false por seguridad
+- ✅ **Content verification**: Validación del contenido real vs headers
+- ✅ **Size enforcement**: Límites estrictos en múltiples niveles
+- ✅ **Type enforcement**: Triple validación (MIME + extensión + magic numbers)
+
+### 📋 ARCHIVOS ACTUALIZADOS/CREADOS
+
+**MÓDULO PRINCIPAL:**
+- ✅ `src/uploads/uploads.module.ts` - Configuración avanzada de Multer
+- ✅ `src/uploads/uploads.controller.ts` - Endpoints de administración
+
+**SERVICIOS AUXILIARES:**
+- ✅ `src/uploads/services/file-cleanup.service.ts` - Limpieza automática
+- ✅ `src/uploads/middleware/file-validation.middleware.ts` - Validación avanzada
+- ✅ `src/uploads/interceptors/upload-logging.interceptor.ts` - Logging detallado
+
+**CONFIGURACIÓN:**
+- ✅ `src/uploads/config/upload.config.ts` - Configuración centralizada
+
+**DOCUMENTACIÓN:**
+- ✅ `src/uploads/MULTER_CONFIG.md` - Documentación completa
+- ✅ `Documentacion/estado_actual.md` - Estado actualizado
+
+### 🔧 CARACTERÍSTICAS TÉCNICAS
+
+#### **Configuración de Multer**
+```typescript
+// Configuración asíncrona con validaciones
+{
+  storage: diskStorage({
+    destination: (req, file, callback) => {
+      // Directorios por tipo de upload
+      const uploadType = req.route?.path?.split('/').pop() || 'general';
+      const dir = join(uploadDir, uploadType);
+      callback(null, dir);
+    },
+    filename: (req, file, callback) => {
+      // Nombres únicos con timestamp
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      callback(null, `${file.fieldname}-${uniqueSuffix}-${sanitizedName}`);
+    }
+  }),
+  fileFilter: (req, file, callback) => {
+    // Triple validación: MIME + extensión + contenido
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB configurable
+    files: 1,                    // Un archivo por request
+    fields: 10                   // Máximo campos adicionales
+  }
+}
+```
+
+#### **Limpieza Automática**
+```typescript
+@Cron(CronExpression.EVERY_HOUR)
+async scheduledCleanup() {
+  // Limpieza automática cada hora
+  // Configurable por tipo y edad de archivo
+}
+```
+
+## 🏆 ESTADO GLOBAL: SUBTAREA 2.3.2 - COMPLETADA AL 100%
+
+**CONFIGURACIÓN AVANZADA DE MULTER COMPLETAMENTE FUNCIONAL** - Sistema robusto de:
+- ✅ **Validaciones multicapa** → **Limpieza automática** → **Logging detallado** → **Administración**
+- ✅ **Seguridad avanzada** → **Gestión de directorios** → **Monitoreo** → **Mantenimiento**
+
+**PRÓXIMO PASO:** SubTarea 2.3.3 - Integración frontend con componentes React para upload
+
+---
+
+## 📚 DOCUMENTACIÓN Y ESTADO ACTUAL DEL PROYECTO
+
+### 🛠️ INSTALACIÓN Y CONFIGURACIÓN
+
+#### **Instalación y Configuración** ✅ DOCUMENTADO
+- ✅ **npm install --legacy-peer-deps**: Requerido por conflictos de peer dependencies
+- ✅ **@nestjs/schedule@6.0.0**: Conflicto con @nestjs/common@9.4.3 resuelto
+- ✅ **file-type@21.0.0**: Requiere Node.js >= 20, funciona con v18 usando --legacy-peer-deps
+- ✅ **Variables de entorno**: UPLOAD_MAX_SIZE y NODE_ENV configurables
+- ✅ **Prerequisitos**: Stored Procedures de SubTarea 2.2 implementados
+
+#### **Dependencias Instaladas** ✅ COMPLETADO
+- ✅ **xlsx + @types/xlsx**: Parser de archivos Excel
+- ✅ **multer + @types/multer**: Middleware de upload de archivos  
+- ✅ **@nestjs/schedule**: Tareas programadas para limpieza automática
+- ✅ **file-type**: Detección de tipos por magic numbers
+
+---
+
+## 🚀 PRÓXIMOS PASOS EN EL DESARROLLO
+
+### **Subtarea 2.2: Gestión de Roles y Permisos**
+- [ ] Página de administración de roles (`/roles`)
+- [ ] CRUD completo de roles con permisos asociados
+- [ ] Interfaz para asignación granular de permisos
+- [ ] Validaciones de autorización en UI
+- [ ] Sistema de permisos jerárquicos
+
+### **Subtarea 3: Carga de Datos Académicos**
+- [ ] Componente de upload de archivos Excel/CSV
+- [ ] Validación de formatos y estructura de datos académicos
+- [ ] Preview de datos antes de importar
+- [ ] Manejo de errores de validación masiva
+- [ ] Mapeo de datos a entidades del sistema
+
+### **Subtarea 4: Reportes y Dashboard**
+- [ ] Dashboard con métricas principales del sistema
+- [ ] Reportes de programación académica
+- [ ] Exportación de datos (PDF, Excel)
+- [ ] Gráficos y visualizaciones de datos
+- [ ] Filtros y parámetros de reportes
+
+---
+
+## 🎉 RESUMEN EJECUTIVO DEL ESTADO ACTUAL
+
+**El sistema de planificación académica cuenta con las siguientes características y módulos implementados:**
+
+### 1. **Autenticación y Gestión de Usuarios**
+- Sistema de autenticación completo con JWT
+- CRUD de usuarios con validaciones y gestión de roles
+- Interfaz de usuario moderna y responsive
+
+### 2. **Datos Maestros**
+- Módulos de datos maestros (Academic Structures, Teachers, Payment Codes, Course Reports Data) completamente funcionales
+- API REST con endpoints CRUD y validaciones de negocio
+- Integración con base de datos MySQL y uso de Stored Procedures
+
+### 3. **Carga Masiva de Datos**
+- Módulo de cargas masivas implementado con soporte para archivos Excel
+- Endpoints para carga de datos académicos, docentes, códigos de pago y reportes
+- Validaciones robustas y manejo de errores en el procesamiento de archivos
+
+### 4. **Configuración Avanzada de Multer**
+- Configuración avanzada de Multer para manejo de archivos con validaciones multicapa
+- Limpieza automática de archivos temporales y logging detallado de procesos
+- Servicios auxiliares para validación y limpieza de archivos integrados
+
+### 5. **Pruebas y Validaciones Exhaustivas**
+- Pruebas exhaustivas realizadas en todos los módulos y funcionalidades
+- Validaciones de negocio y de datos implementadas y verificadas
+- Sistema preparado para carga de datos en producción y gestión académica
+
+---
+
+## 🚀 PRÓXIMOS PASOS RECOMENDADOS
+
+1. **Avanzar con la implementación de la gestión de roles y permisos.**
+2. **Desarrollar las interfaces de usuario para la gestión de datos maestros.**
+3. **Implementar los reportes y dashboard con métricas académicas.**
+4. **Continuar con la integración y pruebas del sistema completo.**
+5. **Preparar el sistema para la capacitación a usuarios finales y despliegue en producción.**
