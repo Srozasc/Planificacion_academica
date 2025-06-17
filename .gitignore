@@ -262,3 +262,59 @@ export_teachers_*.xlsx
 academic_system.log
 database_operations.log
 sp_execution.log
+
+# ===== ARCHIVOS TEMPORALES DE DESARROLLO =====
+# Scripts de debugging y testing (organizados durante resolución de problemas)
+backend/scripts/
+backend/templates/
+backend/test/
+backend/test-files/
+
+# Archivos de prueba y debugging generados
+backend/test-*.js
+backend/debug-*.js
+backend/create-*.js
+backend/verify-*.js
+backend/simulate-*.js
+backend/check-*.js
+backend/apply-*.js
+backend/recreate-*.js
+backend/get-*.js
+backend/list-*.js
+backend/fix-*.js
+
+# Archivos SQL temporales
+backend/*_FIXED.sql
+backend/sp_debug*.sql
+backend/debug_*.sql
+backend/test_*.sql
+backend/test*.sql
+
+# Archivos Excel de prueba temporal
+backend/test*.xlsx
+backend/plantilla_*.xlsx
+backend/*_test*.xlsx
+
+# Scripts de PowerShell temporales
+backend/*.ps1
+backend/*.bat
+backend/*.sh
+
+# Archivos JSON de debugging
+backend/debug_*.json
+
+# Documentación temporal (mantener solo Documentacion/)
+backend/*.md
+backend/TESTING_*.md
+backend/REPORTE_*.md
+backend/INSTALL_*.md
+!backend/README.md
+
+# Excepciones: mantener archivos importantes del proyecto
+!backend/src/**/*.sql
+!backend/package.json
+!backend/package-lock.json
+!backend/nest-cli.json
+!backend/tsconfig.json
+!backend/README.md
+!Documentacion/**/*
