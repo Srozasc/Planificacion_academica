@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import * as XLSX from 'xlsx';
@@ -6,25 +6,67 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { BulkUploadOptions, UploadResultDto, OperationMode } from './dto/file-upload.dto';
 
+/**
+ * Servicio de Cargas Masivas
+ * 
+ * Maneja el procesamiento de archivos Excel para carga masiva de datos.
+ * Incluye validación de estructura, parseo de datos, transformación
+ * y llamadas a stored procedures.
+ * 
+ * Características:
+ * - Validación de estructura de archivos Excel
+ * - Transformación de datos flexible (español/inglés)
+ * - Integración con stored procedures
+ * - Manejo robusto de errores
+ * - Logging detallado de operaciones
+ */
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
+
+  // Definición de estructuras requeridas para cada tipo de archivo
+  private readonly requiredFields = {
+    'academic-structures': ['code', 'name', 'type'],
+    'teachers': ['rut', 'name', 'email'],
+    'payment-codes': ['code', 'name', 'category'],
+    'course-reports': ['academic_structure_id', 'term', 'year', 'student_count']
+  };
+
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
-
+  /**
+   * Procesa archivo de estructuras académicas
+   * 
+   * @param file Archivo Excel subido
+   * @param options Opciones de procesamiento
+   * @returns Resultado del procesamiento
+   */
   async processAcademicStructureFile(
     file: Express.Multer.File,
     options: BulkUploadOptions = {}
   ): Promise<UploadResultDto> {
     const startTime = Date.now();
+    const fileType = 'academic-structures';
     
     try {
-      // Leer y parsear el archivo Excel
+      this.logger.log(`Iniciando procesamiento de ${fileType}: ${file.originalname}`);
+      
+      // Validar y parsear el archivo Excel
       const data = this.parseExcelFile(file);
+      this.logger.log(`Archivo parseado exitosamente: ${data.length} filas encontradas`);
+      
+      // Validar estructura del archivo
+      this.validateFileStructure(data, fileType);
+      this.logger.log(`Estructura del archivo validada para ${fileType}`);
       
       // Mapear datos a formato esperado por el SP
       const jsonData = this.mapAcademicStructureData(data);
+      this.logger.log(`Datos mapeados: ${jsonData.length} registros preparados`);
+      
+      // Validar datos específicos del dominio
+      this.validateAcademicStructureData(jsonData);
       
       // Llamar al SP
       const result = await this.callStoredProcedure(
@@ -37,6 +79,9 @@ export class UploadsService {
       // Limpiar archivo temporal
       this.cleanupFile(file.path);
 
+      const executionTime = Date.now() - startTime;
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+
       return {
         success: result.success || true,
         message: result.message || 'Estructuras académicas procesadas exitosamente',
@@ -46,26 +91,44 @@ export class UploadsService {
         updatedCount: result.updated_count || 0,
         errorCount: result.error_count || 0,
         errors: result.errors || [],
-        executionTimeMs: Date.now() - startTime,
+        executionTimeMs: executionTime,
         filename: file.originalname,
         uploadedAt: new Date()
       };
 
     } catch (error) {
+      this.logger.error(`Error procesando ${fileType}: ${error.message}`, error.stack);
       this.cleanupFile(file.path);
       throw new BadRequestException(`Error procesando archivo de estructuras académicas: ${error.message}`);
     }
   }
-
+  /**
+   * Procesa archivo de docentes
+   * 
+   * @param file Archivo Excel subido
+   * @param options Opciones de procesamiento
+   * @returns Resultado del procesamiento
+   */
   async processTeachersFile(
     file: Express.Multer.File,
     options: BulkUploadOptions = {}
   ): Promise<UploadResultDto> {
     const startTime = Date.now();
+    const fileType = 'teachers';
     
     try {
+      this.logger.log(`Iniciando procesamiento de ${fileType}: ${file.originalname}`);
+      
       const data = this.parseExcelFile(file);
+      this.logger.log(`Archivo parseado exitosamente: ${data.length} filas encontradas`);
+      
+      this.validateFileStructure(data, fileType);
+      this.logger.log(`Estructura del archivo validada para ${fileType}`);
+      
       const jsonData = this.mapTeachersData(data);
+      this.logger.log(`Datos mapeados: ${jsonData.length} registros preparados`);
+      
+      this.validateTeachersData(jsonData);
       
       const result = await this.callStoredProcedure(
         'sp_LoadTeachers',
@@ -76,6 +139,9 @@ export class UploadsService {
 
       this.cleanupFile(file.path);
 
+      const executionTime = Date.now() - startTime;
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+
       return {
         success: result.success || true,
         message: result.message || 'Docentes procesados exitosamente',
@@ -85,26 +151,42 @@ export class UploadsService {
         updatedCount: result.updated_count || 0,
         errorCount: result.error_count || 0,
         errors: result.errors || [],
-        executionTimeMs: Date.now() - startTime,
+        executionTimeMs: executionTime,
         filename: file.originalname,
         uploadedAt: new Date()
       };
 
     } catch (error) {
+      this.logger.error(`Error procesando ${fileType}: ${error.message}`, error.stack);
       this.cleanupFile(file.path);
       throw new BadRequestException(`Error procesando archivo de docentes: ${error.message}`);
     }
   }
-
+  /**
+   * Procesa archivo de códigos de pago
+   * 
+   * @param file Archivo Excel subido
+   * @param options Opciones de procesamiento
+   * @returns Resultado del procesamiento
+   */
   async processPaymentCodesFile(
     file: Express.Multer.File,
     options: BulkUploadOptions = {}
   ): Promise<UploadResultDto> {
     const startTime = Date.now();
+    const fileType = 'payment-codes';
     
     try {
+      this.logger.log(`Iniciando procesamiento de ${fileType}: ${file.originalname}`);
+      
       const data = this.parseExcelFile(file);
+      this.logger.log(`Archivo parseado exitosamente: ${data.length} filas encontradas`);
+      
+      this.validateFileStructure(data, fileType);
+      this.logger.log(`Estructura del archivo validada para ${fileType}`);
+      
       const jsonData = this.mapPaymentCodesData(data);
+      this.logger.log(`Datos mapeados: ${jsonData.length} registros preparados`);
       
       const result = await this.callStoredProcedure(
         'sp_LoadPaymentCodes',
@@ -115,6 +197,9 @@ export class UploadsService {
 
       this.cleanupFile(file.path);
 
+      const executionTime = Date.now() - startTime;
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+
       return {
         success: result.success || true,
         message: result.message || 'Códigos de pago procesados exitosamente',
@@ -124,26 +209,43 @@ export class UploadsService {
         updatedCount: result.updated_count || 0,
         errorCount: result.error_count || 0,
         errors: result.errors || [],
-        executionTimeMs: Date.now() - startTime,
+        executionTimeMs: executionTime,
         filename: file.originalname,
         uploadedAt: new Date()
       };
 
     } catch (error) {
+      this.logger.error(`Error procesando ${fileType}: ${error.message}`, error.stack);
       this.cleanupFile(file.path);
       throw new BadRequestException(`Error procesando archivo de códigos de pago: ${error.message}`);
     }
   }
 
+  /**
+   * Procesa archivo de reportes de cursables
+   * 
+   * @param file Archivo Excel subido
+   * @param options Opciones de procesamiento
+   * @returns Resultado del procesamiento
+   */
   async processCourseReportsFile(
     file: Express.Multer.File,
     options: BulkUploadOptions = {}
   ): Promise<UploadResultDto> {
     const startTime = Date.now();
+    const fileType = 'course-reports';
     
     try {
+      this.logger.log(`Iniciando procesamiento de ${fileType}: ${file.originalname}`);
+      
       const data = this.parseExcelFile(file);
+      this.logger.log(`Archivo parseado exitosamente: ${data.length} filas encontradas`);
+      
+      this.validateFileStructure(data, fileType);
+      this.logger.log(`Estructura del archivo validada para ${fileType}`);
+      
       const jsonData = this.mapCourseReportsData(data);
+      this.logger.log(`Datos mapeados: ${jsonData.length} registros preparados`);
       
       const result = await this.callStoredProcedure(
         'sp_LoadCourseReportsData',
@@ -154,6 +256,9 @@ export class UploadsService {
 
       this.cleanupFile(file.path);
 
+      const executionTime = Date.now() - startTime;
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+
       return {
         success: result.success || true,
         message: result.message || 'Reportes de cursables procesados exitosamente',
@@ -163,27 +268,120 @@ export class UploadsService {
         updatedCount: result.updated_count || 0,
         errorCount: result.error_count || 0,
         errors: result.errors || [],
-        executionTimeMs: Date.now() - startTime,
+        executionTimeMs: executionTime,
         filename: file.originalname,
         uploadedAt: new Date()
       };
 
     } catch (error) {
+      this.logger.error(`Error procesando ${fileType}: ${error.message}`, error.stack);
       this.cleanupFile(file.path);
       throw new BadRequestException(`Error procesando archivo de reportes de cursables: ${error.message}`);
     }
   }
 
+  /**
+   * Valida un archivo sin procesarlo
+   * 
+   * @param file Archivo Excel subido
+   * @param fileType Tipo de archivo a validar
+   * @returns Resultado de la validación
+   */
+  async validateFile(
+    file: Express.Multer.File,
+    fileType: string
+  ): Promise<UploadResultDto> {
+    const startTime = Date.now();
+    
+    try {
+      this.logger.log(`Iniciando validación de ${fileType}: ${file.originalname}`);
+      
+      // Validar y parsear el archivo Excel
+      const data = this.parseExcelFile(file);
+      this.logger.log(`Archivo parseado exitosamente: ${data.length} filas encontradas`);
+      
+      // Validar estructura del archivo
+      this.validateFileStructure(data, fileType);
+      this.logger.log(`Estructura del archivo validada para ${fileType}`);
+      
+      // Mapear y validar datos según el tipo
+      let jsonData: any[];
+      
+      switch (fileType) {
+        case 'academic-structures':
+          jsonData = this.mapAcademicStructureData(data);
+          this.validateAcademicStructureData(jsonData);
+          break;
+        case 'teachers':
+          jsonData = this.mapTeachersData(data);
+          this.validateTeachersData(jsonData);
+          break;
+        case 'payment-codes':
+          jsonData = this.mapPaymentCodesData(data);
+          break;
+        case 'course-reports':
+          jsonData = this.mapCourseReportsData(data);
+          break;
+        default:
+          throw new Error(`Tipo de archivo no soportado: ${fileType}`);
+      }
+
+      // Limpiar archivo temporal
+      this.cleanupFile(file.path);
+
+      const executionTime = Date.now() - startTime;
+      this.logger.log(`Validación completada en ${executionTime}ms: ${jsonData.length} registros válidos`);
+
+      return {
+        success: true,
+        message: `Archivo ${fileType} validado exitosamente`,
+        totalRecords: jsonData.length,
+        processedRecords: 0, // No se procesó, solo se validó
+        insertedCount: 0,
+        updatedCount: 0,
+        errorCount: 0,
+        errors: [],
+        executionTimeMs: executionTime,
+        filename: file.originalname,
+        uploadedAt: new Date()
+      };
+
+    } catch (error) {
+      this.logger.error(`Error validando ${fileType}: ${error.message}`, error.stack);
+      this.cleanupFile(file.path);
+      throw new BadRequestException(`Error validando archivo de ${fileType}: ${error.message}`);
+    }
+  }
+  /**
+   * Parsea archivo Excel y convierte a JSON
+   * 
+   * @param file Archivo Excel a parsear
+   * @returns Array de objetos con los datos
+   */
   private parseExcelFile(file: Express.Multer.File): any[] {
     try {
+      this.logger.log(`Parseando archivo Excel: ${file.originalname} (${file.size} bytes)`);
+      
+      if (!fs.existsSync(file.path)) {
+        throw new Error('Archivo no encontrado en el sistema de archivos');
+      }
+
       const workbook = XLSX.readFile(file.path);
+      
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error('El archivo Excel no contiene hojas de cálculo');
+      }
+
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      
+      this.logger.log(`Procesando hoja: ${sheetName}`);
       
       // Convertir a JSON con headers como claves
       const data = XLSX.utils.sheet_to_json(worksheet, { 
         header: 1,
-        defval: null 
+        defval: null,
+        blankrows: false // Omitir filas completamente vacías
       });
 
       if (!data || data.length < 2) {
@@ -194,18 +392,39 @@ export class UploadsService {
       const headers = data[0] as string[];
       const rows = data.slice(1);
 
-      // Convertir a objetos
-      return rows.map(row => {
-        const obj = {};
-        headers.forEach((header, index) => {
-          if (header && header.trim()) {
-            obj[header.trim().toLowerCase().replace(/\s+/g, '_')] = row[index];
-          }
+      // Validar que hay headers
+      if (!headers || headers.length === 0) {
+        throw new Error('No se encontraron encabezados en el archivo');
+      }
+
+      // Filtrar headers vacíos o undefined
+      const validHeaders = headers.filter(header => 
+        header !== null && header !== undefined && header.toString().trim() !== ''
+      );
+
+      if (validHeaders.length === 0) {
+        throw new Error('No se encontraron encabezados válidos en el archivo');
+      }
+
+      this.logger.log(`Headers encontrados: ${validHeaders.join(', ')}`);      // Convertir a objetos
+      const result = rows
+        .filter(row => row && Array.isArray(row) && row.some(cell => cell !== null && cell !== undefined && cell.toString().trim() !== '')) // Filtrar filas vacías
+        .map((row, index) => {
+          const obj = {};
+          headers.forEach((header, headerIndex) => {
+            if (header && header.toString().trim()) {
+              const cleanHeader = header.toString().trim().toLowerCase().replace(/\s+/g, '_');
+              obj[cleanHeader] = row[headerIndex];
+            }
+          });
+          return obj;
         });
-        return obj;
-      });
+
+      this.logger.log(`Parseado exitoso: ${result.length} filas de datos válidas`);
+      return result;
 
     } catch (error) {
+      this.logger.error(`Error leyendo archivo Excel: ${error.message}`, error.stack);
       throw new Error(`Error leyendo archivo Excel: ${error.message}`);
     }
   }
@@ -274,7 +493,15 @@ export class UploadsService {
       is_validated: row.validado || row.is_validated || false,
       notes: row.observaciones || row.notes || null
     }));
-  }
+  }  /**
+   * Llama a un stored procedure con manejo robusto de errores
+   * 
+   * @param spName Nombre del stored procedure
+   * @param jsonData Datos JSON a procesar
+   * @param userId ID del usuario que ejecuta la operación
+   * @param mode Modo de operación (INSERT_ONLY, UPDATE_ONLY, UPSERT)
+   * @returns Resultado del stored procedure
+   */
   private async callStoredProcedure(
     spName: string, 
     jsonData: string, 
@@ -282,14 +509,25 @@ export class UploadsService {
     mode: string
   ): Promise<any> {
     try {
+      this.logger.log(`Ejecutando SP: ${spName} con ${JSON.parse(jsonData).length} registros en modo ${mode}`);
+      
+      // Verificar conexión a la base de datos
+      if (!this.dataSource.isInitialized) {
+        throw new Error('Conexión a la base de datos no inicializada');
+      }
+
       // Para MySQL con parámetros OUT, necesitamos usar una variable de sesión
       await this.dataSource.query(`SET @result = ''`);
       
       // Llamar al SP con la variable de sesión
+      const startTime = Date.now();
       await this.dataSource.query(
         `CALL ${spName}(?, ?, ?, @result)`,
         [jsonData, userId, mode]
       );
+      
+      const spExecutionTime = Date.now() - startTime;
+      this.logger.log(`SP ${spName} ejecutado en ${spExecutionTime}ms`);
 
       // Obtener el resultado de la variable de sesión
       const resultQuery = await this.dataSource.query(`SELECT @result as result`);
@@ -297,27 +535,393 @@ export class UploadsService {
       
       if (spResult && spResult !== '') {
         try {
-          return JSON.parse(spResult);
+          const parsedResult = JSON.parse(spResult);
+          this.logger.log(`SP ${spName} resultado: ${JSON.stringify(parsedResult)}`);
+          return parsedResult;
         } catch (parseError) {
-          console.warn('Error parsing SP result, returning raw result:', spResult);
+          this.logger.warn(`Error parsing SP result, returning raw result: ${spResult}`);
           return { success: true, message: spResult };
         }
       }
 
+      this.logger.log(`SP ${spName} completado sin resultado explícito`);
       return { success: true, message: 'Procesado exitosamente' };
 
     } catch (error) {
+      this.logger.error(`Error ejecutando SP ${spName}: ${error.message}`, error.stack);
+      
+      // Verificar si es un error de MySQL específico
+      if (error.code) {
+        switch (error.code) {
+          case 'ER_NO_SUCH_TABLE':
+            throw new InternalServerErrorException(`Tabla no encontrada en stored procedure ${spName}`);
+          case 'ER_DUP_ENTRY':
+            throw new BadRequestException('Error de duplicación: Ya existe un registro con los mismos datos únicos');
+          case 'ER_BAD_FIELD_ERROR':
+            throw new BadRequestException(`Error en campos: ${error.message}`);
+          case 'ER_DATA_TOO_LONG':
+            throw new BadRequestException('Error de datos: Uno o más campos exceden la longitud permitida');
+          default:
+            throw new InternalServerErrorException(`Error de base de datos en ${spName}: ${error.message}`);
+        }
+      }
+      
       throw new InternalServerErrorException(`Error ejecutando stored procedure ${spName}: ${error.message}`);
     }
   }
-
+  /**
+   * Limpia archivos temporales con logging
+   * 
+   * @param filePath Ruta del archivo a eliminar
+   */
   private cleanupFile(filePath: string): void {
     try {
+      if (!filePath) {
+        this.logger.warn('Intento de limpiar archivo con ruta vacía');
+        return;
+      }
+
       if (fs.existsSync(filePath)) {
+        const fileStat = fs.statSync(filePath);
         fs.unlinkSync(filePath);
+        this.logger.log(`Archivo temporal eliminado: ${filePath} (${fileStat.size} bytes)`);
+      } else {
+        this.logger.warn(`Archivo temporal no encontrado para eliminar: ${filePath}`);
       }
     } catch (error) {
-      console.warn(`No se pudo eliminar archivo temporal: ${filePath}`, error);
+      this.logger.error(`No se pudo eliminar archivo temporal: ${filePath}`, error.message);
     }
+  }
+
+  /**
+   * Valida la estructura básica del archivo Excel
+   * 
+   * @param data Datos parseados del Excel
+   * @param fileType Tipo de archivo a validar
+   */
+  private validateFileStructure(data: any[], fileType: string): void {
+    if (!data || data.length === 0) {
+      throw new Error('El archivo está vacío o no contiene datos válidos');
+    }
+
+    const requiredFields = this.requiredFields[fileType];
+    if (!requiredFields) {
+      throw new Error(`Tipo de archivo no soportado: ${fileType}`);
+    }
+
+    // Verificar que al menos el primer registro tenga las claves requeridas
+    const firstRecord = data[0];
+    const availableFields = Object.keys(firstRecord).map(key => key.toLowerCase());
+    
+    const missingFields = requiredFields.filter(field => {
+      const fieldVariations = this.getFieldVariations(field);
+      return !fieldVariations.some(variation => 
+        availableFields.includes(variation.toLowerCase())
+      );
+    });
+
+    if (missingFields.length > 0) {
+      throw new Error(
+        `Campos requeridos faltantes para ${fileType}: ${missingFields.join(', ')}. ` +
+        `Campos disponibles: ${availableFields.join(', ')}`
+      );
+    }
+  }
+
+  /**
+   * Obtiene variaciones posibles de nombres de campos (español/inglés)
+   * 
+   * @param field Campo base
+   * @returns Array de variaciones posibles
+   */
+  private getFieldVariations(field: string): string[] {
+    const variations = {
+      'code': ['code', 'codigo', 'código'],
+      'name': ['name', 'nombre'],
+      'type': ['type', 'tipo'],
+      'rut': ['rut'],
+      'email': ['email', 'correo', 'e-mail'],
+      'category': ['category', 'categoria', 'categoría'],
+      'academic_structure_id': ['academic_structure_id', 'id_estructura', 'estructura_id'],
+      'term': ['term', 'periodo', 'período'],
+      'year': ['year', 'ano', 'año'],
+      'student_count': ['student_count', 'estudiantes', 'estudiantes_cursables']
+    };
+
+    return variations[field] || [field];
+  }
+
+  /**
+   * Valida datos específicos de estructuras académicas
+   * 
+   * @param data Datos mapeados
+   */
+  private validateAcademicStructureData(data: any[]): void {
+    const errors: string[] = [];
+
+    data.forEach((record, index) => {
+      const rowNum = index + 2; // +2 porque es base 1 y saltamos header
+
+      // Validar código (requerido)
+      if (!record.code || record.code.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: Código es requerido`);
+      }
+
+      // Validar nombre (requerido)
+      if (!record.name || record.name.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: Nombre es requerido`);
+      }
+
+      // Validar tipo (requerido)
+      if (!record.type || record.type.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: Tipo es requerido`);
+      }
+
+      // Validar créditos (si está presente, debe ser número positivo)
+      if (record.credits !== null && record.credits !== undefined) {
+        const credits = Number(record.credits);
+        if (isNaN(credits) || credits < 0) {
+          errors.push(`Fila ${rowNum}: Créditos debe ser un número positivo`);
+        }
+      }
+
+      // Validar semestre (si está presente, debe ser número entre 1 y 12)
+      if (record.semester !== null && record.semester !== undefined) {
+        const semester = Number(record.semester);
+        if (isNaN(semester) || semester < 1 || semester > 12) {
+          errors.push(`Fila ${rowNum}: Semestre debe ser un número entre 1 y 12`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      throw new Error(`Errores de validación encontrados:\n${errors.join('\n')}`);
+    }
+  }
+
+  /**
+   * Valida datos específicos de docentes
+   * 
+   * @param data Datos mapeados
+   */
+  private validateTeachersData(data: any[]): void {
+    const errors: string[] = [];
+
+    data.forEach((record, index) => {
+      const rowNum = index + 2;
+
+      // Validar RUT (requerido y formato chileno)
+      if (!record.rut || record.rut.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: RUT es requerido`);
+      } else if (!this.validateChileanRUT(record.rut.toString())) {
+        errors.push(`Fila ${rowNum}: RUT tiene formato inválido`);
+      }
+
+      // Validar nombre (requerido)
+      if (!record.name || record.name.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: Nombre es requerido`);
+      }
+
+      // Validar email (requerido y formato válido)
+      if (!record.email || record.email.toString().trim() === '') {
+        errors.push(`Fila ${rowNum}: Email es requerido`);
+      } else if (!this.validateEmail(record.email.toString())) {
+        errors.push(`Fila ${rowNum}: Email tiene formato inválido`);
+      }
+
+      // Validar horas de contrato (si está presente, debe ser positivo)
+      if (record.contract_hours !== null && record.contract_hours !== undefined) {
+        const hours = Number(record.contract_hours);
+        if (isNaN(hours) || hours < 0 || hours > 44) {
+          errors.push(`Fila ${rowNum}: Horas de contrato debe ser entre 0 y 44`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      throw new Error(`Errores de validación encontrados:\n${errors.join('\n')}`);
+    }
+  }
+
+  /**
+   * Valida formato de RUT chileno
+   * 
+   * @param rut RUT a validar
+   * @returns true si es válido
+   */
+  private validateChileanRUT(rut: string): boolean {
+    // Remover puntos y guiones
+    const cleanRUT = rut.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+    
+    // Verificar longitud (entre 8 y 9 caracteres)
+    if (cleanRUT.length < 8 || cleanRUT.length > 9) {
+      return false;
+    }
+
+    // Separar número y dígito verificador
+    const rutNumber = cleanRUT.slice(0, -1);
+    const checkDigit = cleanRUT.slice(-1);
+
+    // Verificar que el número sea numérico
+    if (!/^\d+$/.test(rutNumber)) {
+      return false;
+    }
+
+    // Calcular dígito verificador
+    let sum = 0;
+    let multiplier = 2;
+
+    for (let i = rutNumber.length - 1; i >= 0; i--) {
+      sum += parseInt(rutNumber[i]) * multiplier;
+      multiplier = multiplier === 7 ? 2 : multiplier + 1;
+    }
+
+    const calculatedCheckDigit = 11 - (sum % 11);
+    const finalCheckDigit = calculatedCheckDigit === 11 ? '0' : 
+                           calculatedCheckDigit === 10 ? 'K' : calculatedCheckDigit.toString();
+
+    return checkDigit === finalCheckDigit;
+  }
+
+  /**
+   * Valida formato de email
+   * 
+   * @param email Email a validar
+   * @returns true si es válido
+   */
+  private validateEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Obtiene información sobre las plantillas disponibles
+   * 
+   * @param type Tipo específico de plantilla (opcional)
+   * @returns Información de plantillas
+   */
+  getTemplateInfo(type?: string): any {
+    const templates = {
+      'academic-structures': {
+        description: 'Plantilla para carga de estructura académica',
+        requiredFields: this.requiredFields['academic-structures'],
+        optionalFields: ['credits', 'plan_code', 'semester', 'prerequisites', 'description', 'hours_per_week', 'is_active'],
+        fieldDescriptions: {
+          code: 'Código único de la estructura académica',
+          name: 'Nombre de la materia/módulo/plan',
+          type: 'Tipo (PLAN, MATERIA, MODULO)',
+          credits: 'Número de créditos (opcional)',
+          plan_code: 'Código del plan al que pertenece (opcional)',
+          semester: 'Semestre (1-12, opcional)',
+          prerequisites: 'Prerrequisitos (opcional)',
+          description: 'Descripción (opcional)',
+          hours_per_week: 'Horas semanales (opcional)',
+          is_active: 'Activo (true/false, opcional)'
+        },
+        exampleData: [
+          {
+            code: 'MAT101',
+            name: 'Matemáticas I',
+            type: 'MATERIA',
+            credits: 6,
+            plan_code: 'ING001',
+            semester: 1
+          }
+        ]
+      },
+      'teachers': {
+        description: 'Plantilla para carga de docentes',
+        requiredFields: this.requiredFields['teachers'],
+        optionalFields: ['phone', 'address', 'category_code', 'contract_type_code', 'contract_hours', 'max_hours_per_week', 'hire_date', 'is_active'],
+        fieldDescriptions: {
+          rut: 'RUT chileno con formato XX.XXX.XXX-X',
+          name: 'Nombre completo del docente',
+          email: 'Correo electrónico único',
+          phone: 'Teléfono (opcional)',
+          address: 'Dirección (opcional)',
+          category_code: 'Código de categoría académica (opcional)',
+          contract_type_code: 'Código de tipo de contrato (opcional)',
+          contract_hours: 'Horas contratadas (0-44, opcional)',
+          max_hours_per_week: 'Máximo horas por semana (opcional)',
+          hire_date: 'Fecha de contratación (opcional)',
+          is_active: 'Activo (true/false, opcional)'
+        },
+        exampleData: [
+          {
+            rut: '12.345.678-9',
+            name: 'Juan Pérez García',
+            email: 'juan.perez@universidad.cl',
+            phone: '+56912345678',
+            contract_hours: 40
+          }
+        ]
+      },
+      'payment-codes': {
+        description: 'Plantilla para carga de códigos de pago',
+        requiredFields: this.requiredFields['payment-codes'],
+        optionalFields: ['contract_type', 'hourly_rate', 'min_hours', 'max_hours', 'valid_from', 'valid_until', 'description', 'is_active'],
+        fieldDescriptions: {
+          code: 'Código único del tipo de pago',
+          name: 'Nombre descriptivo del código',
+          category: 'Categoría (DOCENCIA, INVESTIGACION, EXTENSION, etc.)',
+          contract_type: 'Tipo de contrato aplicable (opcional)',
+          hourly_rate: 'Valor por hora (opcional)',
+          min_hours: 'Horas mínimas (opcional)',
+          max_hours: 'Horas máximas (opcional)',
+          valid_from: 'Válido desde (fecha, opcional)',
+          valid_until: 'Válido hasta (fecha, opcional)',
+          description: 'Descripción (opcional)',
+          is_active: 'Activo (true/false, opcional)'
+        },
+        exampleData: [
+          {
+            code: 'DOC001',
+            name: 'Docencia Pregrado',
+            category: 'DOCENCIA',
+            hourly_rate: 15000
+          }
+        ]
+      },
+      'course-reports': {
+        description: 'Plantilla para carga de reportes de cursables',
+        requiredFields: this.requiredFields['course-reports'],
+        optionalFields: ['section', 'modality', 'enrolled_count', 'passed_count', 'failed_count', 'withdrawn_count', 'weekly_hours', 'total_hours', 'is_validated', 'notes'],
+        fieldDescriptions: {
+          academic_structure_id: 'ID de la estructura académica',
+          term: 'Período académico (1, 2, etc.)',
+          year: 'Año académico',
+          student_count: 'Número de estudiantes cursables',
+          section: 'Sección (opcional)',
+          modality: 'Modalidad (Presencial, Online, etc., opcional)',
+          enrolled_count: 'Estudiantes matriculados (opcional)',
+          passed_count: 'Estudiantes aprobados (opcional)',
+          failed_count: 'Estudiantes reprobados (opcional)',
+          withdrawn_count: 'Estudiantes retirados (opcional)',
+          weekly_hours: 'Horas semanales (opcional)',
+          total_hours: 'Horas totales (opcional)',
+          is_validated: 'Validado (true/false, opcional)',
+          notes: 'Observaciones (opcional)'
+        },
+        exampleData: [
+          {
+            academic_structure_id: 1,
+            term: 1,
+            year: 2024,
+            student_count: 150,
+            enrolled_count: 150,
+            passed_count: 120
+          }
+        ]
+      }
+    };
+
+    if (type) {
+      return templates[type] || null;
+    }
+
+    return {
+      availableTemplates: Object.keys(templates),
+      templates
+    };
   }
 }

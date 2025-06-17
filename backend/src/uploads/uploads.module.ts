@@ -26,17 +26,42 @@ import { FileValidationMiddleware } from './middleware/file-validation.middlewar
         // Configuración según entorno
         const useMemoryStorage = configService.get('NODE_ENV') === 'test';
         
-        return {
-          storage: useMemoryStorage 
+        return {          storage: useMemoryStorage 
             ? memoryStorage() // Para pruebas en memoria
-            : diskStorage({
-                destination: (req, file, callback) => {
-                  // Crear subdirectorios por tipo de archivo
-                  const uploadType = req.route?.path?.split('/').pop() || 'general';
+            : diskStorage({                destination: (req, file, callback) => {
+                  // Extraer tipo de archivo de la URL
+                  let uploadType = 'general';
+                  
+                  // Obtener la URL completa
+                  const url = req.url || req.originalUrl || '';
+                  console.log(`[Multer] Processing URL: ${url}`); // Debug log
+                  
+                  // Buscar tipos conocidos en la URL
+                  const knownTypes = ['academic-structures', 'teachers', 'payment-codes', 'course-reports'];
+                  
+                  // Extraer tipo de la URL (ej: /uploads/academic-structures -> academic-structures)
+                  for (const type of knownTypes) {
+                    if (url.includes(`/${type}`)) {
+                      uploadType = type;
+                      break;
+                    }
+                  }
+                  
+                  // Para endpoints de validación, extraer después de /validate/
+                  if (url.includes('/validate/')) {
+                    const validateMatch = url.match(/\/validate\/([^/?]+)/);
+                    if (validateMatch && knownTypes.includes(validateMatch[1])) {
+                      uploadType = validateMatch[1];
+                    }
+                  }
+                  
+                  console.log(`[Multer] Determined upload type: ${uploadType}`); // Debug log
+                  
                   const dir = join(uploadDir, uploadType);
                   
                   if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
+                    console.log(`[Multer] Created directory: ${dir}`); // Debug log
                   }
                   
                   callback(null, dir);

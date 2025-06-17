@@ -22,6 +22,9 @@ import { UploadsService } from './uploads.service';
 import { BulkUploadOptions, UploadResultDto, OperationMode } from './dto/file-upload.dto';
 import { UploadLoggingInterceptor } from './interceptors/upload-logging.interceptor';
 import { FileCleanupService } from './services/file-cleanup.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 /**
  * Controlador de Cargas Masivas
@@ -36,8 +39,14 @@ import { FileCleanupService } from './services/file-cleanup.service';
  * - Procesamiento automático con Stored Procedures
  * - Limpieza automática de archivos temporales
  * - Endpoints de administración y monitoreo
+ * 
+ * Seguridad:
+ * - Protegido con JWT Authentication
+ * - Requiere rol de Admin para operaciones de carga
  */
 @Controller('uploads')
+@UseGuards(JwtAuthGuard, RolesGuard) // Proteger todo el controlador
+@Roles('Administrador') // Requiere rol de Administrador (como viene en la BD)
 @UseInterceptors(UploadLoggingInterceptor) // Aplicar logging a todo el controlador
 export class UploadsController {
   constructor(
@@ -211,7 +220,6 @@ export class UploadsController {
   }  // ================================
   // ENDPOINTS DE UTILIDAD
   // ================================
-
   /**
    * Obtener plantillas de ejemplo para cada tipo de carga
    * 
@@ -220,44 +228,7 @@ export class UploadsController {
    */
   @Get('templates')
   async getTemplateInfo(@Query('type') type?: string) {
-    const templates = {
-      'academic-structures': {
-        description: 'Plantilla para carga de estructura académica (planes, materias, módulos)',
-        requiredColumns: ['code', 'name', 'type'],
-        optionalColumns: ['credits', 'plan_code', 'semester', 'prerequisites', 'description', 'hours_per_week'],
-        exampleFile: 'academic_structures_template.xlsx'
-      },
-      'teachers': {
-        description: 'Plantilla para carga de profesores y docentes',
-        requiredColumns: ['teacher_code', 'full_name', 'email'],
-        optionalColumns: ['phone', 'department', 'specialty', 'hire_date', 'status'],
-        exampleFile: 'teachers_template.xlsx'
-      },
-      'payment-codes': {
-        description: 'Plantilla para carga de códigos de pago',
-        requiredColumns: ['code', 'description', 'amount'],
-        optionalColumns: ['category', 'semester', 'year', 'due_date', 'is_active'],
-        exampleFile: 'payment_codes_template.xlsx'
-      },
-      'course-reports': {
-        description: 'Plantilla para carga de datos de reportes académicos',
-        requiredColumns: ['course_code', 'teacher_code', 'semester', 'year'],
-        optionalColumns: ['students_enrolled', 'students_passed', 'average_grade', 'observations'],
-        exampleFile: 'course_reports_template.xlsx'
-      }
-    };
-
-    if (type && templates[type]) {
-      return {
-        template: templates[type],
-        downloadUrl: `/uploads/templates/${templates[type].exampleFile}`
-      };
-    }
-
-    return {
-      availableTemplates: Object.keys(templates),
-      templates
-    };
+    return this.uploadsService.getTemplateInfo(type);
   }
 
   /**
@@ -284,34 +255,17 @@ export class UploadsController {
     const validTypes = ['academic-structures', 'teachers', 'payment-codes', 'course-reports'];
     if (!validTypes.includes(type)) {
       throw new BadRequestException(`Tipo de validación inválido. Tipos válidos: ${validTypes.join(', ')}`);
-    }
-
-    if (!file) {
+    }    if (!file) {
       throw new BadRequestException('No se proporcionó archivo para validar');
-    }    const options: BulkUploadOptions = { 
-      mode: OperationMode.UPSERT, 
-      validateOnly: true // Solo validar, no procesar
-    };
-
-    try {
-      switch (type) {
-        case 'academic-structures':
-          return await this.uploadsService.processAcademicStructureFile(file, options);
-        case 'teachers':
-          return await this.uploadsService.processTeachersFile(file, options);
-        case 'payment-codes':
-          return await this.uploadsService.processPaymentCodesFile(file, options);
-        case 'course-reports':
-          return await this.uploadsService.processCourseReportsFile(file, options);
-        default:
-          throw new BadRequestException('Tipo de validación no implementado');
-      }
+    }    try {
+      return await this.uploadsService.validateFile(file, type);
     } catch (error) {
       throw new InternalServerErrorException(
         `Error validando archivo de tipo ${type}: ${error.message}`
       );
     }
   }
+
   // ================================
   // ENDPOINTS DE ADMINISTRACIÓN
   // ================================
