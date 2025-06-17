@@ -23,12 +23,11 @@ import { BulkUploadOptions, UploadResultDto, OperationMode } from './dto/file-up
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
-
   // Definición de estructuras requeridas para cada tipo de archivo
   private readonly requiredFields = {
     'academic-structures': ['code', 'name', 'type'],
     'teachers': ['rut', 'name', 'email'],
-    'payment-codes': ['code', 'name', 'category'],
+    'payment-codes': ['code', 'name', 'category', 'type'], // Actualizados para SP
     'course-reports': ['academic_structure_id', 'term', 'year', 'student_count']
   };
 
@@ -64,9 +63,13 @@ export class UploadsService {
       // Mapear datos a formato esperado por el SP
       const jsonData = this.mapAcademicStructureData(data);
       this.logger.log(`Datos mapeados: ${jsonData.length} registros preparados`);
-      
-      // Validar datos específicos del dominio
+        // Validar datos específicos del dominio
       this.validateAcademicStructureData(jsonData);
+      
+      // *** LOGGING TEMPORAL PARA DEBUG ***
+      this.logger.log(`=== DEBUG: Datos antes de SP ===`);
+      this.logger.log(`Cantidad de registros a enviar al SP: ${jsonData.length}`);
+      this.logger.log(`Primeros 2 registros: ${JSON.stringify(jsonData.slice(0, 2))}`);
       
       // Llamar al SP
       const result = await this.callStoredProcedure(
@@ -74,22 +77,45 @@ export class UploadsService {
         JSON.stringify(jsonData),
         options.userId || 1,
         options.mode || OperationMode.UPSERT
-      );
+      );      // *** LOGGING TEMPORAL PARA DEBUG ***
+      this.logger.log(`=== DEBUG: Resultado del SP ===`);
+      this.logger.log(`Resultado completo: ${JSON.stringify(result)}`);
+      this.logger.log(`result.statistics: ${JSON.stringify(result.statistics)}`);
+      this.logger.log(`result.success: ${result.success}`);
+      this.logger.log(`typeof result: ${typeof result}`);
+      this.logger.log(`result keys: ${Object.keys(result || {})}`);
 
       // Limpiar archivo temporal
       this.cleanupFile(file.path);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+      
+      // Extraer estadísticas del resultado del SP (corregir mapeo)
+      const stats = result.statistics || {};
+      this.logger.log(`=== DEBUG: Stats extraídos ===`);
+      this.logger.log(`stats: ${JSON.stringify(stats)}`);
+      
+      const totalRecords = stats.total_rows || jsonData.length;
+      const processedRecords = stats.success_count || 0;
+      const insertedCount = stats.insert_count || 0;
+      const updatedCount = stats.update_count || 0;
+      const errorCount = stats.error_count || 0;
+
+      this.logger.log(`=== DEBUG: Valores finales ===`);
+      this.logger.log(`totalRecords: ${totalRecords}`);
+      this.logger.log(`processedRecords: ${processedRecords}`);
+      this.logger.log(`insertedCount: ${insertedCount}`);
+
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${processedRecords}/${totalRecords} registros procesados`);
 
       return {
         success: result.success || true,
         message: result.message || 'Estructuras académicas procesadas exitosamente',
-        totalRecords: result.total_records || jsonData.length,
-        processedRecords: result.processed_records || jsonData.length,
-        insertedCount: result.inserted_count || 0,
-        updatedCount: result.updated_count || 0,
-        errorCount: result.error_count || 0,
+        totalRecords: totalRecords,
+        processedRecords: processedRecords,
+        insertedCount: insertedCount,
+        updatedCount: updatedCount,
+        errorCount: errorCount,
         errors: result.errors || [],
         executionTimeMs: executionTime,
         filename: file.originalname,
@@ -140,16 +166,17 @@ export class UploadsService {
       this.cleanupFile(file.path);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);      // Extraer estadísticas del resultado del SP (pueden estar anidadas en 'statistics')
+      const stats = result.statistics || result;
 
       return {
         success: result.success || true,
         message: result.message || 'Docentes procesados exitosamente',
-        totalRecords: result.total_records || jsonData.length,
-        processedRecords: result.processed_records || jsonData.length,
-        insertedCount: result.inserted_count || 0,
-        updatedCount: result.updated_count || 0,
-        errorCount: result.error_count || 0,
+        totalRecords: stats.total_rows || result.total_records || jsonData.length,
+        processedRecords: stats.success_count || result.processed_records || jsonData.length,
+        insertedCount: stats.insert_count || result.inserted_count || 0,
+        updatedCount: stats.update_count || result.updated_count || 0,
+        errorCount: stats.error_count || result.error_count || 0,
         errors: result.errors || [],
         executionTimeMs: executionTime,
         filename: file.originalname,
@@ -198,17 +225,33 @@ export class UploadsService {
       this.cleanupFile(file.path);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);      // Extraer estadísticas del resultado del SP (pueden estar anidadas en 'statistics')
+      const stats = result.statistics || result;
+
+      // Procesar errores - pueden venir como string JSON del SP
+      let processedErrors = [];
+      if (result.errors) {
+        if (typeof result.errors === 'string') {
+          try {
+            processedErrors = JSON.parse(result.errors);
+          } catch (e) {
+            this.logger.warn(`Error parsing errors JSON: ${e.message}`);
+            processedErrors = [{ message: result.errors }];
+          }
+        } else if (Array.isArray(result.errors)) {
+          processedErrors = result.errors;
+        }
+      }
 
       return {
         success: result.success || true,
         message: result.message || 'Códigos de pago procesados exitosamente',
-        totalRecords: result.total_records || jsonData.length,
-        processedRecords: result.processed_records || jsonData.length,
-        insertedCount: result.inserted_count || 0,
-        updatedCount: result.updated_count || 0,
-        errorCount: result.error_count || 0,
-        errors: result.errors || [],
+        totalRecords: stats.total_rows || result.total_records || jsonData.length,
+        processedRecords: stats.success_count || result.processed_records || jsonData.length,
+        insertedCount: stats.insert_count || result.inserted_count || 0,
+        updatedCount: stats.update_count || result.updated_count || 0,
+        errorCount: stats.error_count || result.error_count || 0,
+        errors: processedErrors,
         executionTimeMs: executionTime,
         filename: file.originalname,
         uploadedAt: new Date()
@@ -257,16 +300,17 @@ export class UploadsService {
       this.cleanupFile(file.path);
 
       const executionTime = Date.now() - startTime;
-      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);
-
+      this.logger.log(`Procesamiento completado en ${executionTime}ms: ${result.processed_records || jsonData.length} registros`);      // Extraer estadísticas del resultado del SP (pueden estar anidadas en 'statistics')
+      const stats = result.statistics || result;
+      
       return {
         success: result.success || true,
         message: result.message || 'Reportes de cursables procesados exitosamente',
-        totalRecords: result.total_records || jsonData.length,
-        processedRecords: result.processed_records || jsonData.length,
-        insertedCount: result.inserted_count || 0,
-        updatedCount: result.updated_count || 0,
-        errorCount: result.error_count || 0,
+        totalRecords: stats.total_rows || result.total_records || jsonData.length,
+        processedRecords: stats.success_count || result.processed_records || jsonData.length,
+        insertedCount: stats.insert_count || result.inserted_count || 0,
+        updatedCount: stats.update_count || result.updated_count || 0,
+        errorCount: stats.error_count || result.error_count || 0,
         errors: result.errors || [],
         executionTimeMs: executionTime,
         filename: file.originalname,
@@ -428,20 +472,38 @@ export class UploadsService {
       throw new Error(`Error leyendo archivo Excel: ${error.message}`);
     }
   }
-
   private mapAcademicStructureData(data: any[]): any[] {
-    return data.map(row => ({
-      code: row.codigo || row.code || null,
-      name: row.nombre || row.name || null,
-      credits: row.creditos || row.credits || null,
-      plan_code: row.codigo_plan || row.plan_code || null,
-      type: row.tipo || row.type || null,
-      semester: row.semestre || row.semester || null,
-      prerequisites: row.prerequisitos || row.prerequisites || null,
-      description: row.descripcion || row.description || null,
-      hours_per_week: row.horas_semanales || row.hours_per_week || null,
-      is_active: row.activo || row.is_active || true
-    }));
+    return data.map(row => {
+      // Campos requeridos siempre se incluyen
+      const mappedRow: any = {
+        code: row.codigo || row.code || null,
+        name: row.nombre || row.name || null,
+        type: row.tipo || row.type || null
+      };
+
+      // Campos opcionales: solo se incluyen si tienen valor real (no null/undefined/empty)
+      const optionalFields = {
+        credits: row.creditos || row.credits,
+        plan_code: row.codigo_plan || row.plan_code,
+        semester: row.semestre || row.semester,
+        prerequisites: row.prerequisitos || row.prerequisites,
+        description: row.descripcion || row.description,
+        hours_per_week: row.horas_semanales || row.hours_per_week
+      };
+
+      // Solo agregar campos opcionales si tienen valor
+      Object.keys(optionalFields).forEach(key => {
+        const value = optionalFields[key];
+        if (value !== null && value !== undefined && value !== '') {
+          mappedRow[key] = value;
+        }
+      });
+
+      // is_active siempre se incluye con valor por defecto
+      mappedRow.is_active = row.activo || row.is_active || true;
+
+      return mappedRow;
+    });
   }
 
   private mapTeachersData(data: any[]): any[] {
@@ -459,20 +521,19 @@ export class UploadsService {
       is_active: row.activo || row.is_active || true
     }));
   }
-
   private mapPaymentCodesData(data: any[]): any[] {
     return data.map(row => ({
-      code: row.codigo || row.code || null,
-      name: row.nombre || row.name || null,
+      code_name: row.codigo || row.code || row.code_name || null,
+      description: row.nombre || row.name || row.description || null,
+      factor: row.factor || row.multiplicador || 1.0, // Factor requerido por el SP
+      base_amount: row.base_amount || row.monto_base || 0,
       category: row.categoria || row.category || null,
-      contract_type: row.tipo_contrato || row.contract_type || null,
-      hourly_rate: row.valor_hora || row.hourly_rate || null,
-      min_hours: row.horas_minimas || row.min_hours || null,
-      max_hours: row.horas_maximas || row.max_hours || null,
+      type: row.tipo || row.type || row.tipo_contrato || row.contract_type || null,
+      is_active: row.activo || row.is_active || true,
+      requires_hours: row.requires_hours || row.requiere_horas || false,
+      is_taxable: row.is_taxable || row.afecto_impuesto || true,
       valid_from: row.valido_desde || row.valid_from || null,
-      valid_until: row.valido_hasta || row.valid_until || null,
-      description: row.descripcion || row.description || null,
-      is_active: row.activo || row.is_active || true
+      valid_until: row.valido_hasta || row.valid_until || null
     }));
   }
 
@@ -855,30 +916,36 @@ export class UploadsService {
             contract_hours: 40
           }
         ]
-      },
-      'payment-codes': {
+      },      'payment-codes': {
         description: 'Plantilla para carga de códigos de pago',
         requiredFields: this.requiredFields['payment-codes'],
-        optionalFields: ['contract_type', 'hourly_rate', 'min_hours', 'max_hours', 'valid_from', 'valid_until', 'description', 'is_active'],
+        optionalFields: ['factor', 'base_amount', 'type', 'is_active', 'requires_hours', 'is_taxable', 'valid_from', 'valid_until'],
         fieldDescriptions: {
           code: 'Código único del tipo de pago',
           name: 'Nombre descriptivo del código',
-          category: 'Categoría (DOCENCIA, INVESTIGACION, EXTENSION, etc.)',
-          contract_type: 'Tipo de contrato aplicable (opcional)',
-          hourly_rate: 'Valor por hora (opcional)',
-          min_hours: 'Horas mínimas (opcional)',
-          max_hours: 'Horas máximas (opcional)',
-          valid_from: 'Válido desde (fecha, opcional)',
-          valid_until: 'Válido hasta (fecha, opcional)',
-          description: 'Descripción (opcional)',
-          is_active: 'Activo (true/false, opcional)'
+          category: 'Categoría (docente, administrativo, etc.)',
+          type: 'Tipo de código (categoria, bono, etc.)',
+          factor: 'Factor multiplicador (decimal)',
+          base_amount: 'Monto base (número)',
+          is_active: 'Activo (true/false)',
+          requires_hours: 'Requiere horas (true/false)',
+          is_taxable: 'Afecto a impuestos (true/false)',
+          valid_from: 'Válido desde (fecha YYYY-MM-DD)',
+          valid_until: 'Válido hasta (fecha YYYY-MM-DD)'
         },
         exampleData: [
           {
             code: 'DOC001',
             name: 'Docencia Pregrado',
-            category: 'DOCENCIA',
-            hourly_rate: 15000
+            category: 'docente',
+            type: 'categoria',
+            factor: 1.0,
+            base_amount: 50000,
+            is_active: true,
+            requires_hours: false,
+            is_taxable: true,
+            valid_from: '2025-01-01',
+            valid_until: '2025-12-31'
           }
         ]
       },

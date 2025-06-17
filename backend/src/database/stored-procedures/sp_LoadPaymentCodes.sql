@@ -24,8 +24,7 @@ proc_main: BEGIN
     DECLARE v_update_count INT DEFAULT 0;
     DECLARE v_insert_count INT DEFAULT 0;
     DECLARE v_skip_count INT DEFAULT 0;
-    
-    -- Variables para procesamiento de cada registro
+      -- Variables para procesamiento de cada registro
     DECLARE v_row_index INT DEFAULT 0;
     DECLARE v_code_name VARCHAR(20);
     DECLARE v_description VARCHAR(255);
@@ -36,27 +35,32 @@ proc_main: BEGIN
     DECLARE v_is_active BOOLEAN;
     DECLARE v_requires_hours BOOLEAN;
     DECLARE v_is_taxable BOOLEAN;
-    DECLARE v_valid_from DATE;
-    DECLARE v_valid_until DATE;
-    
-    -- Variables de validación
+    DECLARE v_valid_from VARCHAR(10);  -- Cambiar a VARCHAR para manejar conversión
+    DECLARE v_valid_until VARCHAR(10); -- Cambiar a VARCHAR para manejar conversión
+      -- Variables de validación
     DECLARE v_existing_id INT DEFAULT NULL;
     DECLARE v_validation_passed BOOLEAN DEFAULT TRUE;
+    DECLARE v_date_from DATE DEFAULT NULL;  -- Variables auxiliares para fechas
+    DECLARE v_date_until DATE DEFAULT NULL;
+      -- Variables para manejo de errores
+    DECLARE v_errno INT DEFAULT 0;
+    DECLARE v_sqlstate VARCHAR(5) DEFAULT '';
+    DECLARE v_message TEXT DEFAULT '';
     
-    -- Variables para manejo de errores
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
         ROLLBACK;
         GET DIAGNOSTICS CONDITION 1
-            @sqlstate = RETURNED_SQLSTATE, 
-            @errno = MYSQL_ERRNO, 
-            @text = MESSAGE_TEXT;
+            v_sqlstate = RETURNED_SQLSTATE, 
+            v_errno = MYSQL_ERRNO, 
+            v_message = MESSAGE_TEXT;
         
         SET p_result_json = JSON_OBJECT(
             'success', FALSE,
             'error', 'Error SQL durante el procesamiento',
-            'error_code', @errno,
-            'error_message', @text,
+            'error_code', v_errno,
+            'error_message', v_message,
+            'error_sqlstate', v_sqlstate,
             'processed_rows', v_row_index
         );
     END;
@@ -127,11 +131,30 @@ proc_main: BEGIN
             SET v_description = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.description'));
             SET v_factor = JSON_EXTRACT(@current_record, '$.factor');
             SET v_base_amount = JSON_EXTRACT(@current_record, '$.base_amount');
-            SET v_category = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.category'));
-            SET v_type = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.type'));
-            SET v_is_active = COALESCE(JSON_EXTRACT(@current_record, '$.is_active'), TRUE);
-            SET v_requires_hours = COALESCE(JSON_EXTRACT(@current_record, '$.requires_hours'), FALSE);
-            SET v_is_taxable = COALESCE(JSON_EXTRACT(@current_record, '$.is_taxable'), TRUE);
+            SET v_category = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.category'));            SET v_type = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.type'));
+            
+            -- Manejar booleanos con más cuidado
+            SET v_is_active = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.is_active') = 'true' THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.is_active') = TRUE THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.is_active') = 1 THEN TRUE
+                ELSE FALSE
+            END;
+            
+            SET v_requires_hours = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.requires_hours') = 'true' THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.requires_hours') = TRUE THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.requires_hours') = 1 THEN TRUE
+                ELSE FALSE
+            END;
+            
+            SET v_is_taxable = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.is_taxable') = 'true' THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.is_taxable') = TRUE THEN TRUE
+                WHEN JSON_EXTRACT(@current_record, '$.is_taxable') = 1 THEN TRUE
+                ELSE FALSE
+            END;
+            
             SET v_valid_from = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.valid_from'));
             SET v_valid_until = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.valid_until'));
             
@@ -283,13 +306,20 @@ proc_main: BEGIN
                     'Los descuentos deberían tener factor menor a 1', @current_record
                 );
             END IF;
-            
-            -- ===== PROCESAMIENTO =====
-            
-            IF v_validation_passed THEN
-                -- Convertir fechas vacías a NULL
-                IF v_valid_from = '' THEN SET v_valid_from = NULL; END IF;
-                IF v_valid_until = '' THEN SET v_valid_until = NULL; END IF;
+              -- ===== PROCESAMIENTO =====
+              IF v_validation_passed THEN
+                -- Convertir fechas vacías o NULL a NULL, sino convertir a DATE
+                IF v_valid_from IS NULL OR v_valid_from = '' THEN 
+                    SET v_date_from = NULL; 
+                ELSE
+                    SET v_date_from = STR_TO_DATE(v_valid_from, '%Y-%m-%d');
+                END IF;
+                
+                IF v_valid_until IS NULL OR v_valid_until = '' THEN 
+                    SET v_date_until = NULL; 
+                ELSE
+                    SET v_date_until = STR_TO_DATE(v_valid_until, '%Y-%m-%d');
+                END IF;
                 
                 -- Determinar operación: INSERT o UPDATE
                 IF v_existing_id IS NULL THEN
@@ -297,11 +327,10 @@ proc_main: BEGIN
                     INSERT INTO payment_codes (
                         code_name, description, factor, base_amount,
                         category, type, is_active, requires_hours, is_taxable,
-                        valid_from, valid_until
-                    ) VALUES (
+                        valid_from, valid_until                    ) VALUES (
                         v_code_name, v_description, v_factor, v_base_amount,
                         v_category, v_type, v_is_active, v_requires_hours, v_is_taxable,
-                        v_valid_from, v_valid_until
+                        v_date_from, v_date_until
                     );
                     
                     SET v_insert_count = v_insert_count + 1;
@@ -313,12 +342,11 @@ proc_main: BEGIN
                         factor = v_factor,
                         base_amount = v_base_amount,
                         category = v_category,
-                        type = v_type,
-                        is_active = v_is_active,
+                        type = v_type,                        is_active = v_is_active,
                         requires_hours = v_requires_hours,
                         is_taxable = v_is_taxable,
-                        valid_from = v_valid_from,
-                        valid_until = v_valid_until,
+                        valid_from = v_date_from,
+                        valid_until = v_date_until,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = v_existing_id;
                     

@@ -1,19 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { uploadService } from './services/upload.service';
+
+// Types
+interface FileType {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  format: string;
+  templateName: string;
+  endpoint: string;
+}
+
+interface UploadError {
+  row: number;
+  data: any;
+  type: string;
+  field: string;
+  message: string;
+}
+
+interface UploadResult {
+  success: boolean;
+  message: string;
+  summary?: {
+    totalRecords: number;
+    validRecords: number;
+    invalidRecords: number;
+    errors?: (string | UploadError)[];
+  };
+  data?: any;
+}
+
+interface RecentUpload {
+  filename: string;
+  type: string;
+  date: string;
+  status: 'Exitoso' | 'Con errores' | 'Error';
+  records: number;
+  errors?: number;
+}
 
 const DataUploadPage: React.FC = () => {
   const [selectedFileType, setSelectedFileType] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([]);
+  const [systemStats, setSystemStats] = useState<any>(null);
 
-  const fileTypes = [
+  const fileTypes: FileType[] = [
     {
-      id: 'academic-structure',
+      id: 'academic-structures',
       name: 'Estructura Académica',
       description: 'Información de programas, asignaturas y planes de estudio',
       icon: '🏛️',
       format: '.xlsx',
-      templateName: 'estructura_academica_template.xlsx'
+      templateName: 'estructura_academica_template.xlsx',
+      endpoint: 'academic-structures'
     },
     {
       id: 'course-reports',
@@ -21,7 +66,8 @@ const DataUploadPage: React.FC = () => {
       description: 'Asignaturas disponibles para programar en el período',
       icon: '📚',
       format: '.xlsx',
-      templateName: 'reporte_cursables_template.xlsx'
+      templateName: 'reporte_cursables_template.xlsx',
+      endpoint: 'course-reports'
     },
     {
       id: 'teachers',
@@ -29,7 +75,8 @@ const DataUploadPage: React.FC = () => {
       description: 'Información de profesores y sus categorías',
       icon: '👨‍🏫',
       format: '.xlsx',
-      templateName: 'nomina_docentes_template.xlsx'
+      templateName: 'nomina_docentes_template.xlsx',
+      endpoint: 'teachers'
     },
     {
       id: 'payment-codes',
@@ -37,34 +84,54 @@ const DataUploadPage: React.FC = () => {
       description: 'Códigos y factores de pago para docentes',
       icon: '💰',
       format: '.xlsx',
-      templateName: 'siglas_pago_template.xlsx'
+      templateName: 'siglas_pago_template.xlsx',
+      endpoint: 'payment-codes'
     }
   ];
 
-  const recentUploads = [
-    {
-      filename: 'estructura_academica_2025.xlsx',
-      type: 'Estructura Académica',
-      date: '2025-06-14T10:30:00',
-      status: 'Exitoso',
-      records: 245
-    },
-    {
-      filename: 'nomina_docentes_semestre1.xlsx',
-      type: 'Nómina de Docentes',
-      date: '2025-06-13T15:45:00',
-      status: 'Con errores',
-      records: 89,
-      errors: 3
-    },
-    {
-      filename: 'reporte_cursables_ing.xlsx',
-      type: 'Reporte de Cursables',
-      date: '2025-06-12T09:15:00',
-      status: 'Exitoso',
-      records: 156
+  // Load initial data
+  useEffect(() => {
+    loadSystemStats();
+    loadRecentUploads();
+  }, []);
+
+  const loadSystemStats = async () => {
+    try {
+      const stats = await uploadService.getSystemStats();
+      setSystemStats(stats);
+    } catch (error) {
+      console.error('Error loading system stats:', error);
     }
-  ];
+  };
+
+  const loadRecentUploads = () => {
+    // Mock data for recent uploads - in real implementation, this would come from API
+    const mockUploads: RecentUpload[] = [
+      {
+        filename: 'estructura_academica_2025.xlsx',
+        type: 'Estructura Académica',
+        date: '2025-06-14T10:30:00',
+        status: 'Exitoso',
+        records: 245
+      },
+      {
+        filename: 'nomina_docentes_semestre1.xlsx',
+        type: 'Nómina de Docentes',
+        date: '2025-06-13T15:45:00',
+        status: 'Con errores',
+        records: 89,
+        errors: 3
+      },
+      {
+        filename: 'reporte_cursables_ing.xlsx',
+        type: 'Reporte de Cursables',
+        date: '2025-06-12T09:15:00',
+        status: 'Exitoso',
+        records: 156
+      }
+    ];
+    setRecentUploads(mockUploads);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -92,27 +159,129 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     if (!selectedFileType) {
       alert('Por favor selecciona el tipo de archivo primero');
       return;
     }
 
-    // Simular carga de archivo
+    const fileType = fileTypes.find(t => t.id === selectedFileType);
+    if (!fileType) {
+      alert('Tipo de archivo no válido');
+      return;
+    }
+
+    // Validate file
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
+      alert('Solo se permiten archivos Excel (.xlsx, .xls)');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
+    setUploadResult(null);
 
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          alert(`Archivo ${file.name} cargado exitosamente`);
-          return 100;
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      // Call upload service
+      const result = await uploadService.uploadFile(fileType.endpoint, file);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      
+      // Wait a bit to show 100% progress
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadResult(result);
+        
+        // Add to recent uploads
+        const newUpload: RecentUpload = {
+          filename: file.name,
+          type: fileType.name,
+          date: new Date().toISOString(),
+          status: result.success ? 'Exitoso' : 'Con errores',
+          records: result.summary?.totalRecords || 0,
+          errors: result.summary?.invalidRecords || 0
+        };
+        
+        setRecentUploads(prev => [newUpload, ...prev]);
+        
+        // Reload stats
+        loadSystemStats();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      setUploadResult({
+        success: false,
+        message: 'Error al cargar el archivo. Por favor intenta nuevamente.',
+        summary: {
+          totalRecords: 0,
+          validRecords: 0,
+          invalidRecords: 0,
+          errors: [error instanceof Error ? error.message : 'Error desconocido']
         }
-        return prev + 10;
       });
-    }, 200);
+    }
+  };
+
+  const downloadTemplate = async (fileType: FileType) => {
+    try {
+      await uploadService.downloadTemplate(fileType.id);
+    } catch (error) {
+      console.error('Error downloading template:', error);
+      alert('Error al descargar la plantilla. Por favor intenta nuevamente.');
+    }
+  };
+
+  const validateOnly = async (file: File) => {
+    if (!selectedFileType) {
+      alert('Por favor selecciona el tipo de archivo primero');
+      return;
+    }
+
+    const fileType = fileTypes.find(t => t.id === selectedFileType);
+    if (!fileType) return;
+
+    try {
+      setIsUploading(true);
+      const result = await uploadService.validateFile(fileType.endpoint, file);
+      setUploadResult({
+        success: true,
+        message: 'Validación completada',
+        summary: result.summary
+      });
+    } catch (error) {
+      console.error('Validation error:', error);
+      setUploadResult({
+        success: false,
+        message: 'Error en la validación',
+        summary: {
+          totalRecords: 0,
+          validRecords: 0,
+          invalidRecords: 0,
+          errors: [error instanceof Error ? error.message : 'Error en validación']
+        }
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -136,6 +305,22 @@ const DataUploadPage: React.FC = () => {
         <p className="text-gray-600">
           Importa la información base del sistema mediante archivos Excel estructurados
         </p>
+        {systemStats && (
+          <div className="mt-4 flex items-center space-x-6 text-sm text-gray-600">
+            <div className="flex items-center">
+              <span className="mr-1">📊</span>
+              <span>Total archivos: {systemStats.total.files}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">💾</span>
+              <span>Tamaño total: {(systemStats.total.size / 1024 / 1024).toFixed(2)} MB</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">✅</span>
+              <span>Procesados: {systemStats.processed.files}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* File Type Selection */}
@@ -179,10 +364,18 @@ const DataUploadPage: React.FC = () => {
                     Arrastra tu archivo aquí o haz clic para seleccionar
                   </p>
                 </div>
-                <button className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200">
-                  <span className="mr-2">📥</span>
-                  Descargar Plantilla
-                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => {
+                      const fileType = fileTypes.find(t => t.id === selectedFileType);
+                      if (fileType) downloadTemplate(fileType);
+                    }}
+                    className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors duration-200"
+                  >
+                    <span className="mr-2">📥</span>
+                    Descargar Plantilla
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -230,10 +423,87 @@ const DataUploadPage: React.FC = () => {
                         style={{ width: `${uploadProgress}%` }}
                       ></div>
                     </div>
-                    <p className="text-sm text-gray-600">Cargando archivo... {uploadProgress}%</p>
+                    <p className="text-sm text-gray-600">Procesando archivo... {uploadProgress}%</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                {!isUploading && (
+                  <div className="mt-4 flex justify-center space-x-4">
+                    <label htmlFor="file-upload" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 cursor-pointer">
+                      Cargar y Procesar
+                    </label>
+                    <label htmlFor="file-validate" className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer">
+                      Solo Validar
+                    </label>
+                    <input
+                      type="file"
+                      id="file-validate"
+                      className="hidden"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          validateOnly(e.target.files[0]);
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </div>
+
+              {/* Upload Results */}
+              {uploadResult && (
+                <div className="mt-6 p-4 rounded-lg border">
+                  <div className={`flex items-center mb-3 ${
+                    uploadResult.success ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    <span className="mr-2 text-xl">
+                      {uploadResult.success ? '✅' : '❌'}
+                    </span>
+                    <h4 className="font-semibold">{uploadResult.message}</h4>
+                  </div>
+                  
+                  {uploadResult.summary && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="text-center p-3 bg-gray-50 rounded">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {uploadResult.summary.totalRecords}
+                        </div>
+                        <div className="text-sm text-gray-600">Total Registros</div>
+                      </div>
+                      <div className="text-center p-3 bg-green-50 rounded">
+                        <div className="text-2xl font-bold text-green-600">
+                          {uploadResult.summary.validRecords}
+                        </div>
+                        <div className="text-sm text-gray-600">Válidos</div>
+                      </div>
+                      <div className="text-center p-3 bg-red-50 rounded">
+                        <div className="text-2xl font-bold text-red-600">
+                          {uploadResult.summary.invalidRecords}
+                        </div>
+                        <div className="text-sm text-gray-600">Con Errores</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadResult.summary?.errors && uploadResult.summary.errors.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="font-semibold text-red-700 mb-2">Errores encontrados:</h5>
+                      <div className="bg-red-50 p-3 rounded max-h-32 overflow-y-auto">                        <ul className="text-sm text-red-700 space-y-1">
+                          {uploadResult.summary.errors.map((error, index) => (
+                            <li key={index}>
+                              • {typeof error === 'string' 
+                                ? error 
+                                : `Fila ${error.row}: ${error.message} (Campo: ${error.field})`
+                              }
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -348,7 +618,7 @@ const DataUploadPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {upload.records} registros
-                    {upload.errors && (
+                    {upload.errors && upload.errors > 0 && (
                       <span className="text-red-600 ml-2">({upload.errors} errores)</span>
                     )}
                   </td>
