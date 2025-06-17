@@ -125,23 +125,39 @@ proc_main: BEGIN
             
             -- Reiniciar variables de validación
             SET v_validation_passed = TRUE;
-            SET v_academic_structure_exists = FALSE;
-            
-            -- Extraer campos del JSON
+            SET v_academic_structure_exists = FALSE;            -- Extraer campos del JSON (con manejo correcto de NULL)
             SET v_academic_structure_id = JSON_EXTRACT(@current_record, '$.academic_structure_id');
             SET v_student_count = COALESCE(JSON_EXTRACT(@current_record, '$.student_count'), 0);
             SET v_term = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.term'));
             SET v_year = JSON_EXTRACT(@current_record, '$.year');
-            SET v_section = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.section'));
+            SET v_section = IF(JSON_EXTRACT(@current_record, '$.section') IS NULL, NULL, JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.section')));
             SET v_modality = COALESCE(JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.modality')), 'presencial');
-            SET v_enrolled_count = JSON_EXTRACT(@current_record, '$.enrolled_count');
-            SET v_passed_count = JSON_EXTRACT(@current_record, '$.passed_count');
-            SET v_failed_count = JSON_EXTRACT(@current_record, '$.failed_count');
-            SET v_withdrawn_count = JSON_EXTRACT(@current_record, '$.withdrawn_count');
-            SET v_weekly_hours = JSON_EXTRACT(@current_record, '$.weekly_hours');
-            SET v_total_hours = JSON_EXTRACT(@current_record, '$.total_hours');
+            SET v_enrolled_count = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.enrolled_count') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.enrolled_count') 
+            END;
+            SET v_passed_count = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.passed_count') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.passed_count') 
+            END;
+            SET v_failed_count = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.failed_count') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.failed_count') 
+            END;
+            SET v_withdrawn_count = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.withdrawn_count') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.withdrawn_count') 
+            END;
+            SET v_weekly_hours = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.weekly_hours') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.weekly_hours') 
+            END;
+            SET v_total_hours = CASE 
+                WHEN JSON_EXTRACT(@current_record, '$.total_hours') = CAST('null' AS JSON) THEN NULL 
+                ELSE JSON_EXTRACT(@current_record, '$.total_hours') 
+            END;
             SET v_is_validated = COALESCE(JSON_EXTRACT(@current_record, '$.is_validated'), FALSE);
-            SET v_notes = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.notes'));
+            SET v_notes = IF(JSON_EXTRACT(@current_record, '$.notes') IS NULL, NULL, JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.notes')));
             
             -- ===== VALIDACIONES =====
             

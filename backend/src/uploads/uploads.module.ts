@@ -7,6 +7,7 @@ import { diskStorage, memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import * as fs from 'fs';
 import { UploadsController } from './uploads.controller';
+import { TemplatesController } from './templates.controller';
 import { UploadsService } from './uploads.service';
 import { FileCleanupService } from './services/file-cleanup.service';
 import { FileValidationMiddleware } from './middleware/file-validation.middleware';
@@ -123,7 +124,7 @@ import { FileValidationMiddleware } from './middleware/file-validation.middlewar
     }),
     TypeOrmModule.forFeature([]), // Para acceso a base de datos si es necesario
   ],
-  controllers: [UploadsController],
+  controllers: [UploadsController, TemplatesController],
   providers: [
     UploadsService,
     FileCleanupService, // Servicio de limpieza automática

@@ -15,8 +15,10 @@ import {
   Query,
   HttpStatus,
   HttpCode,
-  InternalServerErrorException
+  InternalServerErrorException,
+  Res
 } from '@nestjs/common';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadsService } from './uploads.service';
 import { BulkUploadOptions, UploadResultDto, OperationMode } from './dto/file-upload.dto';
@@ -394,9 +396,60 @@ export class UploadsController {
         status: 'error',
         error: error.message,
         lastChecked: new Date().toISOString()
-      };
+      };    }
+  }
+  // ================================
+  // ENDPOINTS PÚBLICOS DE PLANTILLAS
+  // ================================
+
+  /**
+   * Obtener información de plantillas disponibles (PÚBLICO)
+   * 
+   * @returns Lista de plantillas con metadatos
+   */
+  @Get('public/templates')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards() // Override - no usar guards para este endpoint
+  async getTemplates(): Promise<any> {
+    try {
+      return await this.uploadsService.getAvailableTemplates();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Error obteniendo plantillas: ${error.message}`
+      );
     }
   }
+
+  /**
+   * Descargar plantilla específica (PÚBLICO)
+   * 
+   * @param templateType Tipo de plantilla (academic-structures, teachers, payment-codes, course-reports)
+   * @returns Archivo Excel de plantilla
+   */
+  @Get('public/templates/:templateType')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards() // Override - no usar guards para este endpoint
+  async downloadTemplate(
+    @Param('templateType') templateType: string,
+    @Res() res: Response
+  ): Promise<void> {
+    try {
+      const template = await this.uploadsService.generateTemplate(templateType);
+      
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="plantilla_${templateType}.xlsx"`,
+        'Content-Length': template.length.toString()
+      });
+      
+      res.send(template);
+    } catch (error) {
+      throw new BadRequestException(
+        `Error generando plantilla ${templateType}: ${error.message}`
+      );
+    }
+  }
+
 
   // ================================
   // MÉTODOS AUXILIARES PRIVADOS

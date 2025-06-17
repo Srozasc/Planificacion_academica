@@ -31,7 +31,8 @@ proc_main: BEGIN
     DECLARE v_name VARCHAR(255);
     DECLARE v_credits INT;
     DECLARE v_plan_id INT;
-    DECLARE v_plan_code VARCHAR(20);    DECLARE v_type VARCHAR(20);
+    DECLARE v_plan_code VARCHAR(20);
+    DECLARE v_type VARCHAR(20);
     DECLARE v_semester INT;
     DECLARE v_prerequisites TEXT;
     DECLARE v_description TEXT;
@@ -43,22 +44,28 @@ proc_main: BEGIN
     DECLARE v_plan_id_resolved INT DEFAULT NULL;
     DECLARE v_error_message TEXT DEFAULT '';
     DECLARE v_validation_passed BOOLEAN DEFAULT TRUE;
-    
+
     -- Variables para manejo de errores
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
-        ROLLBACK;
         GET DIAGNOSTICS CONDITION 1
             @sqlstate = RETURNED_SQLSTATE, 
             @errno = MYSQL_ERRNO, 
             @text = MESSAGE_TEXT;
         
+        -- ROLLBACK simplificado
+        ROLLBACK;
+
+        -- Insertar en la tabla de depuración
+        INSERT IGNORE INTO sp_debug_log (procedure_name, sqlstate_val, errno_val, message_text_val, input_json, notes)
+        VALUES ('sp_LoadAcademicStructure', @sqlstate, @errno, @text, p_json_data, 'Error capturado en EXIT HANDLER');
+        
         SET p_result_json = JSON_OBJECT(
             'success', FALSE,
-            'error', 'Error SQL durante el procesamiento',
+            'error', 'Error SQL durante el procesamiento. Ver sp_debug_log para detalles.',
             'error_code', @errno,
             'error_message', @text,
-            'processed_rows', v_row_index
+            'processed_rows', v_row_index 
         );
     END;
     
@@ -71,59 +78,58 @@ proc_main: BEGIN
         error_message TEXT,
         record_data JSON
     );    
-    -- Iniciar transacción
-    START TRANSACTION;
     
-    -- Establecer valor default para p_update_mode si es NULL
-    IF p_update_mode IS NULL OR p_update_mode = '' THEN
-        SET p_update_mode = 'UPSERT';
-    END IF;
+    -- Intento de log inicial, DESPUÉS de declarar variables y ANTES de declarar el handler
+    -- Esto es para verificar si el SP se inicia y puede escribir en la tabla de log.
+    -- Usar INSERT IGNORE para máxima robustez.
+    INSERT IGNORE INTO sp_debug_log (procedure_name, notes, input_json)
+    VALUES ('sp_LoadAcademicStructure', 'Procedure execution started (after declares)', p_json_data);
     
-    -- Validar que el JSON de entrada es válido
+    -- Validaciones iniciales (antes de la transacción principal)
     IF p_json_data IS NULL OR p_json_data = '' OR NOT JSON_VALID(p_json_data) THEN
         SET p_result_json = JSON_OBJECT(
             'success', FALSE,
             'error', 'JSON de entrada inválido o vacío'
         );
-        ROLLBACK;
+        INSERT IGNORE INTO sp_debug_log (procedure_name, sqlstate_val, errno_val, message_text_val, input_json, notes)
+        VALUES ('sp_LoadAcademicStructure', 'PROC_ERR', -1, 'JSON de entrada inválido o vacío', p_json_data, 'Validación inicial JSON fallida');
         LEAVE proc_main;
     END IF;
     
-    -- Validar parámetro de modo de actualización
     IF p_update_mode NOT IN ('INSERT_ONLY', 'UPDATE_ONLY', 'UPSERT') THEN
         SET p_result_json = JSON_OBJECT(
             'success', FALSE,
             'error', 'Modo de actualización inválido. Debe ser: INSERT_ONLY, UPDATE_ONLY o UPSERT'
         );
-        ROLLBACK;
+        INSERT IGNORE INTO sp_debug_log (procedure_name, sqlstate_val, errno_val, message_text_val, input_json, notes)
+        VALUES ('sp_LoadAcademicStructure', 'PROC_ERR', -2, 'Modo de actualización inválido', p_json_data, CONCAT('Modo: ', p_update_mode));
         LEAVE proc_main;
     END IF;
     
-    -- Verificar que el usuario existe
     IF NOT EXISTS (SELECT 1 FROM users WHERE id = p_user_id) THEN
         SET p_result_json = JSON_OBJECT(
             'success', FALSE,
             'error', CONCAT('Usuario con ID ', p_user_id, ' no encontrado')
         );
-        ROLLBACK;        LEAVE proc_main;
+        INSERT IGNORE INTO sp_debug_log (procedure_name, sqlstate_val, errno_val, message_text_val, input_json, notes)
+        VALUES ('sp_LoadAcademicStructure', 'PROC_ERR', -3, CONCAT('Usuario con ID ', p_user_id, ' no encontrado'), p_json_data, 'Validación de usuario fallida');
+        LEAVE proc_main;
     END IF;
+    
+    -- Iniciar transacción DESPUÉS de validaciones iniciales que no requieren rollback de esta transacción
+    START TRANSACTION;
     
     -- Procesamiento principal
     BEGIN
-        -- Obtener el número de elementos en el array JSON
         SET @array_length = JSON_LENGTH(p_json_data);
         
-        -- Procesar cada elemento del array JSON
         WHILE v_row_index < @array_length DO
-            -- Obtener el registro actual
             SET @current_record = JSON_EXTRACT(p_json_data, CONCAT('$[', v_row_index, ']'));
             
-            -- Reiniciar variables de validación
             SET v_validation_passed = TRUE;
             SET v_error_message = '';
             SET v_plan_id_resolved = NULL;
             
-            -- Extraer campos del JSON
             SET v_code = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.code'));
             SET v_name = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.name'));
             SET v_credits = JSON_EXTRACT(@current_record, '$.credits');
@@ -133,145 +139,78 @@ proc_main: BEGIN
             SET v_prerequisites = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.prerequisites'));
             SET v_description = JSON_UNQUOTE(JSON_EXTRACT(@current_record, '$.description'));
             SET v_hours_per_week = JSON_EXTRACT(@current_record, '$.hours_per_week');
-            SET v_is_active = COALESCE(JSON_EXTRACT(@current_record, '$.is_active'), TRUE);
-            
+            -- SET v_is_active = COALESCE(JSON_EXTRACT(@current_record, '$.is_active'), TRUE); -- Old line
+            -- SET v_is_active = IF(JSON_EXTRACT(@current_record, '$.is_active') IS NULL, TRUE, JSON_EXTRACT(@current_record, '$.is_active') = JSON_TRUE()); -- Previous correction
+            SET v_is_active = IF(JSON_EXTRACT(@current_record, '$.is_active') IS NULL, TRUE, JSON_EXTRACT(@current_record, '$.is_active') = CAST('true' AS JSON));
+
             -- ===== VALIDACIONES =====
-            
-            -- 1. Validar campos requeridos
             IF v_code IS NULL OR v_code = '' THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'code', 'REQUIRED', 'El código es requerido', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'code', 'REQUIRED', 'El código es requerido', @current_record);
             END IF;
-            
             IF v_name IS NULL OR v_name = '' THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'name', 'REQUIRED', 'El nombre es requerido', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'name', 'REQUIRED', 'El nombre es requerido', @current_record);
             END IF;
-            
             IF v_type IS NULL OR v_type = '' THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'type', 'REQUIRED', 'El tipo es requerido', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'type', 'REQUIRED', 'El tipo es requerido', @current_record);
             END IF;
-            
-            -- 2. Validar formato y longitud de campos
             IF v_code IS NOT NULL AND (LENGTH(v_code) > 20 OR LENGTH(v_code) < 2) THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'code', 'FORMAT', 'El código debe tener entre 2 y 20 caracteres', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'code', 'FORMAT', 'El código debe tener entre 2 y 20 caracteres', @current_record);
             END IF;
-            
             IF v_name IS NOT NULL AND LENGTH(v_name) > 255 THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'name', 'FORMAT', 'El nombre no puede exceder 255 caracteres', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'name', 'FORMAT', 'El nombre no puede exceder 255 caracteres', @current_record);
             END IF;
-            
-            -- 3. Validar enums y rangos
             IF v_type IS NOT NULL AND v_type NOT IN ('subject', 'plan', 'module') THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'type', 'ENUM', 'El tipo debe ser: subject, plan o module', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'type', 'ENUM', 'El tipo debe ser: subject, plan o module', @current_record);
             END IF;
-            
             IF v_credits IS NOT NULL AND (v_credits < 0 OR v_credits > 20) THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'credits', 'RANGE', 'Los créditos deben estar entre 0 y 20', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'credits', 'RANGE', 'Los créditos deben estar entre 0 y 20', @current_record);
             END IF;
-            
             IF v_semester IS NOT NULL AND (v_semester < 1 OR v_semester > 10) THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'semester', 'RANGE', 'El semestre debe estar entre 1 y 10', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'semester', 'RANGE', 'El semestre debe estar entre 1 y 10', @current_record);
             END IF;
-            
             IF v_hours_per_week IS NOT NULL AND (v_hours_per_week < 0 OR v_hours_per_week > 50) THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'hours_per_week', 'RANGE', 'Las horas por semana deben estar entre 0 y 50', @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'hours_per_week', 'RANGE', 'Las horas por semana deben estar entre 0 y 50', @current_record);
             END IF;
-            
-            -- 4. Validar integridad referencial - plan_code
             IF v_plan_code IS NOT NULL AND v_plan_code != '' THEN
-                SELECT id INTO v_plan_id_resolved
-                FROM academic_structures 
-                WHERE code = v_plan_code AND type = 'plan' AND deleted_at IS NULL
-                LIMIT 1;
-                
+                SELECT id INTO v_plan_id_resolved FROM academic_structures WHERE code = v_plan_code AND type = 'plan' AND deleted_at IS NULL LIMIT 1;
                 IF v_plan_id_resolved IS NULL THEN
                     SET v_validation_passed = FALSE;
-                    INSERT INTO temp_validation_errors VALUES (
-                        v_row_index, 'plan_code', 'FOREIGN_KEY', 
-                        CONCAT('Plan con código "', v_plan_code, '" no encontrado'), @current_record
-                    );
+                    INSERT INTO temp_validation_errors VALUES (v_row_index, 'plan_code', 'FOREIGN_KEY', CONCAT('Plan con código "', v_plan_code, '" no encontrado'), @current_record);
                 END IF;
             END IF;
             
-            -- 5. Validar duplicados según el modo de operación
-            SELECT id INTO v_existing_id
-            FROM academic_structures 
-            WHERE code = v_code AND deleted_at IS NULL
-            LIMIT 1;
+            SELECT id INTO v_existing_id FROM academic_structures WHERE code = v_code AND deleted_at IS NULL LIMIT 1;
             
             IF p_update_mode = 'INSERT_ONLY' AND v_existing_id IS NOT NULL THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'code', 'DUPLICATE', 
-                    CONCAT('El código "', v_code, '" ya existe (modo INSERT_ONLY)'), @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'code', 'DUPLICATE', CONCAT('El código "', v_code, '" ya existe (modo INSERT_ONLY)'), @current_record);
             END IF;
-            
             IF p_update_mode = 'UPDATE_ONLY' AND v_existing_id IS NULL THEN
                 SET v_validation_passed = FALSE;
-                INSERT INTO temp_validation_errors VALUES (
-                    v_row_index, 'code', 'NOT_FOUND', 
-                    CONCAT('El código "', v_code, '" no existe para actualizar (modo UPDATE_ONLY)'), @current_record
-                );
+                INSERT INTO temp_validation_errors VALUES (v_row_index, 'code', 'NOT_FOUND', CONCAT('El código "', v_code, '" no existe para actualizar (modo UPDATE_ONLY)'), @current_record);
             END IF;
             
-            -- ===== PROCESAMIENTO =====
-            
             IF v_validation_passed THEN
-                -- Determinar operación: INSERT o UPDATE
                 IF v_existing_id IS NULL THEN
-                    -- INSERT
-                    INSERT INTO academic_structures (
-                        code, name, credits, plan_id, type, semester, 
-                        prerequisites, description, hours_per_week, is_active
-                    ) VALUES (
-                        v_code, v_name, v_credits, v_plan_id_resolved, v_type, v_semester,
-                        v_prerequisites, v_description, v_hours_per_week, v_is_active
-                    );
-                    
+                    INSERT INTO academic_structures (code, name, credits, plan_id, type, semester, prerequisites, description, hours_per_week, is_active) 
+                    VALUES (v_code, v_name, v_credits, v_plan_id_resolved, v_type, v_semester, v_prerequisites, v_description, v_hours_per_week, v_is_active);
                     SET v_insert_count = v_insert_count + 1;
                     SET v_success_count = v_success_count + 1;
                 ELSE
-                    -- UPDATE
                     UPDATE academic_structures SET
-                        name = v_name,
-                        credits = v_credits,
-                        plan_id = v_plan_id_resolved,
-                        type = v_type,
-                        semester = v_semester,
-                        prerequisites = v_prerequisites,
-                        description = v_description,
-                        hours_per_week = v_hours_per_week,
-                        is_active = v_is_active,
+                        name = v_name, credits = v_credits, plan_id = v_plan_id_resolved, type = v_type, semester = v_semester,
+                        prerequisites = v_prerequisites, description = v_description, hours_per_week = v_hours_per_week, is_active = v_is_active,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = v_existing_id;
-                    
                     SET v_update_count = v_update_count + 1;
                     SET v_success_count = v_success_count + 1;
                 END IF;
@@ -282,58 +221,27 @@ proc_main: BEGIN
             SET v_row_index = v_row_index + 1;
         END WHILE;
         
-        -- Preparar resultado
         IF v_error_count > 0 THEN
-            -- Si hay errores, construir JSON con detalles de errores
             SET @errors_json = '';
-            
-            SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'row', row_index,
-                    'field', field_name,
-                    'type', error_type,
-                    'message', error_message,
-                    'data', record_data
-                )
-            ) INTO @errors_json
+            SELECT JSON_ARRAYAGG(JSON_OBJECT('row', row_index, 'field', field_name, 'type', error_type, 'message', error_message, 'data', record_data)) 
+            INTO @errors_json
             FROM temp_validation_errors;
             
             SET p_result_json = JSON_OBJECT(
-                'success', FALSE,
-                'message', 'Procesamiento completado con errores',
-                'statistics', JSON_OBJECT(
-                    'total_rows', v_row_index,
-                    'success_count', v_success_count,
-                    'error_count', v_error_count,
-                    'insert_count', v_insert_count,
-                    'update_count', v_update_count,
-                    'skip_count', v_skip_count
-                ),
+                'success', FALSE, 'message', 'Procesamiento completado con errores de validación.',
+                'statistics', JSON_OBJECT('total_rows', v_row_index, 'success_count', v_success_count, 'error_count', v_error_count, 'insert_count', v_insert_count, 'update_count', v_update_count, 'skip_count', v_skip_count),
                 'errors', @errors_json
             );
-            
-            -- En caso de errores, rollback opcional (configurable)
-            -- ROLLBACK;
+            ROLLBACK; -- Rollback por errores de validación
         ELSE
-            -- Todo exitoso, confirmar transacción
-            COMMIT;
-            
+            COMMIT; -- Todo exitoso, confirmar transacción
             SET p_result_json = JSON_OBJECT(
-                'success', TRUE,
-                'message', 'Todos los registros procesados exitosamente',
-                'statistics', JSON_OBJECT(
-                    'total_rows', v_row_index,
-                    'success_count', v_success_count,
-                    'error_count', v_error_count,
-                    'insert_count', v_insert_count,
-                    'update_count', v_update_count,
-                    'skip_count', v_skip_count
-                )
-            );        END IF;
-        
+                'success', TRUE, 'message', 'Todos los registros procesados exitosamente.',
+                'statistics', JSON_OBJECT('total_rows', v_row_index, 'success_count', v_success_count, 'error_count', v_error_count, 'insert_count', v_insert_count, 'update_count', v_update_count, 'skip_count', v_skip_count)
+            );
+        END IF;
     END; -- Fin del procesamiento principal
     
-    -- Limpiar tabla temporal
     DROP TEMPORARY TABLE IF EXISTS temp_validation_errors;
 
 END$$

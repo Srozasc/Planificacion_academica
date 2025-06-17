@@ -991,4 +991,53 @@ export class UploadsService {
       templates
     };
   }
+
+  /**
+   * Obtener plantillas disponibles (para endpoint del controlador)
+   */
+  async getAvailableTemplates() {
+    return this.getTemplateInfo();
+  }
+  /**
+   * Generar plantilla Excel para descarga
+   */
+  async generateTemplate(templateType: string): Promise<Buffer> {
+    const templates = this.getTemplateInfo(templateType);
+    
+    if (!templates) {
+      throw new Error(`Tipo de plantilla no válido: ${templateType}`);
+    }
+
+    // Crear libro de trabajo
+    const workbook = XLSX.utils.book_new();
+    
+    // Obtener datos de ejemplo
+    const exampleData = templates.exampleData || [];
+    
+    // Crear hoja de trabajo
+    const worksheet = XLSX.utils.json_to_sheet(exampleData);
+    
+    // Agregar hoja al libro
+    const sheetName = this.getSheetName(templateType);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    
+    // Generar buffer
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    return buffer;
+  }
+
+  /**
+   * Obtener nombre de hoja apropiado para cada tipo
+   */
+  private getSheetName(templateType: string): string {
+    const sheetNames = {
+      'academic-structures': 'Estructuras Académicas',
+      'teachers': 'Docentes',
+      'payment-codes': 'Códigos de Pago',
+      'course-reports': 'Reportes de Cursables'
+    };
+    
+    return sheetNames[templateType] || 'Datos';
+  }
 }

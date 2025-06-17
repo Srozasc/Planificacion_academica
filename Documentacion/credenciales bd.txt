@@ -1,0 +1,5 @@
+MySql root:DuocAdmin123.
+
+usuario:
+planificacion_user
+PlanUser2025!
