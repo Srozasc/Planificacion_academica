@@ -1,35 +1,72 @@
-import { IsNumber, IsString, IsOptional, IsDateString } from 'class-validator';
+import {
+  IsInt,
+  IsDateString,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  Min,
+  Max,
+  IsIn,
+  IsNumber,
+  IsPositive,
+} from 'class-validator';
 
 export class CreateEventDto {
-  @IsNumber()
-  asignaturaId: number;
+  @IsInt()
+  @IsPositive()
+  academic_structure_id: number;
 
-  @IsNumber()
-  docenteId: number;
+  @IsInt()
+  @IsPositive()
+  teacher_id: number;
+
+  @IsInt()
+  @IsPositive()
+  area_id: number;
 
   @IsDateString()
-  startDate: string;
+  start_datetime: string;
 
   @IsDateString()
-  endDate: string;
+  end_datetime: string;
 
   @IsString()
-  diaSemana: string;
-
-  @IsString()
-  horaInicio: string;
-
-  @IsString()
-  horaFin: string;
+  @IsIn(['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO', 'DOMINGO'])
+  day_of_week: string;
 
   @IsOptional()
   @IsString()
-  aula?: string;
+  classroom?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  vacancies?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  max_capacity?: number;
 
   @IsOptional()
   @IsNumber()
-  vacantes?: number;
+  @Min(0.5)
+  @Max(10)
+  weekly_hours?: number;
 
-  @IsNumber()
-  areaId: number;
+  @IsOptional()
+  @IsString()
+  academic_period?: string;
+
+  @IsOptional()
+  @IsString()
+  section?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  is_recurring?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  recurrence_end_date?: string;
 }
