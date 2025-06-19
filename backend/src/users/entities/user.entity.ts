@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index } from 'typeorm';
-import { Role } from '../../auth/entities/role.entity';
+import { Role } from '../../common';
 
 @Entity('users')
 @Index(['email_institucional'])

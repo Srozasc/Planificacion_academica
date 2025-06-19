@@ -7,19 +7,22 @@ import { UploadsModule } from './uploads/uploads.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { ReportsModule } from './reports/reports.module';
 import { ApprovalModule } from './approval/approval.module';
-import { DatabaseModule } from './database/database.module';
+import { CommonModule } from './common/common.module';
 import { AcademicModule } from './academic/academic.module';
 import { TeachersModule } from './teachers/teachers.module';
 import { PaymentCodesModule } from './payment-codes/payment-codes.module';
 import { CourseReportsModule } from './course-reports/course-reports.module';
 import { ConfigModule } from '@nestjs/config';
 
-@Module({  imports: [
+@Module({
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    DatabaseModule,
-    AuthModule,    UsersModule,    AcademicModule,
+    CommonModule, // Global module providing shared resources
+    AuthModule,
+    UsersModule,
+    AcademicModule,
     TeachersModule,
     PaymentCodesModule,
     CourseReportsModule,

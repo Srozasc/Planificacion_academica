@@ -13,9 +13,7 @@ import {
   HttpStatus,
   Req
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../common';
 import { CourseReportsService } from '../services/course-reports.service';
 import { CreateCourseReportDataDto } from '../dto/create-course-report-data.dto';
 import { UpdateCourseReportDataDto } from '../dto/update-course-report-data.dto';

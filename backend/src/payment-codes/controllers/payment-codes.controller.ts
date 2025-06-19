@@ -12,9 +12,7 @@ import {
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard, RolesGuard, Roles } from '../../common';
 import { PaymentCodesService } from '../services/payment-codes.service';
 import { CreatePaymentCodeDto, PaymentCodeCategory, PaymentCodeType } from '../dto/create-payment-code.dto';
 import { UpdatePaymentCodeDto } from '../dto/update-payment-code.dto';

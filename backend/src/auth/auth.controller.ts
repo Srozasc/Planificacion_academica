@@ -2,7 +2,7 @@ import { Controller, Post, Get, Body, UseGuards, Req, HttpCode, HttpStatus } fro
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { LoginResponseDto } from './dto/token-payload.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../common';
 
 @Controller('auth')
 export class AuthController {

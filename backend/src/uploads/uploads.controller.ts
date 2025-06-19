@@ -24,9 +24,7 @@ import { UploadsService } from './uploads.service';
 import { BulkUploadOptions, UploadResultDto, OperationMode } from './dto/file-upload.dto';
 import { UploadLoggingInterceptor } from './interceptors/upload-logging.interceptor';
 import { FileCleanupService } from './services/file-cleanup.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard, RolesGuard, Roles } from '../common';
 
 /**
  * Controlador de Cargas Masivas

@@ -7,7 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { User } from './entities/user.entity';
-import { Role } from '../auth/entities/role.entity';
+import { Role } from '../common';
 import { plainToClass } from 'class-transformer';
 
 @Injectable()
