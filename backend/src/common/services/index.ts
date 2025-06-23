@@ -2,6 +2,7 @@
 export { DatabaseService } from './database.service';
 export { ResponseService } from './response.service';
 export { AppLoggerService } from './logger.service';
+export { BimestreService } from './bimestre.service';
 
 // Re-exportar interfaces para fácil importación
 export * from '../interfaces';

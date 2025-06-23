@@ -7,9 +7,11 @@ import { createPool } from 'mysql2/promise';
 import { DatabaseService } from './services/database.service';
 import { ResponseService } from './services/response.service';
 import { AppLoggerService } from './services/logger.service';
+import { BimestreService } from './services/bimestre.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Role } from './entities/role.entity';
+import { Bimestre } from './entities/bimestre.entity';
 
 /**
  * CommonModule - Módulo global que proporciona servicios compartidos
@@ -52,8 +54,9 @@ import { Role } from './entities/role.entity';
         username: configService.get('DATABASE_USERNAME') || 'planificacion_user',
         password: configService.get('DATABASE_PASSWORD') || 'PlanUser2025!',
         database: configService.get('DATABASE_NAME') || 'planificacion_academica',        entities: [
-          // Incluir la entidad Role y permitir auto-discovery para las demás
+          // Incluir las entidades base
           Role,
+          Bimestre,
           __dirname + '/../**/*.entity{.ts,.js}'
         ],
         synchronize: false,
@@ -64,10 +67,8 @@ import { Role } from './entities/role.entity';
         },
       }),
       inject: [ConfigService],
-    }),
-
-    // Registrar entidades compartidas
-    TypeOrmModule.forFeature([Role]),
+    }),    // Registrar entidades compartidas
+    TypeOrmModule.forFeature([Role, Bimestre]),
   ],
   
   providers: [
@@ -110,6 +111,7 @@ import { Role } from './entities/role.entity';
     },    // Servicios base compartidos
     DatabaseService,
     ResponseService,
+    BimestreService,
 
     // Guards de autenticación y autorización
     JwtAuthGuard,
@@ -130,11 +132,10 @@ import { Role } from './entities/role.entity';
     AppLoggerService,
     
     // Exportamos la configuración de aplicación
-    'APP_CONFIG',
-
-    // Exportamos servicios base
+    'APP_CONFIG',    // Exportamos servicios base
     DatabaseService,
     ResponseService,
+    BimestreService,
 
     // Exportamos guards para uso en otros módulos
     JwtAuthGuard,

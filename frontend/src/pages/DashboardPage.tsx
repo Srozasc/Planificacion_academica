@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import CalendarView from '../features/scheduling/components/CalendarView';
+import CalendarView from '../components/dashboard/CalendarView';
+import BimestreSelector from '../components/bimestres/BimestreSelector';
+import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
+import { CogIcon } from '@heroicons/react/24/outline';
 
 const DashboardPage: React.FC = () => {
   const [selectedView, setSelectedView] = useState('month');
+  const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
 
   const mockEvents = [
     {
@@ -98,44 +102,66 @@ const DashboardPage: React.FC = () => {
           </div>
         ))}
       </div>      {/* Calendar Section */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        {/* Calendar Header */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">        {/* Calendar Header */}
         <div className="p-4 sm:p-6 border-b border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Calendario de Programación</h2>
-              <p className="text-xs sm:text-sm text-gray-600">Visualiza y gestiona los eventos académicos</p>
-            </div>
-            <div className="flex items-center space-x-3 mt-4 sm:mt-0">            {/* View Selector */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              {['month', 'week', 'day'].map((view) => (
+          <div className="flex flex-col space-y-4">
+            {/* Título y descripción */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Calendario de Programación</h2>
+                <p className="text-xs sm:text-sm text-gray-600">Visualiza y gestiona los eventos académicos</p>
+              </div>
+              <div className="flex items-center space-x-3">
+                {/* Configurador de Bimestres */}
                 <button
-                  key={view}
-                  onClick={() => setSelectedView(view)}
-                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ${
-                    selectedView === view
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                  onClick={() => setIsConfiguradorOpen(true)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
                 >
-                  {view === 'month' ? 'Mes' : view === 'week' ? 'Semana' : 'Día'}
+                  <CogIcon className="h-4 w-4" />
+                  <span>Configurar Bimestres</span>
                 </button>
-              ))}
+                
+                {/* Add Event Button */}
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 flex items-center">
+                  <span className="mr-1 sm:mr-2">➕</span>
+                  <span className="hidden sm:inline">Nuevo Evento</span>
+                  <span className="sm:hidden">Nuevo</span>
+                </button>
+              </div>
             </div>
             
-            {/* Add Event Button */}
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 flex items-center">
-              <span className="mr-1 sm:mr-2">➕</span>
-              <span className="hidden sm:inline">Nuevo Evento</span>
-              <span className="sm:hidden">Nuevo</span>
-            </button>
+            {/* Selector de Bimestre y Controles de Vista */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Selector de Bimestre */}
+              <BimestreSelector 
+                onBimestreChange={(bimestreId) => {
+                  console.log('Bimestre seleccionado:', bimestreId);
+                }}
+                className="flex-1 sm:flex-none"
+              />
+              
+              {/* View Selector */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                {['month', 'week', 'day'].map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setSelectedView(view)}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ${
+                      selectedView === view
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {view === 'month' ? 'Mes' : view === 'week' ? 'Semana' : 'Día'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>        {/* Calendar Content */}
-        <div className="p-3 sm:p-6">
-          <CalendarView 
+        </div>{/* Calendar Content */}
+        <div className="p-3 sm:p-6">          <CalendarView 
             events={mockEvents}
-            view={selectedView}
+            selectedView={selectedView}
           />
         </div>
       </div>      {/* Quick Actions */}
@@ -194,9 +220,14 @@ const DashboardPage: React.FC = () => {
               <div className="font-medium text-blue-800 text-sm">Nueva actualización disponible</div>
               <div className="text-xs text-blue-600 mt-1">Sistema actualizado</div>
             </div>
-          </div>
-        </div>
+          </div>        </div>
       </div>
+
+      {/* Modal de Configuración de Bimestres */}
+      <BimestreConfigurador
+        isOpen={isConfiguradorOpen}
+        onClose={() => setIsConfiguradorOpen(false)}
+      />
     </div>
   );
 };
