@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useBimestreStore } from '../../store/bimestre.store';
-import { CreateBimestreDto } from '../../services/bimestre.service';
+import { CreateBimestreDto, UpdateBimestreDto, Bimestre } from '../../services/bimestre.service';
 import { 
   PlusIcon, 
   XMarkIcon, 
-  CalendarIcon
+  CalendarIcon,
+  PencilIcon,
+  TrashIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
 interface BimestreConfiguradorProps {
@@ -12,16 +15,16 @@ interface BimestreConfiguradorProps {
   onClose: () => void;
 }
 
-const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onClose }) => {
-  const {
+const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onClose }) => {  const {
     bimestres,
     isLoading,
     error,
     fetchBimestres,
     crearBimestre,
+    actualizarBimestre,
+    eliminarBimestre,
     clearError
   } = useBimestreStore();
-
   const [formData, setFormData] = useState<CreateBimestreDto>({
     nombre: '',
     fechaInicio: '',
@@ -30,6 +33,13 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     numeroBimestre: 1,
     descripcion: ''
   });
+
+  const [modoEdicion, setModoEdicion] = useState<{ activo: boolean; bimestre: Bimestre | null }>({
+    activo: false,
+    bimestre: null
+  });
+
+  const [confirmacionEliminar, setConfirmacionEliminar] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -45,12 +55,21 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       [name]: name === 'anoAcademico' || name === 'numeroBimestre' ? parseInt(value) : value
     }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       clearError(); // Limpiar errores previos
-      await crearBimestre(formData);
+      
+      if (modoEdicion.activo && modoEdicion.bimestre) {
+        // Actualizar bimestre existente
+        await actualizarBimestre(modoEdicion.bimestre.id, formData);
+        setModoEdicion({ activo: false, bimestre: null });
+      } else {
+        // Crear nuevo bimestre
+        await crearBimestre(formData);
+      }
+      
+      // Limpiar formulario
       setFormData({
         nombre: '',
         fechaInicio: '',
@@ -60,7 +79,41 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
         descripcion: ''
       });
     } catch (error) {
-      console.error('Error al crear bimestre:', error);
+      console.error('Error al procesar bimestre:', error);
+    }
+  };
+
+  const handleEditarBimestre = (bimestre: Bimestre) => {
+    setFormData({
+      nombre: bimestre.nombre,
+      fechaInicio: bimestre.fechaInicio,
+      fechaFin: bimestre.fechaFin,
+      anoAcademico: bimestre.anoAcademico,
+      numeroBimestre: bimestre.numeroBimestre,
+      descripcion: bimestre.descripcion || ''
+    });
+    setModoEdicion({ activo: true, bimestre });
+  };
+
+  const handleCancelarEdicion = () => {
+    setModoEdicion({ activo: false, bimestre: null });
+    setFormData({
+      nombre: '',
+      fechaInicio: '',
+      fechaFin: '',
+      anoAcademico: new Date().getFullYear(),
+      numeroBimestre: 1,
+      descripcion: ''
+    });
+  };
+
+  const handleEliminarBimestre = async (id: number) => {
+    try {
+      clearError();
+      await eliminarBimestre(id);
+      setConfirmacionEliminar(null);
+    } catch (error) {
+      console.error('Error al eliminar bimestre:', error);
     }
   };
 
@@ -88,12 +141,24 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
             </div>          )}
 
           {/* Creación manual */}
-          <div className="border rounded-lg p-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <PlusIcon className="h-5 w-5 text-green-600" />
+          <div className="border rounded-lg p-6">            <div className="flex items-center space-x-2 mb-4">
+              {modoEdicion.activo ? (
+                <PencilIcon className="h-5 w-5 text-blue-600" />
+              ) : (
+                <PlusIcon className="h-5 w-5 text-green-600" />
+              )}
               <h3 className="text-lg font-medium text-gray-900">
-                Crear Bimestre Manual
+                {modoEdicion.activo ? 'Editar Bimestre' : 'Crear Bimestre Manual'}
               </h3>
+              {modoEdicion.activo && (
+                <button
+                  type="button"
+                  onClick={handleCancelarEdicion}
+                  className="ml-auto text-gray-500 hover:text-gray-700"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              )}
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -183,16 +248,32 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                   placeholder="Descripción del bimestre..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>
-
-              <div className="flex justify-end">
+              </div>              <div className="flex justify-end space-x-3">
+                {modoEdicion.activo && (
+                  <button
+                    type="button"
+                    onClick={handleCancelarEdicion}
+                    className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 flex items-center space-x-2"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                    <span>Cancelar</span>
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className={`text-white px-6 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${
+                    modoEdicion.activo 
+                      ? 'bg-blue-600 hover:bg-blue-700' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
                 >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Crear Bimestre</span>
+                  {modoEdicion.activo ? (
+                    <CheckIcon className="h-4 w-4" />
+                  ) : (
+                    <PlusIcon className="h-4 w-4" />
+                  )}
+                  <span>{modoEdicion.activo ? 'Actualizar Bimestre' : 'Crear Bimestre'}</span>
                 </button>
               </div>
             </form>
@@ -207,23 +288,32 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
               <p className="text-gray-500 text-center py-4">
                 No hay bimestres configurados aún.
               </p>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+            ) : (              <div className="space-y-2 max-h-60 overflow-y-auto">
                 {bimestres.map((bimestre) => (
                   <div
                     key={bimestre.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                    className={`flex items-center justify-between p-3 rounded-md border ${
+                      modoEdicion.activo && modoEdicion.bimestre?.id === bimestre.id
+                        ? 'bg-blue-50 border-blue-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
                   >
-                    <div>
+                    <div className="flex-1">
                       <div className="font-medium text-gray-900">
                         {bimestre.nombre}
                       </div>
                       <div className="text-sm text-gray-600">
                         {new Date(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {' '}
-                        {new Date(bimestre.fechaFin).toLocaleDateString('es-ES')}
+                        {new Date(bimestre.fechaFin).toLocaleDateString('es-ES')} • Año {bimestre.anoAcademico} • Bimestre {bimestre.numeroBimestre}
                       </div>
+                      {bimestre.descripcion && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {bimestre.descripcion}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-2">
+                    
+                    <div className="flex items-center space-x-3">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           bimestre.activo
@@ -233,6 +323,46 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                       >
                         {bimestre.activo ? 'Activo' : 'Inactivo'}
                       </span>
+                      
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handleEditarBimestre(bimestre)}
+                          disabled={isLoading}
+                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded disabled:opacity-50"
+                          title="Editar bimestre"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        
+                        {confirmacionEliminar === bimestre.id ? (
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => handleEliminarBimestre(bimestre.id)}
+                              disabled={isLoading}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded disabled:opacity-50"
+                              title="Confirmar eliminación"
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmacionEliminar(null)}
+                              className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
+                              title="Cancelar eliminación"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmacionEliminar(bimestre.id)}
+                            disabled={isLoading}
+                            className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded disabled:opacity-50"
+                            title="Eliminar bimestre"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

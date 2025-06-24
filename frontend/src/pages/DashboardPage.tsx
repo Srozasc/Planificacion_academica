@@ -6,7 +6,6 @@ import { CogIcon } from '@heroicons/react/24/outline';
 import { useBimestreStore } from '../store/bimestre.store';
 
 const DashboardPage: React.FC = () => {
-  const [selectedView, setSelectedView] = useState('month');
   const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
   const { bimestreSeleccionado } = useBimestreStore();
 
@@ -131,9 +130,8 @@ const DashboardPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            
-            {/* Selector de Bimestre y Controles de Vista */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Selector de Bimestre y Controles de Vista */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               {/* Selector de Bimestre */}
               <BimestreSelector 
                 onBimestreChange={(bimestreId) => {
@@ -141,30 +139,12 @@ const DashboardPage: React.FC = () => {
                 }}
                 className="flex-1 sm:flex-none"
               />
-              
-              {/* View Selector */}
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {['month', 'week', 'day'].map((view) => (
-                  <button
-                    key={view}
-                    onClick={() => setSelectedView(view)}
-                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded-md transition-colors duration-200 ${
-                      selectedView === view
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    {view === 'month' ? 'Mes' : view === 'week' ? 'Semana' : 'Día'}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
         </div>        {/* Calendar Content */}
         <div className="p-3 sm:p-6">
           <CalendarView 
             events={mockEvents}
-            selectedView={selectedView}
             bimestreSeleccionado={bimestreSeleccionado}
           />
         </div>
