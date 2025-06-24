@@ -32,22 +32,19 @@ class EventService {
       return [];
     }
   }
-
   async createEvent(eventData: CreateEventData): Promise<Event> {
     try {
-      // Convertir CreateEventData a formato de evento
+      // Convertir CreateEventData a formato esperado por el backend
       const event = {
         title: eventData.title,
         description: eventData.description,
-        start: `${eventData.startDate}T${eventData.startTime}:00`,
-        end: `${eventData.endDate}T${eventData.endTime}:00`,
-        backgroundColor: eventData.backgroundColor,
-        extendedProps: {
-          teacher: eventData.teacher,
-          room: eventData.room,
-          students: eventData.students,
-          subject: eventData.subject
-        }
+        start_date: `${eventData.startDate}T${eventData.startTime}:00`,
+        end_date: `${eventData.endDate}T${eventData.endTime}:00`,
+        background_color: eventData.backgroundColor,
+        teacher: eventData.teacher,
+        room: eventData.room,
+        students: eventData.students,
+        subject: eventData.subject
       };
 
       const response = await apiClient.post(this.baseUrl, event);
@@ -57,10 +54,29 @@ class EventService {
       throw error;
     }
   }
-
   async updateEvent(id: string, eventData: Partial<CreateEventData>): Promise<Event> {
     try {
-      const response = await apiClient.put(`${this.baseUrl}/${id}`, eventData);
+      // Transformar los datos al formato esperado por el backend
+      const updateData: any = { ...eventData };
+      
+      if (eventData.startDate && eventData.startTime) {
+        updateData.start_date = `${eventData.startDate}T${eventData.startTime}:00`;
+        delete updateData.startDate;
+        delete updateData.startTime;
+      }
+      
+      if (eventData.endDate && eventData.endTime) {
+        updateData.end_date = `${eventData.endDate}T${eventData.endTime}:00`;
+        delete updateData.endDate;
+        delete updateData.endTime;
+      }
+      
+      if (eventData.backgroundColor) {
+        updateData.background_color = eventData.backgroundColor;
+        delete updateData.backgroundColor;
+      }
+
+      const response = await apiClient.put(`${this.baseUrl}/${id}`, updateData);
       return response.data.data;
     } catch (error) {
       console.error('Error updating event:', error);
