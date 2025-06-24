@@ -1,15 +1,107 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CalendarView from '../components/dashboard/CalendarView';
 import BimestreSelector from '../components/bimestres/BimestreSelector';
 import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
 import { CogIcon } from '@heroicons/react/24/outline';
 import { useBimestreStore } from '../store/bimestre.store';
+import { eventService, Event } from '../services/event.service';
+import { CreateEventData } from '../components/events/EventModal';
 
 const DashboardPage: React.FC = () => {
   const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const { bimestreSeleccionado } = useBimestreStore();
 
-  const mockEvents = [
+  // Función para cargar eventos
+  const loadEvents = async () => {
+    setIsLoadingEvents(true);
+    try {
+      let startDate, endDate;
+      
+      if (bimestreSeleccionado) {
+        startDate = bimestreSeleccionado.fechaInicio;
+        endDate = bimestreSeleccionado.fechaFin;
+      }
+      
+      const fetchedEvents = await eventService.getEvents(startDate, endDate);
+      setEvents(fetchedEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+      // En caso de error, usar eventos de ejemplo
+      setEvents(mockEvents);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+  // Función para crear evento
+  const handleEventCreate = async (eventData: CreateEventData) => {
+    try {
+      const newEvent = await eventService.createEvent(eventData);
+      setEvents(prev => [...prev, newEvent]);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      // En caso de error del backend, crear evento temporalmente en el frontend
+      const tempEvent: Event = {
+        id: Date.now().toString(),
+        title: eventData.title,
+        start: `${eventData.startDate}T${eventData.startTime}:00`,
+        end: `${eventData.endDate}T${eventData.endTime}:00`,
+        backgroundColor: eventData.backgroundColor,
+        extendedProps: {
+          teacher: eventData.teacher,
+          room: eventData.room,
+          students: eventData.students,
+          subject: eventData.subject
+        }
+      };
+      setEvents(prev => [...prev, tempEvent]);
+    }
+  };
+
+  // Función para actualizar evento
+  const handleEventUpdate = async (id: string, eventData: CreateEventData) => {
+    try {
+      const updatedEvent = await eventService.updateEvent(id, eventData);
+      setEvents(prev => prev.map(event => event.id === id ? updatedEvent : event));
+    } catch (error) {
+      console.error('Error updating event:', error);
+      // En caso de error del backend, actualizar temporalmente en el frontend
+      const tempEvent: Event = {
+        id,
+        title: eventData.title,
+        start: `${eventData.startDate}T${eventData.startTime}:00`,
+        end: `${eventData.endDate}T${eventData.endTime}:00`,
+        backgroundColor: eventData.backgroundColor,
+        extendedProps: {
+          teacher: eventData.teacher,
+          room: eventData.room,
+          students: eventData.students,
+          subject: eventData.subject
+        }
+      };
+      setEvents(prev => prev.map(event => event.id === id ? tempEvent : event));
+    }
+  };
+
+  // Función para eliminar evento
+  const handleEventDelete = async (id: string) => {
+    try {
+      await eventService.deleteEvent(id);
+      setEvents(prev => prev.filter(event => event.id !== id));
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      // En caso de error del backend, eliminar temporalmente del frontend
+      setEvents(prev => prev.filter(event => event.id !== id));
+    }
+  };
+
+  // Cargar eventos cuando cambia el bimestre
+  useEffect(() => {
+    loadEvents();
+  }, [bimestreSeleccionado]);
+
+  // Eventos de ejemplo para desarrollo
+  const mockEvents: Event[] = [
     {
       id: '1',
       title: 'Matemáticas I - Prof. García',
@@ -111,8 +203,7 @@ const DashboardPage: React.FC = () => {
               <div>
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Calendario de Programación</h2>
                 <p className="text-xs sm:text-sm text-gray-600">Visualiza y gestiona los eventos académicos</p>
-              </div>
-              <div className="flex items-center space-x-3">
+              </div>              <div className="flex items-center">
                 {/* Configurador de Bimestres */}
                 <button
                   onClick={() => setIsConfiguradorOpen(true)}
@@ -120,13 +211,6 @@ const DashboardPage: React.FC = () => {
                 >
                   <CogIcon className="h-4 w-4" />
                   <span>Configurar Bimestres</span>
-                </button>
-                
-                {/* Add Event Button */}
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 flex items-center">
-                  <span className="mr-1 sm:mr-2">➕</span>
-                  <span className="hidden sm:inline">Nuevo Evento</span>
-                  <span className="sm:hidden">Nuevo</span>
                 </button>
               </div>
             </div>
@@ -144,8 +228,11 @@ const DashboardPage: React.FC = () => {
         </div>        {/* Calendar Content */}
         <div className="p-3 sm:p-6">
           <CalendarView 
-            events={mockEvents}
+            events={events}
             bimestreSeleccionado={bimestreSeleccionado}
+            onEventCreate={handleEventCreate}
+            onEventUpdate={handleEventUpdate}
+            onEventDelete={handleEventDelete}
           />
         </div>
       </div>      {/* Quick Actions */}

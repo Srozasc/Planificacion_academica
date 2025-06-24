@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Bimestre } from '../../services/bimestre.service';
+import EventModal, { CreateEventData } from '../events/EventModal';
 
 interface CalendarEvent {
   id: string;
@@ -17,12 +18,22 @@ interface CalendarEvent {
 interface CalendarViewProps {
   events?: CalendarEvent[];
   bimestreSeleccionado?: Bimestre | null;
+  onEventCreate?: (eventData: CreateEventData) => void;
+  onEventUpdate?: (id: string, eventData: CreateEventData) => void;
+  onEventDelete?: (id: string) => void;
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   events = [], 
-  bimestreSeleccionado
+  bimestreSeleccionado,
+  onEventCreate,
+  onEventUpdate,
+  onEventDelete
 }) => {
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   // Función helper para formatear fechas
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -105,7 +116,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     
     return days;
   };
-
   // Verificar si un día está dentro del rango del bimestre
   const isDayInBimestre = (year: number, month: number, day: number) => {
     if (!bimestreSeleccionado) return true;
@@ -118,17 +128,94 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   const today = new Date();
+  // Función para manejar el clic en un día del calendario
+  const handleDayClick = (year: number, month: number, day: number) => {
+    if (!isDayInBimestre(year, month, day)) return; // Solo permitir crear eventos en días del bimestre
+
+    const clickedDate = new Date(year, month, day);
+    setSelectedDate(clickedDate);
+    setEditingEvent(null); // Asegurar que estamos creando un nuevo evento
+    setIsEventModalOpen(true);
+  };
+  // Función para manejar la creación de eventos
+  const handleEventCreate = async (eventData: CreateEventData) => {
+    if (!onEventCreate) return;
+
+    setIsCreatingEvent(true);
+    try {
+      await onEventCreate(eventData);
+      setIsEventModalOpen(false);
+    } catch (error) {
+      console.error('Error creating event:', error);
+    } finally {
+      setIsCreatingEvent(false);
+    }
+  };
+  // Función para manejar la edición de eventos
+  const handleEventEdit = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setSelectedDate(undefined); // No necesitamos selectedDate para editar
+    setIsEventModalOpen(true);
+  };
+
+  // Función para manejar la actualización de eventos
+  const handleEventUpdate = async (eventData: CreateEventData) => {
+    if (!onEventUpdate || !editingEvent) return;
+
+    setIsCreatingEvent(true);
+    try {
+      await onEventUpdate(editingEvent.id, eventData);
+      setIsEventModalOpen(false);
+      setEditingEvent(null);
+    } catch (error) {
+      console.error('Error updating event:', error);
+    } finally {
+      setIsCreatingEvent(false);
+    }
+  };
+
+  // Función para manejar la eliminación de eventos
+  const handleEventDelete = async (eventId: string) => {
+    if (!onEventDelete) return;
+    
+    if (confirm('¿Estás seguro de que quieres eliminar este evento?')) {
+      try {
+        await onEventDelete(eventId);
+      } catch (error) {
+        console.error('Error deleting event:', error);
+      }
+    }
+  };
+
+  // Función para cerrar el modal y limpiar el estado
+  const handleModalClose = () => {
+    setIsEventModalOpen(false);
+    setEditingEvent(null);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow">      {/* Header del calendario */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-900">
           {bimestreSeleccionado 
             ? `${bimestreSeleccionado.nombre} (${formatDate(bimestreSeleccionado.fechaInicio)} - ${formatDate(bimestreSeleccionado.fechaFin)})`
             : `${monthNames[today.getMonth()]} ${today.getFullYear()}`
           }
         </h2>
-      </div>      {/* Vista del calendario */}
+        
+        {/* Botón para crear evento */}
+        <button
+          onClick={() => {
+            setSelectedDate(new Date());
+            setEditingEvent(null);
+            setIsEventModalOpen(true);
+          }}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center text-sm"
+        >
+          <span className="mr-2">➕</span>
+          Nuevo Evento
+        </button>
+      </div>{/* Vista del calendario */}
       <div className="p-4">
         <div className="space-y-8">
           {monthsToShow.map((monthInfo, monthIndex) => {
@@ -166,14 +253,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     const isToday = day === today.getDate() && 
                                   monthInfo.month === today.getMonth() && 
                                   monthInfo.year === today.getFullYear();
-                    const isInBimestre = isDayInBimestre(monthInfo.year, monthInfo.month, day);
-
-                    return (
+                    const isInBimestre = isDayInBimestre(monthInfo.year, monthInfo.month, day);                    return (
                       <div
                         key={index}
-                        className={`min-h-[100px] p-1 border border-gray-200 ${
-                          isInBimestre ? 'bg-white hover:bg-gray-50' : 'bg-gray-100'
+                        className={`min-h-[100px] p-1 border border-gray-200 relative group ${
+                          isInBimestre ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-100'
                         } ${isToday ? 'bg-blue-50 border-blue-300' : ''}`}
+                        onClick={() => isInBimestre && handleDayClick(monthInfo.year, monthInfo.month, day)}
                       >
                         <div className={`text-sm font-medium mb-1 ${
                           isToday ? 'text-blue-600' : 
@@ -181,15 +267,55 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                         }`}>
                           {day}
                         </div>
-                        <div className="space-y-1">
+                        
+                        {/* Botón para crear evento - solo visible en hover */}
+                        {isInBimestre && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDayClick(monthInfo.year, monthInfo.month, day);
+                            }}
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-blue-600 transition-all"
+                            title="Crear evento"
+                          >
+                            +
+                          </button>
+                        )}
+                          <div className="space-y-1">
                           {dayEvents.slice(0, 2).map(event => (
                             <div
                               key={event.id}
-                              className="text-xs p-1 rounded truncate"
+                              className="text-xs p-1 rounded truncate relative group/event"
                               style={{ backgroundColor: event.backgroundColor || '#3B82F6', color: 'white' }}
                               title={`${event.title} - ${formatTime(event.start)}`}
                             >
-                              {event.title}
+                              <div className="flex items-center justify-between">
+                                <span className="truncate flex-1">{event.title}</span>
+                                
+                                {/* Botones de acción del evento - visibles en hover */}
+                                <div className="opacity-0 group-hover/event:opacity-100 flex space-x-1 ml-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEventEdit(event);
+                                    }}
+                                    className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded px-1 text-xs"
+                                    title="Editar evento"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEventDelete(event.id);
+                                    }}
+                                    className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded px-1 text-xs"
+                                    title="Eliminar evento"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           ))}
                           {dayEvents.length > 2 && (
@@ -213,13 +339,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         <div className="text-sm text-gray-600">
           Total de eventos: {events.length}
           {bimestreSeleccionado && (
-            <span className="ml-4">
-              Bimestre: {bimestreSeleccionado.nombre} 
+            <span className="ml-4">              Bimestre: {bimestreSeleccionado.nombre} 
               ({Math.ceil((new Date(bimestreSeleccionado.fechaFin).getTime() - new Date(bimestreSeleccionado.fechaInicio).getTime()) / (1000 * 60 * 60 * 24))} días)
             </span>
           )}
         </div>
-      </div>
+      </div>      {/* Modal para crear eventos */}
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={handleModalClose}
+        selectedDate={selectedDate}
+        onSave={editingEvent ? handleEventUpdate : handleEventCreate}
+        isLoading={isCreatingEvent}
+        editingEvent={editingEvent}
+      />
     </div>
   );
 };

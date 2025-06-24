@@ -13,7 +13,7 @@ const TestLogin: React.FC = () => {
     
     try {
       console.log('Test: Iniciando login directo con authService');
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email_institucional: email, password });
       setResult(`Éxito: ${JSON.stringify(response)}`);
     } catch (error: any) {
       console.log('Test: Error capturado:', error);

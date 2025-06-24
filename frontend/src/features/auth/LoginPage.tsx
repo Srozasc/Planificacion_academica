@@ -4,11 +4,10 @@ import { useAuthStore } from '../../store/auth.store';
 import { LoginRequest } from '../../services/auth.service';
 
 const LoginPage: React.FC = () => {
-  const { login, isAuthenticated, isLoading } = useAuthStore();
-  const [formData, setFormData] = useState<LoginRequest>({
-    email: '',
+  const { login, isAuthenticated, isLoading } = useAuthStore();  const [formData, setFormData] = useState<LoginRequest>({
+    email_institucional: '',
     password: '',
-  });  const [error, setError] = useState<string>('');
+  });const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -57,7 +56,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     console.log('LoginPage: Formulario enviado');
     
-    if (!formData.email || !formData.password) {
+    if (!formData.email_institucional || !formData.password) {
       setError('Por favor ingrese email y contraseña');
       return;
     }
@@ -138,13 +137,13 @@ const LoginPage: React.FC = () => {
               </label>
               <input
                 id="email"
-                name="email"
+                name="email_institucional"
                 type="email"
                 autoComplete="email"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Email"
-                value={formData.email}
+                value={formData.email_institucional}
                 onChange={handleInputChange}
                 disabled={isSubmitting || isLoading}
               />

@@ -25,15 +25,10 @@ const Navbar: React.FC = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-  };const navigationItems = [
+  };  const navigationItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
-    { path: '/usuarios', label: 'Usuarios', icon: '👥' },
     { path: '/carga-datos', label: 'Carga de Datos', icon: '📁' },
-    { path: '/programacion', label: 'Programación', icon: '📅' },
-    { path: '/recursos', label: 'Recursos', icon: '🏢' },
-    { path: '/reportes', label: 'Reportes', icon: '📊' },
-    { path: '/aprobaciones', label: 'Aprobaciones', icon: '✅' },
-  ];  return (
+  ];return (
     <nav className="bg-blue-800 text-white shadow-lg relative z-50 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
