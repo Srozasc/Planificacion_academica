@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, Not, LessThan, MoreThan } from 'typeorm';
 import { Bimestre } from '../entities/bimestre.entity';
 
 export interface CreateBimestreDto {
@@ -123,7 +123,12 @@ export class BimestreService {
 
       if (existingBimestre) {
         throw new BadRequestException(`Ya existe un bimestre ${createBimestreDto.numeroBimestre} para el año ${createBimestreDto.anoAcademico}`);
-      }      // Nota: Se permite flexibilidad total en la numeración de bimestres
+      }
+
+      // Validar que no haya solapamiento de fechas con otros bimestres del mismo año
+      await this.validateDateOverlap(fechaInicio, fechaFin, createBimestreDto.anoAcademico);
+
+      // Nota: Se permite flexibilidad total en la numeración de bimestres
       // Los usuarios pueden crear bimestres con cualquier número según sus necesidades
 
       const bimestre = this.bimestreRepository.create({
@@ -161,6 +166,9 @@ export class BimestreService {
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
       }
 
+      // Validar que no haya solapamiento de fechas con otros bimestres del mismo año (excluyendo el actual)
+      await this.validateDateOverlap(fechaInicio, fechaFin, bimestre.anoAcademico, id);
+
       Object.assign(bimestre, updateData);
       const updatedBimestre = await this.bimestreRepository.save(bimestre);
 
@@ -182,6 +190,33 @@ export class BimestreService {
     } catch (error) {
       this.logger.error(`Error al eliminar bimestre ${id}`, error);
       throw error;
+    }
+  }
+  // Nueva función para validar solapamiento de fechas
+  private async validateDateOverlap(fechaInicio: Date, fechaFin: Date, anoAcademico: number, excludeId?: number): Promise<void> {
+    // Buscar bimestres del mismo año que puedan tener solapamiento
+    const bimestresDelAno = await this.bimestreRepository.find({
+      where: {
+        anoAcademico,
+        activo: true,
+        ...(excludeId && { id: Not(excludeId) }) // Excluir el bimestre actual de la validación
+      }
+    });
+
+    // Verificar solapamiento manualmente
+    for (const bimestre of bimestresDelAno) {
+      const existingStart = new Date(bimestre.fechaInicio);
+      const existingEnd = new Date(bimestre.fechaFin);
+      
+      // Lógica de solapamiento: dos rangos se solapan si (startA < endB) AND (endA > startB)
+      const hasOverlap = fechaInicio < existingEnd && fechaFin > existingStart;
+      
+      if (hasOverlap) {
+        throw new BadRequestException(
+          `Las fechas del bimestre se solapan con "${bimestre.nombre}" ` +
+          `(${existingStart.toLocaleDateString('es-ES')} - ${existingEnd.toLocaleDateString('es-ES')})`
+        );
+      }
     }
   }
 }

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useBimestreStore } from '../../store/bimestre.store';
-import { CreateBimestreDto, UpdateBimestreDto, Bimestre } from '../../services/bimestre.service';
+import { CreateBimestreDto, UpdateBimestreDto, Bimestre, bimestreService } from '../../services/bimestre.service';
 import { 
   PlusIcon, 
   XMarkIcon, 
   CalendarIcon,
   PencilIcon,
   TrashIcon,
-  CheckIcon
+  CheckIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 interface BimestreConfiguradorProps {
@@ -40,6 +41,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   });
 
   const [confirmacionEliminar, setConfirmacionEliminar] = useState<number | null>(null);
+  const [advertenciaSolapamiento, setAdvertenciaSolapamiento] = useState<{
+    mostrar: boolean;
+    mensaje: string;
+    bimestreConflicto?: Bimestre;
+  }>({ mostrar: false, mensaje: '' });
 
   useEffect(() => {
     if (isOpen) {
@@ -50,13 +56,64 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
+    const updatedFormData = {
+      ...formData,
       [name]: name === 'anoAcademico' || name === 'numeroBimestre' ? parseInt(value) : value
-    }));
+    };
+    
+    setFormData(updatedFormData);
+    
+    // Validar solapamiento cuando cambien las fechas o el año académico
+    if (name === 'fechaInicio' || name === 'fechaFin' || name === 'anoAcademico') {
+      validarSolapamientoEnTiempoReal(updatedFormData);
+    }
+  };
+
+  const validarSolapamientoEnTiempoReal = (data: CreateBimestreDto) => {
+    // Solo validar si tenemos ambas fechas y año académico
+    if (!data.fechaInicio || !data.fechaFin || !data.anoAcademico) {
+      setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
+      return;
+    }
+
+    // Validar que fecha inicio sea menor que fecha fin
+    if (new Date(data.fechaInicio) >= new Date(data.fechaFin)) {
+      setAdvertenciaSolapamiento({ 
+        mostrar: true, 
+        mensaje: 'La fecha de inicio debe ser anterior a la fecha de fin' 
+      });
+      return;
+    }
+
+    const excludeId = modoEdicion.activo ? modoEdicion.bimestre?.id : undefined;
+    const resultado = bimestreService.validarSolapamientoFechas(
+      data.fechaInicio,
+      data.fechaFin,
+      data.anoAcademico,
+      bimestres,
+      excludeId
+    );
+
+    if (resultado.hasOverlap && resultado.conflictingBimestre) {
+      const fechaInicio = new Date(resultado.conflictingBimestre.fechaInicio).toLocaleDateString('es-ES');
+      const fechaFin = new Date(resultado.conflictingBimestre.fechaFin).toLocaleDateString('es-ES');
+      setAdvertenciaSolapamiento({
+        mostrar: true,
+        mensaje: `Las fechas se solapan con "${resultado.conflictingBimestre.nombre}" (${fechaInicio} - ${fechaFin})`,
+        bimestreConflicto: resultado.conflictingBimestre
+      });
+    } else {
+      setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
+    }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir envío si hay advertencias de solapamiento
+    if (advertenciaSolapamiento.mostrar) {
+      return;
+    }
+    
     try {
       clearError(); // Limpiar errores previos
       
@@ -69,7 +126,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
         await crearBimestre(formData);
       }
       
-      // Limpiar formulario
+      // Limpiar formulario y advertencias
       setFormData({
         nombre: '',
         fechaInicio: '',
@@ -78,6 +135,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
         numeroBimestre: 1,
         descripcion: ''
       });
+      setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
     } catch (error) {
       console.error('Error al procesar bimestre:', error);
     }
@@ -94,7 +152,6 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     });
     setModoEdicion({ activo: true, bimestre });
   };
-
   const handleCancelarEdicion = () => {
     setModoEdicion({ activo: false, bimestre: null });
     setFormData({
@@ -105,6 +162,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       numeroBimestre: 1,
       descripcion: ''
     });
+    setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
   };
 
   const handleEliminarBimestre = async (id: number) => {
@@ -234,9 +292,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                     required
                   />
                 </div>
-              </div>
-
-              <div>
+              </div>              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Descripción (Opcional)
                 </label>
@@ -248,7 +304,27 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                   placeholder="Descripción del bimestre..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </div>              <div className="flex justify-end space-x-3">
+              </div>
+
+              {/* Advertencia de solapamiento */}
+              {advertenciaSolapamiento.mostrar && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 flex items-start space-x-3">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-800">
+                      Conflicto de fechas detectado
+                    </h4>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      {advertenciaSolapamiento.mensaje}
+                    </p>
+                    <p className="text-xs text-yellow-600 mt-2">
+                      Por favor, ajusta las fechas para evitar el solapamiento antes de continuar.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3">
                 {modoEdicion.activo && (
                   <button
                     type="button"
@@ -258,15 +334,14 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                     <XMarkIcon className="h-4 w-4" />
                     <span>Cancelar</span>
                   </button>
-                )}
-                <button
+                )}                <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || advertenciaSolapamiento.mostrar}
                   className={`text-white px-6 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${
                     modoEdicion.activo 
                       ? 'bg-blue-600 hover:bg-blue-700' 
                       : 'bg-green-600 hover:bg-green-700'
-                  }`}
+                  } ${advertenciaSolapamiento.mostrar ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   {modoEdicion.activo ? (
                     <CheckIcon className="h-4 w-4" />

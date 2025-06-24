@@ -104,6 +104,38 @@ export class BimestreService {
     
     return fechas;
   }
+
+  // Validar si las fechas se solapan con otros bimestres
+  validarSolapamientoFechas(
+    fechaInicio: string, 
+    fechaFin: string, 
+    anoAcademico: number, 
+    bimestres: Bimestre[], 
+    excludeId?: number
+  ): { hasOverlap: boolean; conflictingBimestre?: Bimestre } {
+    const nuevaFechaInicio = new Date(fechaInicio);
+    const nuevaFechaFin = new Date(fechaFin);
+    
+    for (const bimestre of bimestres) {
+      // Excluir el bimestre que estamos editando
+      if (excludeId && bimestre.id === excludeId) continue;
+      
+      // Solo validar bimestres del mismo año académico y activos
+      if (bimestre.anoAcademico !== anoAcademico || !bimestre.activo) continue;
+      
+      const existingStart = new Date(bimestre.fechaInicio);
+      const existingEnd = new Date(bimestre.fechaFin);
+      
+      // Lógica de solapamiento: dos rangos se solapan si (startA < endB) AND (endA > startB)
+      const hasOverlap = nuevaFechaInicio < existingEnd && nuevaFechaFin > existingStart;
+      
+      if (hasOverlap) {
+        return { hasOverlap: true, conflictingBimestre: bimestre };
+      }
+    }
+    
+    return { hasOverlap: false };
+  }
 }
 
 export const bimestreService = new BimestreService();
