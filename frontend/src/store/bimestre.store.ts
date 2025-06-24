@@ -13,13 +13,9 @@ interface BimestreState {
   fetchBimestres: (anoAcademico?: number) => Promise<void>;
   fetchBimestresActivos: () => Promise<void>;
   fetchBimestreActual: () => Promise<void>;
-  seleccionarBimestre: (bimestre: Bimestre | null) => void;
-  crearBimestre: (createDto: CreateBimestreDto) => Promise<Bimestre>;
+  seleccionarBimestre: (bimestre: Bimestre | null) => void;  crearBimestre: (createDto: CreateBimestreDto) => Promise<Bimestre>;
   actualizarBimestre: (id: number, updateDto: UpdateBimestreDto) => Promise<Bimestre>;
-  activarBimestre: (id: number) => Promise<Bimestre>;
-  desactivarBimestre: (id: number) => Promise<Bimestre>;
   eliminarBimestre: (id: number) => Promise<void>;
-  generarBimestresAno: (anoAcademico: number, fechaInicio: string) => Promise<Bimestre[]>;
   
   // Utilidades
   clearError: () => void;
@@ -79,7 +75,6 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
   seleccionarBimestre: (bimestre: Bimestre | null) => {
     set({ bimestreSeleccionado: bimestre });
   },
-
   crearBimestre: async (createDto: CreateBimestreDto) => {
     set({ isLoading: true, error: null });
     try {
@@ -93,9 +88,22 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
       });
       
       return nuevoBimestre;
-    } catch (error) {
+    } catch (error: any) {
+      let errorMessage = 'Error al crear bimestre';
+      
+      // Extraer el mensaje de error específico del backend
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.errors?.length > 0) {
+        errorMessage = error.response.data.errors[0];
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       set({ 
-        error: error instanceof Error ? error.message : 'Error al crear bimestre',
+        error: errorMessage,
         isLoading: false 
       });
       throw error;
@@ -119,55 +127,28 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
         isLoading: false 
       });
       
-      return bimestreActualizado;
-    } catch (error) {
+      return bimestreActualizado;    } catch (error: any) {
+      let errorMessage = 'Error al actualizar bimestre';
+      
+      // Extraer el mensaje de error específico del backend
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.response?.data?.errors?.length > 0) {
+        errorMessage = error.response.data.errors[0];
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      console.log('Store: Mensaje de error final:', errorMessage);
+      
       set({ 
-        error: error instanceof Error ? error.message : 'Error al actualizar bimestre',
+        error: errorMessage,
         isLoading: false 
       });
       throw error;
-    }
-  },
-
-  activarBimestre: async (id: number) => {
-    try {
-      const bimestre = await bimestreService.activar(id);
-      
-      // Actualizar en la lista
-      const { bimestres } = get();
-      const bimestresActualizados = bimestres.map(b => 
-        b.id === id ? bimestre : b
-      );
-      
-      set({ bimestres: bimestresActualizados });
-      return bimestre;
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Error al activar bimestre'
-      });
-      throw error;
-    }
-  },
-
-  desactivarBimestre: async (id: number) => {
-    try {
-      const bimestre = await bimestreService.desactivar(id);
-      
-      // Actualizar en la lista
-      const { bimestres } = get();
-      const bimestresActualizados = bimestres.map(b => 
-        b.id === id ? bimestre : b
-      );
-      
-      set({ bimestres: bimestresActualizados });
-      return bimestre;
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Error al desactivar bimestre'
-      });
-      throw error;
-    }
-  },
+    }},
 
   eliminarBimestre: async (id: number) => {
     set({ isLoading: true, error: null });
@@ -186,28 +167,6 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
     } catch (error) {
       set({ 
         error: error instanceof Error ? error.message : 'Error al eliminar bimestre',
-        isLoading: false 
-      });
-      throw error;
-    }
-  },
-
-  generarBimestresAno: async (anoAcademico: number, fechaInicio: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      const nuevosBimestres = await bimestreService.generarBimestresAno(anoAcademico, fechaInicio);
-      
-      // Actualizar la lista
-      const { bimestres } = get();
-      set({ 
-        bimestres: [...bimestres, ...nuevosBimestres],
-        isLoading: false 
-      });
-      
-      return nuevosBimestres;
-    } catch (error) {
-      set({ 
-        error: error instanceof Error ? error.message : 'Error al generar bimestres',
         isLoading: false 
       });
       throw error;

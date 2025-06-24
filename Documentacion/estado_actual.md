@@ -1,11 +1,11 @@
 # Estado Actual del Proyecto - Sistema de Planificación Académica
 
-**Última actualización**: 17 de junio de 2025  
-**Versión**: Backend v1.1 - Cargas Masivas COMPLETADAS ✅
+**Última actualización**: 23 de junio de 2025  
+**Versión**: Backend v1.2 - Configuración de Bimestres COMPLETADA ✅
 
 ## 🎯 RESUMEN EJECUTIVO
 
-El sistema de **cargas masivas de datos académicos** ha sido **consolidado, robustecido y probado exhaustivamente**. Todas las funcionalidades de cargas masivas están **COMPLETADAS** incluyendo: Estructuras Académicas, Reportes Cursables y Nómina de Docentes. El sistema ha sido validado con pruebas reales tanto desde scripts como desde la interfaz web, resolviendo todos los problemas conocidos. El sistema está **100% operativo** y listo para producción.
+El sistema ha sido extendido con **configuración manual de bimestres académicos** completamente funcional. Se implementó la creación, edición y eliminación de bimestres con fechas flexibles, eliminando la generación automática y límites fijos. El sistema incluye validación robusta para evitar duplicados, manejo preciso de fechas sin desfases de zona horaria, y integración completa con el calendario dinámico. La funcionalidad está **100% operativa** junto con todas las cargas masivas previamente implementadas.
 
 ## ✅ FUNCIONALIDADES COMPLETADAS Y PROBADAS
 
@@ -77,6 +77,38 @@ El sistema de **cargas masivas de datos académicos** ha sido **consolidado, rob
 - ✅ `DELETE /uploads/admin/cleanup` - **Limpieza manual**
 - ✅ `DELETE /uploads/admin/cleanup/:type` - **Limpieza por tipo**
 
+### 📅 SubTarea 3.1: Configuración Manual de Bimestres ✅ COMPLETADO Y PROBADO
+
+#### 3.1.1: Backend - API CRUD de Bimestres ✅ COMPLETADO
+- **Entidad Bimestre**: ✅ Implementada con TypeORM (nombre, fechas, año académico, número)
+- **BimestreService**: ✅ CRUD completo con validaciones robustas
+- **BimestreController**: ✅ Endpoints REST protegidos por roles
+- **Validación de duplicados**: ✅ Previene bimestres duplicados por año académico
+- **Manejo de fechas**: ✅ Conversión manual sin desfases de zona horaria
+- **Manejo de errores**: ✅ Excepciones HTTP reales con mensajes claros
+
+#### 3.1.2: Frontend - Configurador de Bimestres ✅ COMPLETADO
+- **BimestreConfigurador**: ✅ Modal completo de creación/edición
+- **BimestreSelector**: ✅ Selector dinámico integrado con store
+- **BimestreStore**: ✅ Estado global con Zustand y manejo de errores
+- **BimestreService**: ✅ Cliente HTTP con manejo robusto de respuestas
+- **Validación de formularios**: ✅ Validación client-side y server-side
+- **Mensajes de error**: ✅ Extracción y visualización clara de errores del backend
+
+#### 3.1.3: Integración con Calendario ✅ COMPLETADO
+- **CalendarView**: ✅ Visualización dinámica basada en bimestre seleccionado
+- **Rango de fechas**: ✅ Calendario muestra solo meses del bimestre activo
+- **Indicadores visuales**: ✅ Días dentro/fuera del bimestre claramente diferenciados
+- **Hook personalizado**: ✅ useCalendarWithBimestres para integración
+
+#### 3.1.4: Características Implementadas ✅ VALIDADO
+- ✅ **Flexibilidad total**: Sin límites fijos de cantidad o duración de bimestres
+- ✅ **Fechas precisas**: Sin desfases por zona horaria (parseo manual)
+- ✅ **Validación duplicados**: Error claro al intentar crear bimestre duplicado
+- ✅ **Integración calendario**: Visualización automática de rango de fechas
+- ✅ **Gestión completa**: Crear, listar, editar, eliminar bimestres
+- ✅ **Control de acceso**: Solo roles 'admin' y 'academico' pueden gestionar
+
 ## 📊 RESULTADOS DE PRUEBAS REALES
 
 ### 🧪 Pruebas de Integración Ejecutadas (17/06/2025)
@@ -107,6 +139,17 @@ El sistema de **cargas masivas de datos académicos** ha sido **consolidado, rob
 | `/templates` | Plantillas Dinámicas | ✅ EXITOSO | 4 tipos disponibles |
 | `/validate/:type` | Validación Independiente | ✅ EXITOSO | Acepta tipos válidos, rechaza inválidos |
 | Interfaz Web | Carga de docentes | ✅ EXITOSO | 8 registros procesados correctamente |
+
+### 📅 Pruebas de Configuración de Bimestres (23/06/2025)
+
+| Funcionalidad | Caso de Prueba | Estado | Detalles |
+|---------------|----------------|--------|----------|
+| **Creación de Bimestres** | Crear bimestre válido | ✅ EXITOSO | Fechas 01-06-2025 a 31-07-2025 creadas correctamente |
+| **Validación Duplicados** | Crear bimestre duplicado | ✅ EXITOSO | Error mostrado: "Ya existe un bimestre con el número X" |
+| **Manejo de Fechas** | Verificar precisión de fechas | ✅ EXITOSO | Sin desfases de zona horaria, fechas exactas |
+| **Integración Calendario** | Visualizar bimestre en calendario | ✅ EXITOSO | Calendario muestra junio-julio 2025 correctamente |
+| **Mensajes de Error** | Mostrar errores del backend | ✅ EXITOSO | Errores extraídos y mostrados en UI claramente |
+| **Eliminación Generación Automática** | Verificar sin límites | ✅ EXITOSO | Sistema permite crear bimestres flexibles |
 
 ### 📈 Estadísticas del Sistema (17/06/2025)
 - **Total archivos gestionados**: 12

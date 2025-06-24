@@ -4,8 +4,7 @@ import { CreateBimestreDto } from '../../services/bimestre.service';
 import { 
   PlusIcon, 
   XMarkIcon, 
-  CalendarIcon,
-  SparklesIcon 
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 
 interface BimestreConfiguradorProps {
@@ -20,7 +19,6 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     error,
     fetchBimestres,
     crearBimestre,
-    generarBimestresAno,
     clearError
   } = useBimestreStore();
 
@@ -32,9 +30,6 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     numeroBimestre: 1,
     descripcion: ''
   });
-
-  const [anoParaGenerar, setAnoParaGenerar] = useState(new Date().getFullYear());
-  const [fechaInicioAno, setFechaInicioAno] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -54,6 +49,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      clearError(); // Limpiar errores previos
       await crearBimestre(formData);
       setFormData({
         nombre: '',
@@ -65,20 +61,6 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       });
     } catch (error) {
       console.error('Error al crear bimestre:', error);
-    }
-  };
-
-  const handleGenerarBimestres = async () => {
-    if (!fechaInicioAno) {
-      alert('Por favor selecciona la fecha de inicio del año académico');
-      return;
-    }
-
-    try {
-      await generarBimestresAno(anoParaGenerar, fechaInicioAno);
-      setFechaInicioAno('');
-    } catch (error) {
-      console.error('Error al generar bimestres:', error);
     }
   };
 
@@ -103,55 +85,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <p className="text-red-800">{error}</p>
-            </div>
-          )}
-
-          {/* Generación automática */}
-          <div className="bg-blue-50 rounded-lg p-6">            <div className="flex items-center space-x-2 mb-4">
-              <SparklesIcon className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-medium text-blue-900">
-                Generar Bimestres Automáticamente
-              </h3>
-            </div>
-            <p className="text-blue-700 text-sm mb-4">
-              Genera automáticamente 4 bimestres de ~60 días cada uno para un año académico.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-blue-900 mb-1">
-                  Año Académico
-                </label>
-                <input
-                  type="number"
-                  value={anoParaGenerar}
-                  onChange={(e) => setAnoParaGenerar(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min="2020"
-                  max="2030"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-blue-900 mb-1">
-                  Fecha Inicio del Año
-                </label>
-                <input
-                  type="date"
-                  value={fechaInicioAno}
-                  onChange={(e) => setFechaInicioAno(e.target.value)}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={handleGenerarBimestres}
-                  disabled={isLoading || !fechaInicioAno}
-                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Generar 4 Bimestres
-                </button>
-              </div>
-            </div>
-          </div>
+            </div>          )}
 
           {/* Creación manual */}
           <div className="border rounded-lg p-6">
@@ -177,23 +111,19 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
-                </div>
-                <div>
+                </div>                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Bimestre
                   </label>
-                  <select
+                  <input
+                    type="number"
                     name="numeroBimestre"
                     value={formData.numeroBimestre}
                     onChange={handleInputChange}
+                    min="1"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                  >
-                    <option value={1}>1er Bimestre</option>
-                    <option value={2}>2do Bimestre</option>
-                    <option value={3}>3er Bimestre</option>
-                    <option value={4}>4to Bimestre</option>
-                  </select>
+                  />
                 </div>
               </div>
 

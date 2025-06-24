@@ -5,8 +5,8 @@ import { Bimestre } from '../entities/bimestre.entity';
 
 export interface CreateBimestreDto {
   nombre: string;
-  fechaInicio: Date;
-  fechaFin: Date;
+  fechaInicio: string; // Cambiado a string para manejar conversión manual
+  fechaFin: string;    // Cambiado a string para manejar conversión manual
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
@@ -14,9 +14,8 @@ export interface CreateBimestreDto {
 
 export interface UpdateBimestreDto {
   nombre?: string;
-  fechaInicio?: Date;
-  fechaFin?: Date;
-  activo?: boolean;
+  fechaInicio?: string; // Cambiado a string para manejar conversión manual
+  fechaFin?: string;    // Cambiado a string para manejar conversión manual
   descripcion?: string;
 }
 
@@ -28,6 +27,13 @@ export class BimestreService {
     @InjectRepository(Bimestre)
     private readonly bimestreRepository: Repository<Bimestre>,
   ) {}
+
+  // Método helper para parsear fechas manteniendo la zona horaria local
+  private parseLocalDate(dateString: string): Date {
+    // Aseguramos que la fecha se interprete como fecha local sin conversión UTC
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+    return new Date(year, month - 1, day); // month - 1 porque Date usa índices 0-11 para meses
+  }
 
   async findAll(): Promise<Bimestre[]> {
     try {
@@ -96,29 +102,35 @@ export class BimestreService {
       return null;
     }
   }
-
   async create(createBimestreDto: CreateBimestreDto): Promise<Bimestre> {
     try {
+      // Parsear fechas manteniendo la zona horaria local
+      const fechaInicio = this.parseLocalDate(createBimestreDto.fechaInicio);
+      const fechaFin = this.parseLocalDate(createBimestreDto.fechaFin);
+      
       // Validar fechas
-      if (createBimestreDto.fechaInicio >= createBimestreDto.fechaFin) {
+      if (fechaInicio >= fechaFin) {
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
       }
 
-      // Verificar que no exista otro bimestre con el mismo número en el mismo año
+      // Validar que no exista otro bimestre con el mismo número en el mismo año
       const existingBimestre = await this.bimestreRepository.findOne({
         where: {
-          anoAcademico: createBimestreDto.anoAcademico,
-          numeroBimestre: createBimestreDto.numeroBimestre
+          numeroBimestre: createBimestreDto.numeroBimestre,
+          anoAcademico: createBimestreDto.anoAcademico
         }
       });
 
       if (existingBimestre) {
-        throw new BadRequestException(
-          `Ya existe un bimestre ${createBimestreDto.numeroBimestre} para el año ${createBimestreDto.anoAcademico}`
-        );
-      }
+        throw new BadRequestException(`Ya existe un bimestre ${createBimestreDto.numeroBimestre} para el año ${createBimestreDto.anoAcademico}`);
+      }      // Nota: Se permite flexibilidad total en la numeración de bimestres
+      // Los usuarios pueden crear bimestres con cualquier número según sus necesidades
 
-      const bimestre = this.bimestreRepository.create(createBimestreDto);
+      const bimestre = this.bimestreRepository.create({
+        ...createBimestreDto,
+        fechaInicio,
+        fechaFin
+      });
       const savedBimestre = await this.bimestreRepository.save(bimestre);
 
       this.logger.log(`Bimestre creado: ${savedBimestre.nombre} (ID: ${savedBimestre.id})`);
@@ -128,19 +140,28 @@ export class BimestreService {
       throw error;
     }
   }
-
   async update(id: number, updateBimestreDto: UpdateBimestreDto): Promise<Bimestre> {
     try {
       const bimestre = await this.findById(id);
 
-      // Validar fechas si se proporcionan ambas
-      if (updateBimestreDto.fechaInicio && updateBimestreDto.fechaFin) {
-        if (updateBimestreDto.fechaInicio >= updateBimestreDto.fechaFin) {
-          throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
-        }
+      // Parsear fechas si se proporcionan
+      const updateData: any = { ...updateBimestreDto };
+      if (updateBimestreDto.fechaInicio) {
+        updateData.fechaInicio = this.parseLocalDate(updateBimestreDto.fechaInicio);
+      }
+      if (updateBimestreDto.fechaFin) {
+        updateData.fechaFin = this.parseLocalDate(updateBimestreDto.fechaFin);
       }
 
-      Object.assign(bimestre, updateBimestreDto);
+      // Validar fechas si se proporcionan ambas
+      const fechaInicio = updateData.fechaInicio || bimestre.fechaInicio;
+      const fechaFin = updateData.fechaFin || bimestre.fechaFin;
+      
+      if (fechaInicio >= fechaFin) {
+        throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
+      }
+
+      Object.assign(bimestre, updateData);
       const updatedBimestre = await this.bimestreRepository.save(bimestre);
 
       this.logger.log(`Bimestre actualizado: ${updatedBimestre.nombre} (ID: ${updatedBimestre.id})`);
@@ -157,62 +178,10 @@ export class BimestreService {
       
       if (result.affected === 0) {
         throw new NotFoundException(`Bimestre con ID ${id} no encontrado`);
-      }
-
-      this.logger.log(`Bimestre eliminado: ID ${id}`);
+      }      this.logger.log(`Bimestre eliminado: ID ${id}`);
     } catch (error) {
       this.logger.error(`Error al eliminar bimestre ${id}`, error);
       throw error;
     }
-  }
-
-  async activar(id: number): Promise<Bimestre> {
-    return this.update(id, { activo: true });
-  }
-
-  async desactivar(id: number): Promise<Bimestre> {
-    return this.update(id, { activo: false });
-  }
-
-  // Método helper para generar bimestres automáticamente
-  async generarBimestresAnoAcademico(
-    anoAcademico: number,
-    fechaInicioAno: Date
-  ): Promise<Bimestre[]> {
-    try {
-      const bimestres: Bimestre[] = [];
-      const duracionBimestre = 60; // días aproximados
-
-      for (let i = 1; i <= 4; i++) {
-        const fechaInicio = new Date(fechaInicioAno);
-        fechaInicio.setDate(fechaInicio.getDate() + (i - 1) * duracionBimestre);
-
-        const fechaFin = new Date(fechaInicio);
-        fechaFin.setDate(fechaFin.getDate() + duracionBimestre - 1);
-
-        const createDto: CreateBimestreDto = {
-          nombre: `${this.getOrdinal(i)} Bimestre ${anoAcademico}`,
-          fechaInicio,
-          fechaFin,
-          anoAcademico,
-          numeroBimestre: i,
-          descripcion: `${this.getOrdinal(i)} bimestre del año académico ${anoAcademico}`
-        };
-
-        const bimestre = await this.create(createDto);
-        bimestres.push(bimestre);
-      }
-
-      this.logger.log(`Generados 4 bimestres para el año académico ${anoAcademico}`);
-      return bimestres;
-    } catch (error) {
-      this.logger.error(`Error al generar bimestres para año ${anoAcademico}`, error);
-      throw error;
-    }
-  }
-
-  private getOrdinal(num: number): string {
-    const ordinals = ['Primer', 'Segundo', 'Tercer', 'Cuarto'];
-    return ordinals[num - 1] || `${num}°`;
   }
 }

@@ -65,27 +65,8 @@ export class BimestreService {
     const response = await apiClient.put(`${this.baseUrl}/${id}`, updateBimestreDto);
     return response.data.data;
   }
-
-  async activar(id: number): Promise<Bimestre> {
-    const response = await apiClient.put(`${this.baseUrl}/${id}/activar`);
-    return response.data.data;
-  }
-
-  async desactivar(id: number): Promise<Bimestre> {
-    const response = await apiClient.put(`${this.baseUrl}/${id}/desactivar`);
-    return response.data.data;
-  }
-
   async delete(id: number): Promise<void> {
     await apiClient.delete(`${this.baseUrl}/${id}`);
-  }
-
-  async generarBimestresAno(anoAcademico: number, fechaInicioAno: string): Promise<Bimestre[]> {
-    const response = await apiClient.post(
-      `${this.baseUrl}/generar-ano/${anoAcademico}`,
-      { fechaInicioAno }
-    );
-    return response.data.data;
   }
 
   // Métodos helpers para el frontend

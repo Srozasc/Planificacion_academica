@@ -59,7 +59,7 @@ import { Bimestre } from './entities/bimestre.entity';
           Bimestre,
           __dirname + '/../**/*.entity{.ts,.js}'
         ],
-        synchronize: false,
+        synchronize: false, // Deshabilitado ahora que las tablas ya están creadas
         logging: process.env.NODE_ENV === 'development',
         autoLoadEntities: true, // Esto carga automáticamente las entidades registradas con forFeature
         extra: {

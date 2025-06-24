@@ -3,10 +3,12 @@ import CalendarView from '../components/dashboard/CalendarView';
 import BimestreSelector from '../components/bimestres/BimestreSelector';
 import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
 import { CogIcon } from '@heroicons/react/24/outline';
+import { useBimestreStore } from '../store/bimestre.store';
 
 const DashboardPage: React.FC = () => {
   const [selectedView, setSelectedView] = useState('month');
   const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
+  const { bimestreSeleccionado } = useBimestreStore();
 
   const mockEvents = [
     {
@@ -158,10 +160,12 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>{/* Calendar Content */}
-        <div className="p-3 sm:p-6">          <CalendarView 
+        </div>        {/* Calendar Content */}
+        <div className="p-3 sm:p-6">
+          <CalendarView 
             events={mockEvents}
             selectedView={selectedView}
+            bimestreSeleccionado={bimestreSeleccionado}
           />
         </div>
       </div>      {/* Quick Actions */}

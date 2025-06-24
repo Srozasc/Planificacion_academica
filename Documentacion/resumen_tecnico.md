@@ -1,12 +1,10 @@
 # Resumen Técnico - Sistema de Planificación Académica
 
-# Resumen Técnico - Sistema de Planificación Académica
-
 ## 📋 Estado del Proyecto
 
-**Versión:** 1.1.0  
-**Fecha de última actualización:** 17 de Junio 2025  
-**Estado:** ✅ **SISTEMA COMPLETAMENTE FUNCIONAL CON CARGAS MASIVAS**  
+**Versión:** 1.2.0  
+**Fecha de última actualización:** 23 de Junio 2025  
+**Estado:** ✅ **SISTEMA COMPLETAMENTE FUNCIONAL CON CARGAS MASIVAS Y CONFIGURACIÓN DE BIMESTRES**  
 **Desarrollado por:** Sistema de Planificación Académica Team
 
 ---
@@ -14,6 +12,16 @@
 ## 🚀 Estado Actual de Desarrollo
 
 ### ✅ COMPLETADO Y FUNCIONANDO
+
+#### **📅 Sistema de Configuración de Bimestres** ⭐ NUEVO
+- ✅ **Gestión manual completa** de bimestres académicos
+- ✅ **API CRUD robusta** con validaciones y control de acceso
+- ✅ **Frontend integrado** con modal de configuración
+- ✅ **Validación de duplicados** por año académico
+- ✅ **Manejo preciso de fechas** sin desfases de zona horaria
+- ✅ **Integración con calendario** mostrando rangos dinámicos
+- ✅ **Flexibilidad total** sin límites fijos de duración o cantidad
+- ✅ **Mensajes de error claros** extraídos del backend
 
 #### **� Sistema de Cargas Masivas Completo**
 - ✅ **Stored Procedures robustos** para todas las cargas principales
@@ -84,6 +92,12 @@ frontend/src/
 │   ├── layout/           # ✅ Layout responsivo
 │   │   ├── MainLayout.tsx    # ✅ Layout principal
 │   │   └── Navbar.tsx        # ✅ Navegación con usuario y logout
+│   ├── bimestres/       # ✅ Componentes de gestión de bimestres ⭐ NUEVO
+│   │   ├── BimestreConfigurador.tsx # ✅ Modal de creación/edición
+│   │   ├── BimestreSelector.tsx     # ✅ Selector dinámico
+│   │   └── index.ts             # ✅ Exportaciones centralizadas
+│   ├── dashboard/       # ✅ Componentes del dashboard
+│   │   └── CalendarView.tsx     # ✅ Calendario integrado con bimestres
 │   └── AppWrapper.tsx    # ✅ Wrapper de inicialización
 ├── features/             # ✅ Funcionalidades por dominio
 │   ├── auth/            # ✅ Autenticación completa
@@ -96,10 +110,15 @@ frontend/src/
 │   ├── approvalWorkflow/ # 🚧 Ready para desarrollo
 │   └── resourceManagement/ # 🚧 Ready para desarrollo
 ├── pages/               # ✅ Dashboard y páginas principales
+│   └── DashboardPage.tsx    # ✅ Dashboard con integración de bimestres
 ├── store/              # ✅ Zustand con persistencia funcional
-│   └── auth.store.ts   # ✅ Store de autenticación completo
+│   ├── auth.store.ts   # ✅ Store de autenticación completo
+│   └── bimestre.store.ts    # ✅ Store de bimestres con manejo de errores ⭐ NUEVO
 ├── services/           # ✅ Servicios HTTP
-│   └── auth.service.ts # ✅ AuthService con interceptores
+│   ├── auth.service.ts # ✅ AuthService con interceptores
+│   └── bimestre.service.ts  # ✅ Cliente HTTP para API de bimestres ⭐ NUEVO
+├── hooks/              # ✅ Custom hooks ⭐ NUEVO
+│   └── useCalendarWithBimestres.ts # ✅ Hook para integración calendario-bimestres
 ├── routes/             # ✅ Rutas protegidas funcionales
 │   └── ProtectedRoute.tsx # ✅ Sistema de permisos
 ├── types/              # ✅ Tipado TypeScript
@@ -122,6 +141,18 @@ backend/src/
 │   ├── uploads.service.ts   # ✅ Procesamiento Excel + SP calls
 │   ├── uploads.controller.ts # ✅ Endpoints para cargas masivas
 │   └── dto/                # ✅ DTOs de validación
+├── bimestres/         # ✅ Módulo de configuración de bimestres ⭐ NUEVO
+│   ├── bimestres.module.ts  # ✅ Módulo configurado
+│   ├── bimestres.controller.ts # ✅ CRUD endpoints con validaciones
+│   └── dto/                # ✅ DTOs para crear/actualizar bimestres
+├── common/            # ✅ Módulo común con entidades y servicios ⭐ NUEVO
+│   ├── entities/           # ✅ Entidades TypeORM
+│   │   ├── bimestre.entity.ts # ✅ Entidad Bimestre con validaciones
+│   │   └── index.ts         # ✅ Exportaciones centralizadas
+│   └── services/           # ✅ Servicios compartidos
+│       ├── bimestre.service.ts # ✅ Lógica CRUD con validaciones robustas
+│       ├── response.service.ts # ✅ Respuestas estandarizadas
+│       └── index.ts         # ✅ Exportaciones centralizadas
 ├── database/          # ✅ Base de datos completamente configurada
 │   ├── migrations/         # ✅ Estructura de tablas creada
 │   │   ├── 001-create-tables.sql     # ✅ Usuarios, roles, permisos
@@ -737,4 +768,139 @@ Permisos: Administrador (todos los permisos)
 
 ---
 
-**📝 IMPORTANTE**: Estas configuraciones son fundamentales para el funcionamiento correcto del sistema. Cualquier desarrollador que continúe con el proyecto debe seguir estrictamente estas convenciones para evitar problemas de integración entre frontend y backend.
+## 🎨 Detalles Técnicos - Sistema de Bimestres ⭐ NUEVO
+
+### 🔧 Backend - Arquitectura de Bimestres
+
+#### Entidad Bimestre
+```typescript
+// common/entities/bimestre.entity.ts
+@Entity('bimestres')
+export class Bimestre {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  nombre: string;
+
+  @Column({ type: 'date' })
+  fechaInicio: Date;
+
+  @Column({ type: 'date' })
+  fechaFin: Date;
+
+  @Column()
+  anoAcademico: number;
+
+  @Column()
+  numeroBimestre: number;
+
+  @Column({ nullable: true })
+  descripcion: string;
+
+  @Column({ default: true })
+  activo: boolean;
+}
+```
+
+#### Validaciones Implementadas
+- ✅ **Duplicados**: Validación de unicidad por (anoAcademico + numeroBimestre)
+- ✅ **Fechas**: FechaInicio < FechaFin con manejo de zona horaria local
+- ✅ **Parseo**: Conversión manual de strings YYYY-MM-DD a Date sin UTC
+- ✅ **Errores**: BadRequestException con mensajes específicos
+
+#### Endpoints REST
+```typescript
+GET    /bimestres              // Listar todos los bimestres
+GET    /bimestres/activos      // Bimestres activos únicamente
+GET    /bimestres/actual       // Bimestre actual según fecha
+GET    /bimestres/:id          // Obtener bimestre específico
+POST   /bimestres              // Crear nuevo bimestre
+PUT    /bimestres/:id          // Actualizar bimestre existente
+DELETE /bimestres/:id          // Eliminar bimestre
+```
+
+### 🎨 Frontend - Componentes de Bimestres
+
+#### BimestreConfigurador.tsx
+- ✅ **Modal completo** con formulario de creación/edición
+- ✅ **Validación client-side** de fechas y campos requeridos
+- ✅ **Manejo de errores** extraídos del backend y mostrados en UI
+- ✅ **Reset automático** del formulario tras creación exitosa
+
+#### BimestreSelector.tsx
+- ✅ **Dropdown dinámico** con lista de bimestres disponibles
+- ✅ **Integración con store** para selección y cambio de estado
+- ✅ **Indicadores visuales** del bimestre actualmente seleccionado
+
+#### BimestreStore (Zustand)
+```typescript
+interface BimestreState {
+  bimestres: Bimestre[];
+  bimestreSeleccionado: Bimestre | null;
+  isLoading: boolean;
+  error: string | null;
+  
+  // Acciones
+  fetchBimestres: () => Promise<void>;
+  crearBimestre: (data: CreateBimestreDto) => Promise<void>;
+  seleccionarBimestre: (bimestre: Bimestre | null) => void;
+  clearError: () => void;
+}
+```
+
+### 🗓️ Integración con Calendario
+
+#### CalendarView.tsx - Funcionalidades Añadidas
+- ✅ **Rango dinámico**: Muestra solo meses incluidos en el bimestre seleccionado
+- ✅ **Indicadores visuales**: Días dentro/fuera del bimestre con colores diferenciados
+- ✅ **Header contextual**: Título muestra nombre y fechas del bimestre
+- ✅ **Fallback inteligente**: Muestra mes actual si no hay bimestre seleccionado
+
+#### Lógica de Fechas
+```typescript
+// Determinar rango de meses basado en bimestre
+const getMonthsInRange = (start: Date, end: Date) => {
+  // Genera array de meses a mostrar
+  // Evita problemas de zona horaria
+}
+
+// Verificar si día está en bimestre
+const isDayInBimestre = (year: number, month: number, day: number) => {
+  // Comparación precisa de fechas locales
+  // Sin conversiones UTC problemáticas
+}
+```
+
+### 🛡️ Seguridad y Validaciones
+
+#### Control de Acceso
+- ✅ **@UseGuards(JwtAuthGuard, RolesGuard)**: Autenticación JWT requerida
+- ✅ **@Roles('admin', 'academico')**: Solo roles autorizados pueden gestionar
+- ✅ **Validación de tokens**: Verificación en cada request
+
+#### Validaciones de Negocio
+- ✅ **Unicidad**: No permite bimestres duplicados por año académico
+- ✅ **Integridad temporal**: FechaInicio siempre anterior a FechaFin
+- ✅ **Formato de fechas**: Strings YYYY-MM-DD convertidos manualmente
+- ✅ **Campos requeridos**: Validación de todos los campos obligatorios
+
+### 🔧 Gestión de Fechas - Solución a Desfases
+
+#### Problema Identificado
+- Los inputs `type="date"` envían strings YYYY-MM-DD
+- `new Date(string)` interpreta como UTC y causa desfases de zona horaria
+- Fechas ingresadas como "2025-06-01" se guardaban como "2025-05-31"
+
+#### Solución Implementada
+```typescript
+// Backend: Conversión manual en BimestreService
+private parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+  return new Date(year, month - 1, day); // month-1 porque Date usa índices 0-11
+}
+
+// Frontend: Envío directo de strings, conversión en backend
+fechaInicio: "2025-06-01"  // String desde input date
+fechaFin: "2025-07-31"     // String desde input date
+```
