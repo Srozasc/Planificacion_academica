@@ -210,7 +210,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
             setEditingEvent(null);
             setIsEventModalOpen(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center text-sm"
+          className="bg-uc-yellow text-black px-4 py-2 rounded-md hover:bg-yellow-500 transition-colors flex items-center text-sm font-medium"
         >
           <span className="mr-2">➕</span>
           Nuevo Evento
@@ -275,7 +275,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                               e.stopPropagation();
                               handleDayClick(monthInfo.year, monthInfo.month, day);
                             }}
-                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-blue-600 transition-all"
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-uc-yellow text-black rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-yellow-500 transition-all font-bold"
                             title="Crear evento"
                           >
                             +

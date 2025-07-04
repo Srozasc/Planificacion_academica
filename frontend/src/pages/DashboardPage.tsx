@@ -145,21 +145,21 @@ const DashboardPage: React.FC = () => {
       title: 'Total Eventos',
       value: '156',
       icon: '📅',
-      color: 'bg-blue-500',
+      color: 'bg-uc-yellow',
       change: '+12%'
     },
     {
       title: 'Docentes Activos',
       value: '23',
       icon: '👨‍🏫',
-      color: 'bg-green-500',
+      color: 'bg-blue-500',
       change: '+5%'
     },
     {
       title: 'Aulas Utilizadas',
       value: '18',
       icon: '🏛️',
-      color: 'bg-yellow-500',
+      color: 'bg-orange-500',
       change: '+8%'
     },
     {
@@ -207,10 +207,10 @@ const DashboardPage: React.FC = () => {
                 {/* Configurador de Bimestres */}
                 <button
                   onClick={() => setIsConfiguradorOpen(true)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                  className="bg-uc-yellow hover:bg-yellow-500 text-black px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
                 >
                   <CogIcon className="h-4 w-4" />
-                  <span>Configurar Bimestres</span>
+                  <span>Nuevo Evento</span>
                 </button>
               </div>
             </div>
