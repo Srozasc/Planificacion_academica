@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { dropdownService, Teacher, Subject, Room } from '../../services/dropdownService';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -58,6 +59,36 @@ const EventModal: React.FC<EventModalProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
+
+  // Cargar datos de las listas desplegables cuando se abra el modal
+  useEffect(() => {
+    if (isOpen) {
+      loadDropdownData();
+    }
+  }, [isOpen]);
+
+  const loadDropdownData = async () => {
+    setIsLoadingDropdowns(true);
+    try {
+      const [teachersData, subjectsData, roomsData] = await Promise.all([
+        dropdownService.getTeachers(),
+        dropdownService.getSubjects(),
+        dropdownService.getRooms()
+      ]);
+      setTeachers(teachersData);
+      setSubjects(subjectsData);
+      setRooms(roomsData);
+    } catch (error) {
+      console.error('Error loading dropdown data:', error);
+    } finally {
+      setIsLoadingDropdowns(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       if (editingEvent) {
@@ -269,26 +300,44 @@ const EventModal: React.FC<EventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Docente
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.teacher}
                 onChange={(e) => setFormData(prev => ({ ...prev, teacher: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nombre del docente"
-              />
+                disabled={isLoadingDropdowns}
+              >
+                <option value="">Seleccionar docente...</option>
+                {teachers.map((teacher) => (
+                  <option key={teacher.id} value={teacher.name}>
+                    {teacher.name} - {teacher.rut}
+                  </option>
+                ))}
+              </select>
+              {isLoadingDropdowns && (
+                <p className="text-gray-500 text-sm mt-1">Cargando docentes...</p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Asignatura
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.subject}
                 onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Nombre de la asignatura"
-              />
+                disabled={isLoadingDropdowns}
+              >
+                <option value="">Seleccionar asignatura...</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.name}>
+                    {subject.code} - {subject.name}
+                  </option>
+                ))}
+              </select>
+              {isLoadingDropdowns && (
+                <p className="text-gray-500 text-sm mt-1">Cargando asignaturas...</p>
+              )}
             </div>
           </div>
 
@@ -297,13 +346,22 @@ const EventModal: React.FC<EventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Aula
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.room}
                 onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej: Aula 101"
-              />
+                disabled={isLoadingDropdowns}
+              >
+                <option value="">Seleccionar aula...</option>
+                {rooms.map((room) => (
+                  <option key={room.value} value={room.value}>
+                    {room.label}
+                  </option>
+                ))}
+              </select>
+              {isLoadingDropdowns && (
+                <p className="text-gray-500 text-sm mt-1">Cargando aulas...</p>
+              )}
             </div>
 
             <div>
