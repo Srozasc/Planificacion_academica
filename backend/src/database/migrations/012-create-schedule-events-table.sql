@@ -152,28 +152,30 @@ END //
 DELIMITER ;
 
 -- Trigger para validar conflictos antes de insertar
-DELIMITER //
-CREATE OR REPLACE TRIGGER tr_schedule_events_before_insert
+-- 1. Eliminamos el trigger si ya existe (la forma correcta de hacer "REPLACE")
+DROP TRIGGER IF EXISTS tr_schedule_events_before_insert;
+
+-- 2. Creamos el trigger de nuevo (sin "OR REPLACE")
+CREATE TRIGGER tr_schedule_events_before_insert
 BEFORE INSERT ON schedule_events
 FOR EACH ROW
 BEGIN
-    DECLARE conflict_count INT DEFAULT 0;
-    
     -- Validar que la fecha de fin sea posterior al inicio
     IF NEW.end_date <= NEW.start_date THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La fecha de fin debe ser posterior a la fecha de inicio';
     END IF;
     
-    -- Verificar conflictos de sala solo si se especifica una sala
+    -- Verificar conflictos de sala solo si se especifica una sala y no está vacía
     IF NEW.room IS NOT NULL AND NEW.room != '' THEN
-        SET conflict_count = fn_CheckRoomConflict(NEW.room, NEW.start_date, NEW.end_date, NULL);
+        -- Usamos la función que creamos antes
+        SET @conflict_count = fn_CheckRoomConflict(NEW.room, NEW.start_date, NEW.end_date, NULL);
         
-        IF conflict_count > 0 THEN
+        IF @conflict_count > 0 THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Conflicto de horario: La sala ya está ocupada en ese horario';
         END IF;
     END IF;
     
-    -- Establecer valores por defecto
+    -- Establecer valores por defecto para las fechas de auditoría
     IF NEW.created_at IS NULL THEN
         SET NEW.created_at = NOW();
     END IF;
@@ -181,12 +183,11 @@ BEGIN
     IF NEW.updated_at IS NULL THEN
         SET NEW.updated_at = NOW();
     END IF;
-END //
-DELIMITER ;
+END
 
 -- Trigger para validar conflictos antes de actualizar
-DELIMITER //
-CREATE OR REPLACE TRIGGER tr_schedule_events_before_update
+DROP TRIGGER IF EXISTS tr_schedule_events_before_update;
+CREATE TRIGGER tr_schedule_events_before_update
 BEFORE UPDATE ON schedule_events
 FOR EACH ROW
 BEGIN
@@ -199,8 +200,8 @@ BEGIN
     
     -- Verificar conflictos de sala solo si se especifica una sala y hay cambios relevantes
     IF NEW.room IS NOT NULL AND NEW.room != '' AND (
-        NEW.room != OLD.room OR 
-        NEW.start_date != OLD.start_date OR 
+        NEW.room != OLD.room OR
+        NEW.start_date != OLD.start_date OR
         NEW.end_date != OLD.end_date
     ) THEN
         SET conflict_count = fn_CheckRoomConflict(NEW.room, NEW.start_date, NEW.end_date, NEW.id);
@@ -212,8 +213,7 @@ BEGIN
     
     -- Actualizar timestamp
     SET NEW.updated_at = NOW();
-END //
-DELIMITER ;
+END
 
 -- Insertar algunos eventos de ejemplo para testing
 INSERT INTO schedule_events (

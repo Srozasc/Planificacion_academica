@@ -144,9 +144,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setIsCreatingEvent(true);
     try {
       await onEventCreate(eventData);
-      setIsEventModalOpen(false);
+      setIsEventModalOpen(false); // Solo cerrar si no hay errores
     } catch (error) {
       console.error('Error creating event:', error);
+      // NO cerrar el modal para que el usuario pueda ver el error y corregir
     } finally {
       setIsCreatingEvent(false);
     }
@@ -165,10 +166,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     setIsCreatingEvent(true);
     try {
       await onEventUpdate(editingEvent.id, eventData);
-      setIsEventModalOpen(false);
+      setIsEventModalOpen(false); // Solo cerrar si no hay errores
       setEditingEvent(null);
     } catch (error) {
       console.error('Error updating event:', error);
+      // NO cerrar el modal para que el usuario pueda ver el error y corregir
     } finally {
       setIsCreatingEvent(false);
     }
