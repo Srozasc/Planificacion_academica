@@ -22,18 +22,30 @@ export interface LoginResponse {
 
 export interface UserProfile {
   id: number;
-  username: string;
+  username?: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  roleId: number;
-  isActive: boolean;
+  firstName?: string;
+  lastName?: string;
+  name?: string; // Nombre completo del backend
+  roleId?: number;
+  role?: string; // Nombre del rol del backend
+  isActive?: boolean;
+  permissions?: string[];
 }
 
 export interface ValidateTokenResponse {
   valid: boolean;
   user?: UserProfile;
   permissions?: string[];
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
 }
 
 class AuthService {  // Login
@@ -82,6 +94,17 @@ class AuthService {  // Login
     } catch (error) {
       console.error('Error validando token:', error);
       return { valid: false };
+    }
+  }
+
+  // Cambiar contraseña
+  async changePassword(passwordData: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+    try {
+      const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', passwordData);
+      return response.data;
+    } catch (error) {
+      console.error('Error cambiando contraseña:', error);
+      throw error;
     }
   }  // Gestión del token en localStorage
   setToken(token: string): void {

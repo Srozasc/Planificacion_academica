@@ -115,7 +115,7 @@ class EventService {
       
       // Si hay errores específicos
       if (errorData.errors && Array.isArray(errorData.errors) && errorData.errors.length > 0) {
-        return errorData.errors.map(err => this.formatFriendlyErrorMessage(err)).join(', ');
+        return errorData.errors.map((err: any) => this.formatFriendlyErrorMessage(err)).join(', ');
       }
     }
     

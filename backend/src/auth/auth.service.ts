@@ -4,6 +4,7 @@ import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { TokenPayloadDto, LoginResponseDto } from './dto/token-payload.dto';
 
 @Injectable()
@@ -96,6 +97,40 @@ export class AuthService {
     } catch (error) {
       return null;
     }
+  }
+
+  // Método para cambiar contraseña del usuario autenticado
+  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{message: string}> {
+    // Obtener la contraseña actual del usuario
+    const [user] = await this.entityManager.query(
+      'SELECT password_hash FROM users WHERE id = ? AND is_active = TRUE',
+      [userId]
+    );
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    // Verificar que la contraseña actual sea correcta
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword, 
+      user.password_hash
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('La contraseña actual es incorrecta');
+    }
+
+    // Hashear la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    
+    // Actualizar la contraseña en la base de datos
+    await this.entityManager.query(
+      'UPDATE users SET password_hash = ? WHERE id = ?',
+      [hashedNewPassword, userId]
+    );
+    
+    return { message: 'Contraseña actualizada correctamente' };
   }
 
   // TEMPORAL: Método para actualizar contraseña del admin

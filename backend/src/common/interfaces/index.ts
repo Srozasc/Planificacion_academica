@@ -84,11 +84,9 @@ export interface FileValidationResult {
 
 // Tipos de usuario y roles
 export enum UserRole {
-  ADMIN = 'Administrador',
-  COORDINATOR = 'Coordinador',
-  DIRECTOR = 'Director',
-  TEACHER = 'Docente',
-  READONLY = 'Solo Lectura'
+  VISUALIZADOR = 'Visualizador',
+  EDITOR = 'Editor',
+  MAESTRO = 'Maestro'
 }
 
 // Estados generales

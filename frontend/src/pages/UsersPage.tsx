@@ -21,7 +21,7 @@ const UsersPage: React.FC = () => {
       firstName: 'Dr. Juan',
       lastName: 'García',
       email: 'juan.garcia@universidad.edu',
-      role: 'Administrador',
+      role: 'Maestro',
       department: 'Ingeniería',
       status: 'Activo',
       lastAccess: '14 jun 2025, 10:30',
@@ -32,7 +32,7 @@ const UsersPage: React.FC = () => {
       firstName: 'Prof. María',
       lastName: 'López',
       email: 'maria.lopez@universidad.edu',
-      role: 'Director de Programa',
+      role: 'Editor',
       department: 'Ciencias',
       status: 'Activo',
       lastAccess: '13 jun 2025, 15:45',
@@ -43,7 +43,7 @@ const UsersPage: React.FC = () => {
       firstName: 'Ana',
       lastName: 'Martínez',
       email: 'ana.martinez@universidad.edu',
-      role: 'Usuario Lector',
+      role: 'Visualizador',
       department: 'Administración',
       status: 'Inactivo',
       lastAccess: '10 jun 2025, 09:15',
@@ -54,7 +54,7 @@ const UsersPage: React.FC = () => {
       firstName: 'Dr. Carlos',
       lastName: 'Rodríguez',
       email: 'carlos.rodriguez@universidad.edu',
-      role: 'Director de Programa',
+      role: 'Editor',
       department: 'Matemáticas',
       status: 'Activo',
       lastAccess: '14 jun 2025, 08:20',
@@ -69,8 +69,8 @@ const UsersPage: React.FC = () => {
   // Estadísticas
   const totalUsers = users.length;
   const activeUsers = users.filter(user => user.status === 'Activo').length;
-  const administrators = users.filter(user => user.role === 'Administrador').length;
-  const directors = users.filter(user => user.role === 'Director de Programa').length;
+  const maestros = users.filter(user => user.role === 'Maestro').length;
+  const editores = users.filter(user => user.role === 'Editor').length;
 
   useEffect(() => {
     let filtered = users;
@@ -100,11 +100,11 @@ const UsersPage: React.FC = () => {
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'Administrador':
+      case 'Maestro':
         return 'bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium';
-      case 'Director de Programa':
+      case 'Editor':
         return 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium';
-      case 'Usuario Lector':
+      case 'Visualizador':
         return 'bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium';
       default:
         return 'bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium';
@@ -113,11 +113,11 @@ const UsersPage: React.FC = () => {
 
   const getAvatarColor = (role: string) => {
     switch (role) {
-      case 'Administrador':
+      case 'Maestro':
         return 'bg-purple-500';
-      case 'Director de Programa':
+      case 'Editor':
         return 'bg-yellow-500';
-      case 'Usuario Lector':
+      case 'Visualizador':
         return 'bg-gray-500';
       default:
         return 'bg-blue-500';
@@ -165,20 +165,20 @@ const UsersPage: React.FC = () => {
                 <span className="text-2xl">👑</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{administrators}</p>
-                <p className="text-sm text-gray-600">Administradores</p>
+                <p className="text-2xl font-bold text-gray-900">{maestros}</p>
+                <p className="text-sm text-gray-600">Maestros</p>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <div className="p-3 rounded-full bg-orange-100 mr-4">
-                <span className="text-2xl">🏠</span>
+              <div className="p-3 rounded-full bg-yellow-100 mr-4">
+                <span className="text-2xl">✏️</span>
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{directors}</p>
-                <p className="text-sm text-gray-600">Directores</p>
+                <p className="text-2xl font-bold text-gray-900">{editores}</p>
+                <p className="text-sm text-gray-600">Editores</p>
               </div>
             </div>
           </div>
@@ -207,9 +207,9 @@ const UsersPage: React.FC = () => {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option>Todos los roles</option>
-                <option>Administrador</option>
-                <option>Director de Programa</option>
-                <option>Usuario Lector</option>
+                <option>Maestro</option>
+                <option>Editor</option>
+                <option>Visualizador</option>
               </select>
             </div>
 

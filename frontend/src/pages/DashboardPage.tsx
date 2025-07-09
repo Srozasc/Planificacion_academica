@@ -254,63 +254,6 @@ const DashboardPage: React.FC = () => {
             onEventDelete={handleEventDelete}
           />
         </div>
-      </div>      {/* Quick Actions */}
-      <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Acciones Rápidas</h3>
-          <div className="space-y-3">
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📋</span>
-                <div>
-                  <div className="font-medium text-gray-900">Crear Evento</div>
-                  <div className="text-sm text-gray-600">Agregar nueva clase o actividad</div>
-                </div>
-              </div>
-            </button>
-            <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200">
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📊</span>
-                <div>
-                  <div className="font-medium text-gray-900">Ver Reportes</div>
-                  <div className="text-sm text-gray-600">Generar reportes de programación</div>
-                </div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Eventos Recientes</h3>
-          <div className="space-y-3">
-            {mockEvents.slice(0, 2).map((event, index) => (
-              <div key={index} className="p-3 rounded-lg bg-gray-50">
-                <div className="font-medium text-gray-900 text-sm">{event.title}</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {new Date(event.start).toLocaleString('es-ES', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">Notificaciones</h3>
-          <div className="space-y-3">
-            <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
-              <div className="font-medium text-yellow-800 text-sm">7 eventos pendientes de aprobación</div>
-              <div className="text-xs text-yellow-600 mt-1">Requieren revisión</div>
-            </div>
-            <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-              <div className="font-medium text-blue-800 text-sm">Nueva actualización disponible</div>
-              <div className="text-xs text-blue-600 mt-1">Sistema actualizado</div>
-            </div>
-          </div>        </div>
       </div>
 
       {/* Modal de Configuración de Bimestres */}

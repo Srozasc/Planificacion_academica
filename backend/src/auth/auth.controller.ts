@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginResponseDto } from './dto/token-payload.dto';
 import { JwtAuthGuard } from '../common';
 
@@ -53,6 +54,14 @@ export class AuthController {
         permissions: req.user.permissions,
       },
     };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Req() req: any, @Body() changePasswordDto: ChangePasswordDto) {
+    const userId = req.user.userId;
+    return this.authService.changePassword(userId, changePasswordDto);
   }
 
   // TEMPORAL: Endpoint para actualizar contraseña del admin

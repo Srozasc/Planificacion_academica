@@ -52,7 +52,8 @@ const LoginPageFixed: React.FC = () => {
 
     try {
       // Usar fetch directamente en lugar del store para evitar problemas con Axios/Zustand
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,17 +182,6 @@ const LoginPageFixed: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Sistema de Planificación Académica v1.0
-            </p>
-            <div className="mt-4 p-3 bg-blue-50 rounded-md">
-              <p className="text-xs text-blue-600">
-                <strong>Email de prueba:</strong> admin@planificacion.edu<br />
-                <strong>Contraseña:</strong> admin123
-              </p>
-            </div>
-          </div>
         </form>
 
         <div className="mt-6 text-center">
