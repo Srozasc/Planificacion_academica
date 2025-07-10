@@ -5,16 +5,24 @@ import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
 import Toast from '../components/ui/Toast';
 import { CogIcon } from '@heroicons/react/24/outline';
 import { useBimestreStore } from '../store/bimestre.store';
+import { useAuthStore } from '../store/auth.store';
 import { eventService, Event } from '../services/event.service';
 import { CreateEventData } from '../components/events/EventModal';
 import { useToast } from '../hooks/useToast';
+
 
 const DashboardPage: React.FC = () => {
   const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+
   const { bimestreSeleccionado } = useBimestreStore();
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { toast, showToast, hideToast } = useToast();
+
+
+
+
 
   // Función para cargar eventos
   const loadEvents = async () => {
@@ -114,7 +122,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Cargar eventos cuando cambia el bimestre
+  // Cargar datos cuando cambia el bimestre
   useEffect(() => {
     loadEvents();
   }, [bimestreSeleccionado]);
@@ -159,62 +167,36 @@ const DashboardPage: React.FC = () => {
     }
   ];
 
-  const stats = [
-    {
-      title: 'Total Eventos',
-      value: '156',
-      icon: '📅',
-      color: 'bg-uc-yellow',
-      change: '+12%'
-    },
-    {
-      title: 'Docentes Activos',
-      value: '23',
-      icon: '👨‍🏫',
-      color: 'bg-blue-500',
-      change: '+5%'
-    },
-    {
-      title: 'Aulas Utilizadas',
-      value: '18',
-      icon: '🏛️',
-      color: 'bg-orange-500',
-      change: '+8%'
-    },
-    {
-      title: 'Pendientes Aprobación',
-      value: '7',
-      icon: '⏳',
-      color: 'bg-red-500',
-      change: '-3%'
-    }
-  ];
+
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">      {/* Header */}
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      {/* Header */}
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Dashboard de Programación Académica</h1>
         <p className="text-sm sm:text-base text-gray-600">Gestiona y visualiza la programación académica en tiempo real</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">        {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{stat.value}</p>
-                <p className={`text-xs sm:text-sm ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'} mt-1`}>
-                  {stat.change} vs mes anterior
-                </p>
-              </div>
-              <div className={`w-10 h-10 sm:w-12 sm:h-12 ${stat.color} rounded-lg flex items-center justify-center text-white text-lg sm:text-xl flex-shrink-0 ml-3`}>
-                {stat.icon}
-              </div>
+      {/* Total de eventos */}
+      <div className="mb-6">
+        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 w-fit">
+          <div className="flex items-center space-x-4">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Eventos</p>
+              <p className="text-2xl font-bold text-gray-900">{events.length}</p>
+            </div>
+            <div className="bg-orange-100 p-3 rounded-lg">
+              <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
             </div>
           </div>
-        ))}
-      </div>      {/* Calendar Section */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">        {/* Calendar Header */}
+        </div>
+      </div>
+
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        {/* Calendar Header */}
         <div className="p-4 sm:p-6 border-b border-gray-200">
           <div className="flex flex-col space-y-4">
             {/* Título y descripción */}
@@ -222,7 +204,8 @@ const DashboardPage: React.FC = () => {
               <div>
                 <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Calendario de Programación</h2>
                 <p className="text-xs sm:text-sm text-gray-600">Visualiza y gestiona los eventos académicos</p>
-              </div>              <div className="flex items-center space-x-3">
+              </div>
+              <div className="flex items-center space-x-3">
                 {/* Configurador de Bimestres */}
                 <button
                   onClick={() => setIsConfiguradorOpen(true)}
@@ -233,7 +216,8 @@ const DashboardPage: React.FC = () => {
                 </button>
               </div>
             </div>
-              {/* Selector de Bimestre y Controles de Vista */}
+            
+            {/* Selector de Bimestre y Controles de Vista */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               {/* Selector de Bimestre */}
               <BimestreSelector 
@@ -244,7 +228,9 @@ const DashboardPage: React.FC = () => {
               />
             </div>
           </div>
-        </div>        {/* Calendar Content */}
+        </div>
+        
+        {/* Calendar Content */}
         <div className="p-3 sm:p-6">
           <CalendarView 
             events={events}

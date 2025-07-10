@@ -5,10 +5,9 @@ import { MagnifyingGlassIcon, CalendarIcon, PlusIcon, EyeIcon, PencilIcon, Trash
 const SchedulingPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [stats, setStats] = useState<ScheduleStats>({
-    totalCourses: 0,
-    totalStudents: 0,
-    roomsInUse: 0,
-    weeklyHours: 0
+    totalEvents: 0,
+    activeTeachers: 0,
+    usedRooms: 0
   });
   const [filters, setFilters] = useState<ScheduleFilters>({
     year: '2024-1',
@@ -77,15 +76,15 @@ const SchedulingPage: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Cursos</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.totalCourses}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Eventos</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.totalEvents}</p>
             </div>
             <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 ml-3">
-              📚
+              📅
             </div>
           </div>
         </div>
@@ -93,11 +92,11 @@ const SchedulingPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Estudiantes</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.totalStudents}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Docentes Activos</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.activeTeachers}</p>
             </div>
             <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 ml-3">
-              👥
+              👨‍🏫
             </div>
           </div>
         </div>
@@ -105,23 +104,11 @@ const SchedulingPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Aulas en Uso</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.roomsInUse}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Aulas Utilizadas</p>
+              <p className="text-3xl font-bold text-gray-900">{stats.usedRooms}</p>
             </div>
             <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 ml-3">
               🏛️
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600 mb-1">Horas Semanales</p>
-              <p className="text-3xl font-bold text-gray-900">{stats.weeklyHours}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 ml-3">
-              ⏰
             </div>
           </div>
         </div>

@@ -253,35 +253,33 @@ export class SchedulingService {
     }
   }
 
-  // Método para obtener estadísticas de eventos
+  // Método para obtener estadísticas del dashboard
   async getEventStats(): Promise<any> {
     try {
+      // Total de eventos activos
       const totalEvents = await this.eventRepository.count({ where: { active: true } });
-      const eventsThisMonth = await this.eventRepository.count({
-        where: {
-          active: true,
-          start_date: Between(
-            new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
-          ),
-        },
-      });
 
-      const roomUsage = await this.eventRepository
-        .createQueryBuilder('event')
-        .select('event.room, COUNT(*) as count')
-        .where('event.active = :active', { active: true })
-        .groupBy('event.room')
-        .orderBy('count', 'DESC')
-        .getRawMany();
+      // Docentes activos - consulta directa a la base de datos
+      const activeTeachersResult = await this.eventRepository.query(
+        'SELECT COUNT(DISTINCT teacher) as count FROM schedule_events WHERE active = 1 AND teacher IS NOT NULL AND teacher != ""'
+      );
+      const activeTeachers = activeTeachersResult[0]?.count || 0;
+
+      // Aulas utilizadas - consulta directa a la base de datos
+      const usedRoomsResult = await this.eventRepository.query(
+        'SELECT COUNT(DISTINCT room) as count FROM schedule_events WHERE active = 1 AND room IS NOT NULL AND room != ""'
+      );
+      const usedRooms = usedRoomsResult[0]?.count || 0;
+
+      this.logger.log(`Estadísticas del dashboard: ${totalEvents} eventos, ${activeTeachers} docentes activos, ${usedRooms} aulas utilizadas`);
 
       return {
         totalEvents,
-        eventsThisMonth,
-        roomUsage: roomUsage.filter(r => r.room), // Solo salas con nombre
+        activeTeachers,
+        usedRooms,
       };
     } catch (error) {
-      this.logger.error('Error al obtener estadísticas de eventos', error);
+      this.logger.error('Error al obtener estadísticas del dashboard', error);
       throw error;
     }
   }

@@ -99,7 +99,7 @@ export class BimestresController {
       );
     }
   }  @Post()
-  @Roles('admin', 'academico')
+  @Roles('Maestro', 'Editor')
   async create(@Body() createBimestreDto: CreateBimestreDto) {
     try {
       const bimestre = await this.bimestreService.create(createBimestreDto);
@@ -111,7 +111,7 @@ export class BimestresController {
       throw error; // Re-lanzar la excepción para que NestJS la maneje correctamente
     }
   }@Put(':id')
-  @Roles('admin', 'academico')
+  @Roles('Maestro', 'Editor')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateBimestreDto: UpdateBimestreDto
@@ -127,7 +127,7 @@ export class BimestresController {
     }
   }
   @Delete(':id')
-  @Roles('admin', 'academico')
+  @Roles('Maestro')
   async remove(@Param('id', ParseIntPipe) id: number) {
     try {
       await this.bimestreService.delete(id);

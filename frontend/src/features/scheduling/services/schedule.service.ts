@@ -21,10 +21,9 @@ export interface Course {
 }
 
 export interface ScheduleStats {
-  totalCourses: number;
-  totalStudents: number;
-  roomsInUse: number;
-  weeklyHours: number;
+  totalEvents: number;
+  activeTeachers: number;
+  usedRooms: number;
 }
 
 export interface ScheduleFilters {
@@ -37,7 +36,7 @@ export interface ScheduleFilters {
 
 class ScheduleService {
   private getAuthHeaders() {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     return {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -70,7 +69,7 @@ class ScheduleService {
   async getStats(): Promise<ScheduleStats> {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/schedules/stats`,
+        `${API_BASE_URL}/events/stats`,
         this.getAuthHeaders()
       );
       return response.data;
@@ -78,10 +77,9 @@ class ScheduleService {
       console.error('Error fetching stats:', error);
       // Retornar datos mock en caso de error
       return {
-        totalCourses: 5,
-        totalStudents: 133,
-        roomsInUse: 5,
-        weeklyHours: 10
+        totalEvents: 156,
+        activeTeachers: 23,
+        usedRooms: 18
       };
     }
   }

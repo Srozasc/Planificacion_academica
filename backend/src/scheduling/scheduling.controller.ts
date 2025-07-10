@@ -58,7 +58,6 @@ export class SchedulingController {
   }
 
   @Get('stats')
-  @Roles('admin', 'academico')
   async getStats() {
     try {
       const stats = await this.schedulingService.getEventStats();
@@ -112,7 +111,7 @@ export class SchedulingController {
   }
 
   @Post()
-  @Roles('admin', 'academico', 'coordinador')
+  @Roles('Maestro', 'Editor')
   async create(@Body() createEventDto: CreateEventDto) {
     try {
       const event = await this.schedulingService.create(createEventDto);
@@ -127,7 +126,7 @@ export class SchedulingController {
   }
 
   @Put(':id')
-  @Roles('admin', 'academico', 'coordinador')
+  @Roles('Maestro', 'Editor')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateEventDto: UpdateEventDto
@@ -145,7 +144,7 @@ export class SchedulingController {
   }
 
   @Delete(':id')
-  @Roles('admin', 'academico')
+  @Roles('Maestro')
   async remove(@Param('id', ParseIntPipe) id: number) {
     try {
       await this.schedulingService.remove(id);
@@ -160,7 +159,7 @@ export class SchedulingController {
   }
 
   @Patch(':id/deactivate')
-  @Roles('admin', 'academico', 'coordinador')
+  @Roles('Maestro', 'Editor')
   async deactivate(@Param('id', ParseIntPipe) id: number) {
     try {
       const event = await this.schedulingService.deactivate(id);
