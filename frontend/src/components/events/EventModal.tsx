@@ -29,7 +29,8 @@ export interface CreateEventData {
   endDate: string;
   startTime: string;
   endTime: string;
-  teacher?: string;
+  teacher?: string; // Mantenido por compatibilidad
+  teacher_ids?: number[]; // Nuevo campo para múltiples docentes
   subject?: string;
   room?: string;
   students?: number;
@@ -52,6 +53,7 @@ const EventModal: React.FC<EventModalProps> = ({
     startTime: '08:00',
     endTime: '09:00',
     teacher: '',
+    teacher_ids: [],
     subject: '',
     room: '',
     students: 0,
@@ -298,23 +300,85 @@ const EventModal: React.FC<EventModalProps> = ({
           {/* Detalles adicionales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Docente
+                Docentes
               </label>
-              <select
-                value={formData.teacher}
-                onChange={(e) => setFormData(prev => ({ ...prev, teacher: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoadingDropdowns}
-              >
-                <option value="">Seleccionar docente...</option>
-                {teachers.map((teacher) => (
-                  <option key={teacher.id} value={teacher.name}>
-                    {teacher.name} - {teacher.rut}
-                  </option>
-                ))}
-              </select>
-              {isLoadingDropdowns && (
-                <p className="text-gray-500 text-sm mt-1">Cargando docentes...</p>
+              <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                {isLoadingDropdowns ? (
+                  <p className="text-gray-500 text-sm">Cargando docentes...</p>
+                ) : teachers.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No hay docentes disponibles</p>
+                ) : (
+                  <div className="space-y-2">
+                    {teachers.map((teacher) => (
+                      <label key={teacher.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.teacher_ids?.includes(teacher.id) || false}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            setFormData(prev => {
+                              const currentIds = prev.teacher_ids || [];
+                              const newIds = isChecked
+                                ? [...currentIds, teacher.id]
+                                : currentIds.filter(id => id !== teacher.id);
+                              
+                              // Mantener compatibilidad con el campo teacher
+                              const firstTeacher = newIds.length > 0 
+                                ? teachers.find(t => t.id === newIds[0])?.name || ''
+                                : '';
+                              
+                              return {
+                                ...prev,
+                                teacher_ids: newIds,
+                                teacher: firstTeacher
+                              };
+                            });
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {teacher.name} - {teacher.rut}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {formData.teacher_ids && formData.teacher_ids.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">
+                    {formData.teacher_ids.length} docente(s) seleccionado(s)
+                  </p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {formData.teacher_ids.map(teacherId => {
+                      const teacher = teachers.find(t => t.id === teacherId);
+                      return teacher ? (
+                        <span key={teacherId} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {teacher.name}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => {
+                                const newIds = (prev.teacher_ids || []).filter(id => id !== teacherId);
+                                const firstTeacher = newIds.length > 0 
+                                  ? teachers.find(t => t.id === newIds[0])?.name || ''
+                                  : '';
+                                return {
+                                  ...prev,
+                                  teacher_ids: newIds,
+                                  teacher: firstTeacher
+                                };
+                              });
+                            }}
+                            className="ml-1 text-blue-600 hover:text-blue-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
               )}
             </div>
 

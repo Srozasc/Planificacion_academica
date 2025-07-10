@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches, IsArray, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateEventDto {
@@ -20,7 +20,12 @@ export class CreateEventDto {
 
   @IsString()
   @IsOptional()
-  teacher?: string;
+  teacher?: string; // Campo legacy para compatibilidad
+
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  teacher_ids?: number[]; // Nuevo campo para múltiples docentes
 
   @IsString()
   @IsOptional()

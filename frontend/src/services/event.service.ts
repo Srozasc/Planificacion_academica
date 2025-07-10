@@ -41,7 +41,8 @@ class EventService {
         description: eventData.description,
         start_date: `${eventData.startDate}T${eventData.startTime}:00`,
         end_date: `${eventData.endDate}T${eventData.endTime}:00`,
-        teacher: eventData.teacher,
+        teacher: eventData.teacher, // Mantenido por compatibilidad
+        teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
         subject: eventData.subject,
         room: eventData.room,
         background_color: eventData.backgroundColor
@@ -70,7 +71,8 @@ class EventService {
         description: eventData.description,
         start_date: `${eventData.startDate}T${eventData.startTime}:00`,
         end_date: `${eventData.endDate}T${eventData.endTime}:00`,
-        teacher: eventData.teacher,
+        teacher: eventData.teacher, // Mantenido por compatibilidad
+        teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
         subject: eventData.subject,
         room: eventData.room,
         background_color: eventData.backgroundColor

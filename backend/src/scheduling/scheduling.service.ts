@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException, BadRequestException, ConflictExc
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindManyOptions } from 'typeorm';
 import { ScheduleEvent } from './entities/schedule-event.entity';
+import { EventTeacher } from './entities/event-teacher.entity';
+import { Teacher } from '../teachers/entities/teacher.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { GetEventsQueryDto } from './dto/get-events-query.dto';
@@ -15,6 +17,10 @@ export class SchedulingService {
   constructor(
     @InjectRepository(ScheduleEvent)
     private readonly eventRepository: Repository<ScheduleEvent>,
+    @InjectRepository(EventTeacher)
+    private readonly eventTeacherRepository: Repository<EventTeacher>,
+    @InjectRepository(Teacher)
+    private readonly teacherRepository: Repository<Teacher>,
     private readonly bimestreService: BimestreService,
   ) {}
 
@@ -23,7 +29,7 @@ export class SchedulingService {
       const { start_date, end_date, bimestre_id, active, page = 1, limit = 50 } = query;
       
       const options: FindManyOptions<ScheduleEvent> = {
-        relations: ['bimestre'],
+        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
         order: { start_date: 'ASC' },
         skip: (page - 1) * limit,
         take: limit,
@@ -67,7 +73,7 @@ export class SchedulingService {
     try {
       const event = await this.eventRepository.findOne({
         where: { id },
-        relations: ['bimestre'],
+        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
       });
 
       if (!event) {
@@ -116,6 +122,11 @@ export class SchedulingService {
       });
 
       const savedEvent = await this.eventRepository.save(event);
+      
+      // Manejar asignación de docentes
+      if (createEventDto.teacher_ids && createEventDto.teacher_ids.length > 0) {
+        await this.assignTeachersToEvent(savedEvent.id, createEventDto.teacher_ids);
+      }
       
       // Recargar con relaciones
       const eventWithRelations = await this.findById(savedEvent.id);
@@ -175,6 +186,11 @@ export class SchedulingService {
       }
 
       await this.eventRepository.update(id, updateData);
+      
+      // Manejar actualización de docentes si se proporcionan
+      if (updateEventDto.teacher_ids !== undefined) {
+        await this.updateEventTeachers(id, updateEventDto.teacher_ids);
+      }
       
       const updatedEvent = await this.findById(id);
 
@@ -237,12 +253,54 @@ export class SchedulingService {
     }
   }
 
+  // Métodos helper para manejar docentes múltiples
+  private async assignTeachersToEvent(eventId: number, teacherIds: number[]): Promise<void> {
+    try {
+      // Verificar que todos los docentes existen
+      const teachers = await this.teacherRepository.findByIds(teacherIds);
+      if (teachers.length !== teacherIds.length) {
+        throw new BadRequestException('Uno o más docentes no existen');
+      }
+
+      // Crear las relaciones event-teacher
+      const eventTeachers = teacherIds.map(teacherId => 
+        this.eventTeacherRepository.create({
+          eventId: eventId,
+          teacherId: teacherId
+        })
+      );
+
+      await this.eventTeacherRepository.save(eventTeachers);
+      this.logger.log(`Asignados ${teacherIds.length} docentes al evento ${eventId}`);
+    } catch (error) {
+      this.logger.error(`Error al asignar docentes al evento ${eventId}`, error);
+      throw error;
+    }
+  }
+
+  private async updateEventTeachers(eventId: number, teacherIds: number[]): Promise<void> {
+    try {
+      // Eliminar asignaciones existentes
+      await this.eventTeacherRepository.delete({ eventId: eventId });
+
+      // Asignar nuevos docentes si se proporcionan
+      if (teacherIds && teacherIds.length > 0) {
+        await this.assignTeachersToEvent(eventId, teacherIds);
+      }
+
+      this.logger.log(`Actualizadas asignaciones de docentes para evento ${eventId}`);
+    } catch (error) {
+      this.logger.error(`Error al actualizar docentes del evento ${eventId}`, error);
+      throw error;
+    }
+  }
+
   // Método para obtener eventos por bimestre
   async findByBimestre(bimestreId: number): Promise<ScheduleEventDto[]> {
     try {
       const events = await this.eventRepository.find({
         where: { bimestre_id: bimestreId, active: true },
-        relations: ['bimestre'],
+        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
         order: { start_date: 'ASC' },
       });
 

@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Bimestre } from '../../common/entities/bimestre.entity';
+import { EventTeacher } from './event-teacher.entity';
 
 @Entity('schedule_events')
 export class ScheduleEvent {
@@ -49,6 +50,10 @@ export class ScheduleEvent {
   @ManyToOne(() => Bimestre, { nullable: true })
   @JoinColumn({ name: 'bimestre_id' })
   bimestre?: Bimestre;
+
+  // Relación con docentes a través de la tabla intermedia
+  @OneToMany(() => EventTeacher, eventTeacher => eventTeacher.event)
+  eventTeachers: EventTeacher[];
 
   // Método helper para verificar si el evento está en un rango de fechas
   isInRange(startDate: Date, endDate: Date): boolean {
