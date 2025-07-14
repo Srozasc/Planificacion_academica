@@ -106,6 +106,7 @@ const EventModal: React.FC<EventModalProps> = ({
           startTime: startDate.toTimeString().slice(0, 5),
           endTime: endDate.toTimeString().slice(0, 5),
           teacher: editingEvent.extendedProps?.teacher || '',
+          teacher_ids: editingEvent.extendedProps?.teacher_ids || [], // Cargar los IDs de docentes
           subject: editingEvent.extendedProps?.subject || '',
           room: editingEvent.extendedProps?.room || '',
           students: editingEvent.extendedProps?.students || 0,

@@ -10,6 +10,8 @@ export interface Event {
   backgroundColor?: string;
   extendedProps?: {
     teacher?: string;
+    teachers?: Array<{ id: number; name: string; rut: string; email: string }>;
+    teacher_ids?: number[];
     room?: string;
     students?: number;
     subject?: string;
@@ -30,6 +32,17 @@ class EventService {
     } catch (error) {
       console.error('Error fetching events:', error);
       return [];
+    }
+  }
+
+  async getEventById(id: string): Promise<Event> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/${id}`);
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Error fetching event by ID:', error);
+      const errorMessage = this.extractErrorMessage(error);
+      throw new Error(errorMessage);
     }
   }
 

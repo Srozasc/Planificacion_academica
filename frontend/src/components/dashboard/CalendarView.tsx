@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bimestre } from '../../services/bimestre.service';
 import EventModal, { CreateEventData } from '../events/EventModal';
+import { eventService } from '../../services/event.service';
 
 interface CalendarEvent {
   id: string;
@@ -12,6 +13,9 @@ interface CalendarEvent {
     teacher?: string;
     room?: string;
     students?: number;
+    subject?: string;
+    teachers?: Array<{ id: number; name: string; rut: string; email: string }>;
+    teacher_ids?: number[];
   };
 }
 
@@ -153,10 +157,31 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
   // Función para manejar la edición de eventos
-  const handleEventEdit = (event: CalendarEvent) => {
-    setEditingEvent(event);
-    setSelectedDate(undefined); // No necesitamos selectedDate para editar
-    setIsEventModalOpen(true);
+  const handleEventEdit = async (event: CalendarEvent) => {
+    try {
+      // Obtener los datos completos del evento incluyendo los docentes
+      const fullEvent = await eventService.getEventById(event.id);
+      
+      // Convertir el evento completo al formato CalendarEvent
+      const fullCalendarEvent: CalendarEvent = {
+        ...event,
+        extendedProps: {
+          ...event.extendedProps,
+          teachers: fullEvent.extendedProps?.teachers,
+          teacher_ids: fullEvent.extendedProps?.teacher_ids
+        }
+      };
+      
+      setEditingEvent(fullCalendarEvent);
+      setSelectedDate(undefined); // No necesitamos selectedDate para editar
+      setIsEventModalOpen(true);
+    } catch (error) {
+      console.error('Error loading event details:', error);
+      // En caso de error, usar los datos básicos del evento
+      setEditingEvent(event);
+      setSelectedDate(undefined);
+      setIsEventModalOpen(true);
+    }
   };
 
   // Función para manejar la actualización de eventos

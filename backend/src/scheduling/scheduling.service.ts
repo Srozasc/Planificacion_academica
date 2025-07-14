@@ -176,8 +176,9 @@ export class SchedulingService {
         await this.checkConflicts(startDate, endDate, updateEventDto.room || existingEvent.room, id);
       }
 
-      // Preparar datos para actualización
-      const updateData: any = { ...updateEventDto };
+      // Preparar datos para actualización (excluir teacher_ids ya que se maneja por separado)
+      const { teacher_ids, ...updateDataRaw } = updateEventDto;
+      const updateData: any = { ...updateDataRaw };
       if (updateEventDto.start_date) {
         updateData.start_date = new Date(updateEventDto.start_date);
       }
