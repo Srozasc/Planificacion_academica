@@ -299,7 +299,68 @@ const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* Detalles adicionales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Asignatura
+              </label>
+              <select
+                value={formData.subject}
+                onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoadingDropdowns}
+              >
+                <option value="">Seleccionar asignatura...</option>
+                {subjects.map((subject) => (
+                  <option key={subject.id} value={subject.name}>
+                    {subject.code} - {subject.name}
+                  </option>
+                ))}
+              </select>
+              {isLoadingDropdowns && (
+                <p className="text-gray-500 text-sm mt-1">Cargando asignaturas...</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Aula
+              </label>
+              <select
+                value={formData.room}
+                onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoadingDropdowns}
+              >
+                <option value="">Seleccionar aula...</option>
+                {rooms.map((room) => (
+                  <option key={room.value} value={room.value}>
+                    {room.label}
+                  </option>
+                ))}
+              </select>
+              {isLoadingDropdowns && (
+                <p className="text-gray-500 text-sm mt-1">Cargando aulas...</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número de Estudiantes
+              </label>
+              <input
+                type="number"
+                value={formData.students || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, students: parseInt(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Docentes
               </label>
@@ -381,66 +442,6 @@ const EventModal: React.FC<EventModalProps> = ({
                   </div>
                 </div>
               )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Asignatura
-              </label>
-              <select
-                value={formData.subject}
-                onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoadingDropdowns}
-              >
-                <option value="">Seleccionar asignatura...</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.name}>
-                    {subject.code} - {subject.name}
-                  </option>
-                ))}
-              </select>
-              {isLoadingDropdowns && (
-                <p className="text-gray-500 text-sm mt-1">Cargando asignaturas...</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Aula
-              </label>
-              <select
-                value={formData.room}
-                onChange={(e) => setFormData(prev => ({ ...prev, room: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoadingDropdowns}
-              >
-                <option value="">Seleccionar aula...</option>
-                {rooms.map((room) => (
-                  <option key={room.value} value={room.value}>
-                    {room.label}
-                  </option>
-                ))}
-              </select>
-              {isLoadingDropdowns && (
-                <p className="text-gray-500 text-sm mt-1">Cargando aulas...</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Estudiantes
-              </label>
-              <input
-                type="number"
-                value={formData.students || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, students: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0"
-                min="0"
-              />
             </div>
           </div>
 
