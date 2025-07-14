@@ -1,0 +1,198 @@
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { User } from './entities/user.entity';
+import { QueryUsersDto } from './dto/query-users.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto, UsersListResponseDto } from './dto/user-response.dto';
+
+@Injectable()
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  async findAll(queryDto: QueryUsersDto): Promise<UsersListResponseDto> {
+    const { page = 1, limit = 10, search, roleId, isActive } = queryDto;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.userRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    // Aplicar filtros
+    if (search) {
+      queryBuilder.andWhere(
+        '(user.name LIKE :search OR user.emailInstitucional LIKE :search OR user.documentoIdentificacion LIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    if (roleId !== undefined) {
+      queryBuilder.andWhere('user.roleId = :roleId', { roleId });
+    }
+
+    if (isActive !== undefined) {
+      queryBuilder.andWhere('user.isActive = :isActive', { isActive });
+    }
+
+    // Excluir usuarios eliminados
+    queryBuilder.andWhere('user.deletedAt IS NULL');
+
+    // Paginación
+    queryBuilder.skip(skip).take(limit);
+
+    // Ordenar por nombre
+    queryBuilder.orderBy('user.name', 'ASC');
+
+    const [users, total] = await queryBuilder.getManyAndCount();
+
+    const userResponses: UserResponseDto[] = users.map(user => ({
+      id: user.id,
+      emailInstitucional: user.emailInstitucional,
+      name: user.name,
+      documentoIdentificacion: user.documentoIdentificacion,
+      telefono: user.telefono,
+      roleId: user.roleId,
+      roleName: user.role?.name,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
+
+    return {
+      users: userResponses,
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async findOne(id: number): Promise<UserResponseDto | null> {
+    const user = await this.userRepository.findOne({
+      where: { id, deletedAt: null },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      emailInstitucional: user.emailInstitucional,
+      name: user.name,
+      documentoIdentificacion: user.documentoIdentificacion,
+      telefono: user.telefono,
+      roleId: user.roleId,
+      roleName: user.role?.name,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    // Verificar si el email ya existe
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { emailInstitucional: createUserDto.emailInstitucional, deletedAt: null },
+    });
+
+    if (existingUserByEmail) {
+      throw new ConflictException('Ya existe un usuario con este email institucional');
+    }
+
+    // Verificar si el documento ya existe
+    const existingUserByDocument = await this.userRepository.findOne({
+      where: { documentoIdentificacion: createUserDto.documentoIdentificacion, deletedAt: null },
+    });
+
+    if (existingUserByDocument) {
+      throw new ConflictException('Ya existe un usuario con este documento de identificación');
+    }
+
+    // Hashear la contraseña
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
+
+    // Crear el nuevo usuario
+    const newUser = this.userRepository.create({
+      emailInstitucional: createUserDto.emailInstitucional,
+      passwordHash: hashedPassword,
+      name: createUserDto.name,
+      documentoIdentificacion: createUserDto.documentoIdentificacion,
+      telefono: createUserDto.telefono,
+      roleId: createUserDto.roleId,
+      isActive: true,
+    });
+
+    const savedUser = await this.userRepository.save(newUser);
+
+    // Obtener el usuario con la relación del rol
+    const userWithRole = await this.userRepository.findOne({
+      where: { id: savedUser.id },
+      relations: ['role'],
+    });
+
+    return {
+      id: userWithRole.id,
+      emailInstitucional: userWithRole.emailInstitucional,
+      name: userWithRole.name,
+      documentoIdentificacion: userWithRole.documentoIdentificacion,
+      telefono: userWithRole.telefono,
+      roleId: userWithRole.roleId,
+      roleName: userWithRole.role?.name,
+      isActive: userWithRole.isActive,
+      createdAt: userWithRole.createdAt,
+      updatedAt: userWithRole.updatedAt,
+    };
+  }
+
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+    const user = await this.userRepository.findOne({
+      where: { id, deletedAt: null },
+      relations: ['role'],
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Actualizar solo los campos proporcionados
+    Object.assign(user, updateUserDto);
+
+    const updatedUser = await this.userRepository.save(user);
+
+    return {
+      id: updatedUser.id,
+      emailInstitucional: updatedUser.emailInstitucional,
+      name: updatedUser.name,
+      documentoIdentificacion: updatedUser.documentoIdentificacion,
+      telefono: updatedUser.telefono,
+      roleId: updatedUser.roleId,
+      roleName: updatedUser.role?.name,
+      isActive: updatedUser.isActive,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt,
+    };
+  }
+
+  async remove(id: number): Promise<{ message: string }> {
+    const user = await this.userRepository.findOne({
+      where: { id, deletedAt: null },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
+    }
+
+    // Realizar soft delete
+    await this.userRepository.softDelete(id);
+
+    return {
+      message: `Usuario ${user.name} eliminado exitosamente`,
+    };
+  }
+}

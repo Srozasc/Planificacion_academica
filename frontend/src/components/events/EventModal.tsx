@@ -15,6 +15,7 @@ interface EventModalProps {
     backgroundColor?: string;
     extendedProps?: {
       teacher?: string;
+      teacher_ids?: number[];
       room?: string;
       students?: number;
       subject?: string;

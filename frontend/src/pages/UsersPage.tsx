@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, UserPlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/solid';
 import usersService, { User, UsersListResponse } from '../services/users.service';
+import EditUserModal from '../components/users/EditUserModal';
+import CreateUserModal from '../components/users/CreateUserModal';
+import DeleteUserModal from '../components/users/DeleteUserModal';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -12,6 +15,11 @@ const UsersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const limit = 10;
 
   // Cargar usuarios desde la API
@@ -128,6 +136,49 @@ const UsersPage: React.FC = () => {
     }
   };
 
+  // Funciones para manejar la edición de usuarios
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleUserUpdated = () => {
+    loadUsers(); // Recargar la lista de usuarios
+  };
+
+  // Funciones para manejar la creación de usuarios
+  const handleCreateUser = () => {
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+  };
+
+  const handleUserCreated = () => {
+    loadUsers(); // Recargar la lista de usuarios
+  };
+
+  // Funciones para manejar la eliminación de usuarios
+  const handleDeleteUser = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setUserToDelete(null);
+  };
+
+  const handleUserDeleted = () => {
+    loadUsers(); // Recargar la lista de usuarios
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -227,7 +278,10 @@ const UsersPage: React.FC = () => {
                 <ArrowUpTrayIcon className="h-4 w-4" />
                 Importar
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-uc-yellow text-black rounded-lg hover:bg-yellow-500 transition-colors font-medium">
+              <button 
+                onClick={handleCreateUser}
+                className="flex items-center gap-2 px-4 py-2 bg-uc-yellow text-black rounded-lg hover:bg-yellow-500 transition-colors font-medium"
+              >
                 <UserPlusIcon className="h-4 w-4" />
                 Nuevo Usuario
               </button>
@@ -325,13 +379,21 @@ const UsersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900 p-1">
+                          <button 
+                            onClick={() => handleEditUser(user)}
+                            className="text-blue-600 hover:text-blue-900 p-1"
+                            title="Editar usuario"
+                          >
                             <PencilIcon className="h-4 w-4" />
                           </button>
-                          <button className="text-green-600 hover:text-green-900 p-1">
+                          <button className="text-green-600 hover:text-green-900 p-1" title="Ver detalles">
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          <button className="text-red-600 hover:text-red-900 p-1">
+                          <button 
+                            onClick={() => handleDeleteUser(user)}
+                            className="text-red-600 hover:text-red-900 p-1" 
+                            title="Eliminar usuario"
+                          >
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         </div>
@@ -434,6 +496,29 @@ const UsersPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de edición de usuario */}
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        user={selectedUser}
+        onUserUpdated={handleUserUpdated}
+      />
+
+      {/* Modal de creación de usuario */}
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={handleCloseCreateModal}
+        onUserCreated={handleUserCreated}
+      />
+
+      {/* Modal de eliminación de usuario */}
+      <DeleteUserModal
+        isOpen={isDeleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        user={userToDelete}
+        onUserDeleted={handleUserDeleted}
+      />
     </div>
   );
 };
