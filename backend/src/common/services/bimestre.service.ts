@@ -30,9 +30,10 @@ export class BimestreService {
 
   // Método helper para parsear fechas manteniendo la zona horaria local
   private parseLocalDate(dateString: string): Date {
-    // Aseguramos que la fecha se interprete como fecha local sin conversión UTC
-    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
-    return new Date(year, month - 1, day); // month - 1 porque Date usa índices 0-11 para meses
+    // Crear fecha directamente desde el string para evitar conversiones de zona horaria
+    // Agregamos 'T00:00:00' para especificar medianoche local
+    const dateWithTime = `${dateString}T00:00:00`;
+    return new Date(dateWithTime);
   }
 
   async findAll(): Promise<Bimestre[]> {
@@ -102,11 +103,49 @@ export class BimestreService {
       return null;
     }
   }
+
+  /**
+   * Encuentra el bimestre que contiene una fecha específica
+   * @param fecha - La fecha a verificar
+   * @returns El bimestre que contiene la fecha o null si no se encuentra
+   */
+  async findBimestreByFecha(fecha: Date): Promise<Bimestre | null> {
+    try {
+      const bimestres = await this.findActivos();
+      
+      for (const bimestre of bimestres) {
+        if (bimestre.contieneFecha(fecha)) {
+          this.logger.log(`Fecha ${fecha.toISOString()} encontrada en bimestre: ${bimestre.nombre} (ID: ${bimestre.id})`);
+          return bimestre;
+        }
+      }
+      
+      this.logger.warn(`No se encontró bimestre activo que contenga la fecha: ${fecha.toISOString()}`);
+      return null;
+    } catch (error) {
+      this.logger.error(`Error al buscar bimestre por fecha ${fecha.toISOString()}`, error);
+      return null;
+    }
+  }
   async create(createBimestreDto: CreateBimestreDto): Promise<Bimestre> {
     try {
+      // 🔍 DEBUG: Datos recibidos desde el frontend
+      this.logger.log('=== CREACIÓN DE BIMESTRE - DEBUG ===');
+      this.logger.log('Datos recibidos desde frontend:', JSON.stringify(createBimestreDto, null, 2));
+      this.logger.log('fechaInicio (string):', createBimestreDto.fechaInicio);
+      this.logger.log('fechaFin (string):', createBimestreDto.fechaFin);
+      
       // Parsear fechas manteniendo la zona horaria local
       const fechaInicio = this.parseLocalDate(createBimestreDto.fechaInicio);
       const fechaFin = this.parseLocalDate(createBimestreDto.fechaFin);
+      
+      // 🔍 DEBUG: Fechas parseadas
+      this.logger.log('fechaInicio (Date parseada):', fechaInicio);
+      this.logger.log('fechaInicio (ISO):', fechaInicio.toISOString());
+      this.logger.log('fechaFin (Date parseada):', fechaFin);
+      this.logger.log('fechaFin (ISO):', fechaFin.toISOString());
+      this.logger.log('fechaInicio (toDateString):', fechaInicio.toDateString());
+      this.logger.log('fechaFin (toDateString):', fechaFin.toDateString());
       
       // Validar fechas
       if (fechaInicio >= fechaFin) {
@@ -136,7 +175,28 @@ export class BimestreService {
         fechaInicio,
         fechaFin
       });
+      
+      // 🔍 DEBUG: Objeto antes de guardar
+      this.logger.log('Objeto bimestre antes de guardar:', {
+        nombre: bimestre.nombre,
+        fechaInicio: bimestre.fechaInicio,
+        fechaFin: bimestre.fechaFin,
+        anoAcademico: bimestre.anoAcademico,
+        numeroBimestre: bimestre.numeroBimestre
+      });
+      
       const savedBimestre = await this.bimestreRepository.save(bimestre);
+      
+      // 🔍 DEBUG: Objeto guardado en BD
+      this.logger.log('Bimestre guardado en BD:', {
+        id: savedBimestre.id,
+        nombre: savedBimestre.nombre,
+        fechaInicio: savedBimestre.fechaInicio,
+        fechaFin: savedBimestre.fechaFin,
+        anoAcademico: savedBimestre.anoAcademico,
+        numeroBimestre: savedBimestre.numeroBimestre
+      });
+      this.logger.log('=== FIN DEBUG CREACIÓN BIMESTRE ===');
 
       this.logger.log(`Bimestre creado: ${savedBimestre.nombre} (ID: ${savedBimestre.id})`);
       return savedBimestre;

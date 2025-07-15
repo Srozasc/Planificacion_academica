@@ -138,9 +138,28 @@ export class SchedulingService {
         throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio');
       }
 
-      // Validar que el evento esté dentro del bimestre si se especifica
-      if (createEventDto.bimestre_id) {
-        const bimestre = await this.bimestreService.findById(createEventDto.bimestre_id);
+      // Determinar automáticamente el bimestre_id si no se especifica
+      let bimestreId = createEventDto.bimestre_id;
+      
+      this.logger.log(`Bimestre_id recibido: ${bimestreId} (tipo: ${typeof bimestreId})`);
+      
+      if (!bimestreId) {
+        this.logger.log('Bimestre_id no especificado, determinando automáticamente...');
+        // Buscar el bimestre que contiene la fecha de inicio del evento
+        const bimestreEncontrado = await this.bimestreService.findBimestreByFecha(startDate);
+        if (bimestreEncontrado) {
+          bimestreId = bimestreEncontrado.id;
+          this.logger.log(`Bimestre determinado automáticamente: ${bimestreEncontrado.nombre} (ID: ${bimestreId})`);
+        } else {
+          this.logger.warn(`No se pudo determinar automáticamente el bimestre para el evento con fecha de inicio: ${startDate.toISOString()}`);
+        }
+      } else {
+        this.logger.log(`Usando bimestre_id proporcionado: ${bimestreId}`);
+      }
+      
+      // Validar que el evento esté dentro del bimestre si se especifica o se determinó automáticamente
+      if (bimestreId) {
+        const bimestre = await this.bimestreService.findById(bimestreId);
         
         if (startDate < bimestre.fechaInicio || endDate > bimestre.fechaFin) {
           throw new BadRequestException(
@@ -152,11 +171,17 @@ export class SchedulingService {
       // Verificar conflictos de horario (opcional)
       await this.checkConflicts(startDate, endDate, createEventDto.room);
 
+      this.logger.log(`Valor de bimestreId antes de crear evento: ${bimestreId} (tipo: ${typeof bimestreId})`);
+      
       const event = this.eventRepository.create({
         ...createEventDto,
         start_date: startDate,
         end_date: endDate,
+        bimestre_id: bimestreId, // Asignar el bimestre_id determinado automáticamente o proporcionado
       });
+      
+      this.logger.log(`Evento creado con bimestre_id: ${event.bimestre_id}`);
+      this.logger.log(`Objeto evento completo: ${JSON.stringify(event, null, 2)}`);
 
       const savedEvent = await this.eventRepository.save(event);
       
