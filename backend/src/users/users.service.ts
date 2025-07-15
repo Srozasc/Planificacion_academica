@@ -151,31 +151,38 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+    // Verificar que el usuario existe
     const user = await this.userRepository.findOne({
       where: { id, deletedAt: null },
-      relations: ['role'],
     });
 
     if (!user) {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
 
-    // Actualizar solo los campos proporcionados
+    // Aplicar los cambios directamente a la entidad
     Object.assign(user, updateUserDto);
-
-    const updatedUser = await this.userRepository.save(user);
+    
+    // Guardar los cambios usando save() para que TypeORM maneje correctamente las relaciones
+    const savedUser = await this.userRepository.save(user);
+    
+    // Recargar la entidad con las relaciones para obtener el nombre del rol
+    const userWithRole = await this.userRepository.findOne({
+      where: { id: savedUser.id },
+      relations: ['role'],
+    });
 
     return {
-      id: updatedUser.id,
-      emailInstitucional: updatedUser.emailInstitucional,
-      name: updatedUser.name,
-      documentoIdentificacion: updatedUser.documentoIdentificacion,
-      telefono: updatedUser.telefono,
-      roleId: updatedUser.roleId,
-      roleName: updatedUser.role?.name,
-      isActive: updatedUser.isActive,
-      createdAt: updatedUser.createdAt,
-      updatedAt: updatedUser.updatedAt,
+      id: userWithRole.id,
+      emailInstitucional: userWithRole.emailInstitucional,
+      name: userWithRole.name,
+      documentoIdentificacion: userWithRole.documentoIdentificacion,
+      telefono: userWithRole.telefono,
+      roleId: userWithRole.roleId,
+      roleName: userWithRole.role?.name,
+      isActive: userWithRole.isActive,
+      createdAt: userWithRole.createdAt,
+      updatedAt: userWithRole.updatedAt,
     };
   }
 
