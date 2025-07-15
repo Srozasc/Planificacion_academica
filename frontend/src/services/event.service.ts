@@ -12,7 +12,6 @@ export interface Event {
     teacher?: string;
     teachers?: Array<{ id: number; name: string; rut: string; email: string }>;
     teacher_ids?: number[];
-    room?: string;
     students?: number;
     subject?: string;
   };
@@ -51,14 +50,11 @@ class EventService {
       // Convertir CreateEventData a formato esperado por el backend
       const event: any = {
         title: eventData.title,
-        description: eventData.description,
-        start_date: `${eventData.startDate}T${eventData.startTime}:00`,
-        end_date: `${eventData.endDate}T${eventData.endTime}:00`,
+        start_date: `${eventData.startDate}T08:00:00`, // Hora por defecto
+        end_date: `${eventData.endDate}T17:00:00`, // Hora por defecto
         teacher: eventData.teacher, // Mantenido por compatibilidad
         teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
-        subject: eventData.subject,
-        room: eventData.room,
-        background_color: eventData.backgroundColor
+        subject: eventData.subject
       };
       
       // Solo incluir students si es mayor que 0
@@ -81,14 +77,11 @@ class EventService {
       // Convertir CreateEventData a formato esperado por el backend
       const event: any = {
         title: eventData.title,
-        description: eventData.description,
-        start_date: `${eventData.startDate}T${eventData.startTime}:00`,
-        end_date: `${eventData.endDate}T${eventData.endTime}:00`,
+        start_date: `${eventData.startDate}T08:00:00`, // Hora por defecto
+        end_date: `${eventData.endDate}T17:00:00`, // Hora por defecto
         teacher: eventData.teacher, // Mantenido por compatibilidad
         teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
-        subject: eventData.subject,
-        room: eventData.room,
-        background_color: eventData.backgroundColor
+        subject: eventData.subject
       };
       
       // Solo incluir students si es mayor que 0
@@ -182,6 +175,32 @@ class EventService {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  async getNextCorrelativeForSubject(subject: string): Promise<number> {
+    try {
+      // Obtener todos los eventos
+      const events = await this.getEvents();
+      
+      // Filtrar eventos que pertenezcan a la misma asignatura
+      const subjectEvents = events.filter(event => 
+        event.extendedProps?.subject === subject
+      );
+      
+      // Extraer correlativos existentes del título
+      const correlativos = subjectEvents
+        .map(event => {
+          const match = event.title.match(/ - (\d{3})$/);
+          return match ? parseInt(match[1]) : 0;
+        })
+        .filter(num => num > 0);
+      
+      // Retornar el siguiente correlativo disponible
+      return correlativos.length > 0 ? Math.max(...correlativos) + 1 : 1;
+    } catch (error) {
+      console.error('Error getting next correlative:', error);
+      return 1; // Valor por defecto en caso de error
+    }
   }
 }
 

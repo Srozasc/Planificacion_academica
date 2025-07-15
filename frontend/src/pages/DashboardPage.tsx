@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import CalendarView from '../components/dashboard/CalendarView';
 import BimestreSelector from '../components/bimestres/BimestreSelector';
+import EventModal from '../components/events/EventModal';
 import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
 import Toast from '../components/ui/Toast';
 import { CogIcon } from '@heroicons/react/24/outline';
@@ -15,6 +15,10 @@ const DashboardPage: React.FC = () => {
   const [isConfiguradorOpen, setIsConfiguradorOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
 
   const { bimestreSeleccionado } = useBimestreStore();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -33,22 +37,87 @@ const DashboardPage: React.FC = () => {
       if (bimestreSeleccionado) {
         startDate = bimestreSeleccionado.fechaInicio;
         endDate = bimestreSeleccionado.fechaFin;
-        console.log('Cargando eventos para bimestre:', { startDate, endDate });
+        console.log('🔍 Cargando eventos para bimestre:', { 
+          bimestreId: bimestreSeleccionado.id,
+          nombre: bimestreSeleccionado.nombre,
+          startDate, 
+          endDate 
+        });
       } else {
-        console.log('No hay bimestre seleccionado, cargando todos los eventos');
+        console.log('🔍 No hay bimestre seleccionado, cargando todos los eventos');
       }
       
+      console.log('📡 Llamando a eventService.getEvents con parámetros:', { startDate, endDate });
       const fetchedEvents = await eventService.getEvents(startDate, endDate);
-      console.log('Eventos obtenidos del backend:', fetchedEvents);
+      console.log('✅ Eventos obtenidos del backend:', {
+        cantidad: fetchedEvents.length,
+        eventos: fetchedEvents.map(e => ({
+          id: e.id,
+          title: e.title,
+          start: e.start,
+          end: e.end
+        }))
+      });
       setEvents(fetchedEvents);
     } catch (error) {
-      console.error('Error loading events from backend:', error);
-      console.log('Usando eventos de ejemplo como fallback');
+      console.error('❌ Error loading events from backend:', error);
+      console.log('🔄 Usando eventos de ejemplo como fallback');
       // En caso de error, usar eventos de ejemplo
       setEvents(mockEvents);
     } finally {
       setIsLoadingEvents(false);
     }
+  };
+
+  // Función para abrir modal de creación de evento
+  const handleCreateEventClick = () => {
+    setEditingEvent(null);
+    setSelectedDate(undefined); // No establecer fecha específica para usar fechas del bimestre
+    setIsEventModalOpen(true);
+  };
+
+  // Función para abrir modal de edición de evento
+  const handleEditEventClick = async (event: Event) => {
+    try {
+      // Obtener los datos completos del evento
+      const fullEvent = await eventService.getEventById(event.id);
+      setEditingEvent(fullEvent);
+      setSelectedDate(undefined);
+      setIsEventModalOpen(true);
+    } catch (error) {
+      console.error('Error loading event details:', error);
+      // En caso de error, usar los datos básicos del evento
+      setEditingEvent(event);
+      setSelectedDate(undefined);
+      setIsEventModalOpen(true);
+    }
+  };
+
+  // Función para manejar el guardado de eventos (crear o actualizar)
+  const handleEventSave = async (eventData: CreateEventData) => {
+    setIsCreatingEvent(true);
+    try {
+      if (editingEvent) {
+        await handleEventUpdate(editingEvent.id, eventData);
+      } else {
+        await handleEventCreate(eventData);
+      }
+      setIsEventModalOpen(false);
+      setEditingEvent(null);
+      setSelectedDate(undefined);
+    } catch (error) {
+      console.error('Error saving event:', error);
+      // NO cerrar el modal para que el usuario pueda ver el error y corregir
+    } finally {
+      setIsCreatingEvent(false);
+    }
+  };
+
+  // Función para cerrar el modal
+  const handleModalClose = () => {
+    setIsEventModalOpen(false);
+    setEditingEvent(null);
+    setSelectedDate(undefined);
   };
   // Función para crear evento
   const handleEventCreate = async (eventData: CreateEventData) => {
@@ -230,15 +299,55 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Calendar Content */}
+        {/* Calendar Content - Vista removida, funcionalidad mantenida */}
         <div className="p-3 sm:p-6">
-          <CalendarView 
-            events={events}
-            bimestreSeleccionado={bimestreSeleccionado}
-            onEventCreate={handleEventCreate}
-            onEventUpdate={handleEventUpdate}
-            onEventDelete={handleEventDelete}
-          />
+          <div className="space-y-4">
+            {/* Botón para crear nuevo evento */}
+             <div className="flex justify-end items-center mb-4">
+               <button
+                  onClick={handleCreateEventClick}
+                  className="bg-uc-yellow hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <span>+</span>
+                  <span>Crear Evento</span>
+                </button>
+             </div>
+            
+            {/* Lista de eventos */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Eventos Programados ({events.length})</h3>
+              {events.length > 0 ? (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {events.map(event => (
+                    <div key={event.id} className="bg-white p-3 rounded border flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                        <p className="text-sm text-gray-600">
+                          {new Date(event.start).toLocaleDateString('es-ES')} - {new Date(event.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                           onClick={() => handleEditEventClick(event)}
+                           className="text-blue-600 hover:text-blue-800 text-sm"
+                         >
+                           Editar
+                         </button>
+                        <button
+                          onClick={() => handleEventDelete(event.id)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No hay eventos programados</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -246,6 +355,20 @@ const DashboardPage: React.FC = () => {
       <BimestreConfigurador
         isOpen={isConfiguradorOpen}
         onClose={() => setIsConfiguradorOpen(false)}
+      />
+      
+      {/* Modal para crear/editar eventos */}
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={handleModalClose}
+        selectedDate={selectedDate}
+        onSave={handleEventSave}
+        isLoading={isCreatingEvent}
+        editingEvent={editingEvent}
+        onMultipleEventsCreated={async () => {
+          // Recargar eventos cuando se crean múltiples eventos
+          await loadEvents();
+        }}
       />
       
       {/* Toast Container */}

@@ -379,6 +379,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         onSave={editingEvent ? handleEventUpdate : handleEventCreate}
         isLoading={isCreatingEvent}
         editingEvent={editingEvent}
+        onMultipleEventsCreated={async () => {
+          // Recargar eventos cuando se crean múltiples eventos
+          console.log('Múltiples eventos creados en CalendarView, recargando...');
+          // Agregar un pequeño delay antes de recargar
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (onEventCreate) {
+            window.location.reload();
+          }
+        }}
       />
     </div>
   );

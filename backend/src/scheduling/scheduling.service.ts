@@ -28,13 +28,6 @@ export class SchedulingService {
     try {
       const { start_date, end_date, bimestre_id, active, page = 1, limit = 50 } = query;
       
-      const options: FindManyOptions<ScheduleEvent> = {
-        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
-        order: { start_date: 'ASC' },
-        skip: (page - 1) * limit,
-        take: limit,
-      };
-
       // Construir condiciones WHERE
       const where: any = {};
 
@@ -46,17 +39,61 @@ export class SchedulingService {
         where.bimestre_id = bimestre_id;
       }
 
+      // Filtrado por fechas: un evento se incluye si hay alguna superposición con el rango solicitado
       if (start_date && end_date) {
-        where.start_date = Between(new Date(start_date), new Date(end_date));
+        // Un evento se incluye si:
+        // - Su fecha de inicio está dentro del rango, O
+        // - Su fecha de fin está dentro del rango, O  
+        // - El evento abarca todo el rango (inicio antes y fin después)
+        const startFilter = new Date(start_date);
+        const endFilter = new Date(end_date);
+        
+        // Usar query builder para condiciones más complejas
+        const queryBuilder = this.eventRepository.createQueryBuilder('event')
+          .leftJoinAndSelect('event.bimestre', 'bimestre')
+          .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+          .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+          .where('(event.start_date <= :endFilter AND event.end_date >= :startFilter)', {
+            startFilter,
+            endFilter
+          });
+
+        if (active !== undefined) {
+          queryBuilder.andWhere('event.active = :active', { active });
+        }
+
+        if (bimestre_id) {
+          queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
+        }
+
+        queryBuilder.orderBy('event.start_date', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit);
+
+        const [events, total] = await queryBuilder.getManyAndCount();
+        const eventDtos = events.map(event => ScheduleEventDto.fromEntity(event));
+        
+        this.logger.log(`Se encontraron ${events.length} eventos de ${total} totales con filtro de fechas`);
+        return { data: eventDtos, total };
       } else if (start_date) {
         where.start_date = Between(new Date(start_date), new Date('2100-12-31'));
       } else if (end_date) {
         where.end_date = Between(new Date('1900-01-01'), new Date(end_date));
       }
 
-      options.where = where;
+      // Primero obtener el conteo total sin relaciones para evitar problemas con LEFT JOIN
+      const total = await this.eventRepository.count({ where });
+      
+      // Luego obtener los eventos con todas las relaciones
+      const options: FindManyOptions<ScheduleEvent> = {
+        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
+        order: { start_date: 'ASC' },
+        skip: (page - 1) * limit,
+        take: limit,
+        where: where,
+      };
 
-      const [events, total] = await this.eventRepository.findAndCount(options);
+      const events = await this.eventRepository.find(options);
       
       const eventDtos = events.map(event => ScheduleEventDto.fromEntity(event));
 

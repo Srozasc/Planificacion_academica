@@ -23,9 +23,15 @@ const BimestreSelector: React.FC<BimestreSelectorProps> = ({
   } = useBimestreStore();
 
   useEffect(() => {
+    console.log('BimestreSelector - Cargando bimestres...');
     fetchBimestresActivos();
     fetchBimestreActual();
-  }, [fetchBimestresActivos, fetchBimestreActual]);  const handleBimestreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  }, [fetchBimestresActivos, fetchBimestreActual]);
+
+  useEffect(() => {
+    console.log('BimestreSelector - bimestreSeleccionado cambió:', bimestreSeleccionado);
+    console.log('BimestreSelector - bimestreActual:', bimestreActual);
+  }, [bimestreSeleccionado, bimestreActual]);  const handleBimestreChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const bimestreId = event.target.value ? parseInt(event.target.value) : null;
     
     if (!bimestreId || !bimestres) {
