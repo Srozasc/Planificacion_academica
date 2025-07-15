@@ -61,9 +61,8 @@ const DashboardPage: React.FC = () => {
       setEvents(fetchedEvents);
     } catch (error) {
       console.error('❌ Error loading events from backend:', error);
-      console.log('🔄 Usando eventos de ejemplo como fallback');
-      // En caso de error, usar eventos de ejemplo
-      setEvents(mockEvents);
+      // En caso de error, mostrar array vacío
+      setEvents([]);
     } finally {
       setIsLoadingEvents(false);
     }
@@ -196,45 +195,7 @@ const DashboardPage: React.FC = () => {
     loadEvents();
   }, [bimestreSeleccionado]);
 
-  // Eventos de ejemplo para desarrollo
-  const mockEvents: Event[] = [
-    {
-      id: '1',
-      title: 'Matemáticas I - Prof. García',
-      start: '2025-06-15T09:00:00',
-      end: '2025-06-15T10:30:00',
-      backgroundColor: '#3B82F6',
-      extendedProps: {
-        teacher: 'Prof. García',
-        room: 'Aula 101',
-        students: 30
-      }
-    },
-    {
-      id: '2', 
-      title: 'Física II - Prof. López',
-      start: '2025-06-15T11:00:00',
-      end: '2025-06-15T12:30:00',
-      backgroundColor: '#10B981',
-      extendedProps: {
-        teacher: 'Prof. López',
-        room: 'Lab. Física',
-        students: 25
-      }
-    },
-    {
-      id: '3',
-      title: 'Química Orgánica - Prof. Martínez',
-      start: '2025-06-16T14:00:00',
-      end: '2025-06-16T15:30:00',
-      backgroundColor: '#F59E0B',
-      extendedProps: {
-        teacher: 'Prof. Martínez',
-        room: 'Lab. Química',
-        students: 20
-      }
-    }
-  ];
+
 
 
 

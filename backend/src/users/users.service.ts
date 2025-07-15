@@ -160,6 +160,11 @@ export class UsersService {
       throw new NotFoundException(`Usuario con ID ${id} no encontrado`);
     }
 
+    // Convertir roleExpiresAt de string a Date si está presente
+    if (updateUserDto.roleExpiresAt) {
+      updateUserDto.roleExpiresAt = new Date(updateUserDto.roleExpiresAt) as any;
+    }
+
     // Aplicar los cambios directamente a la entidad
     Object.assign(user, updateUserDto);
     
@@ -169,7 +174,7 @@ export class UsersService {
     // Recargar la entidad con las relaciones para obtener el nombre del rol
     const userWithRole = await this.userRepository.findOne({
       where: { id: savedUser.id },
-      relations: ['role'],
+      relations: ['role', 'previousRole'],
     });
 
     return {
@@ -183,7 +188,33 @@ export class UsersService {
       isActive: userWithRole.isActive,
       createdAt: userWithRole.createdAt,
       updatedAt: userWithRole.updatedAt,
+      roleExpiresAt: userWithRole.roleExpiresAt,
+      previousRoleId: userWithRole.previousRoleId,
+      previousRoleName: userWithRole.previousRole?.name,
     };
+  }
+
+  async checkAndRevertExpiredRole(userId: number): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId, deletedAt: null },
+    });
+
+    if (!user || !user.roleExpiresAt || !user.previousRoleId) {
+      return false; // No tiene rol temporal o no hay rol anterior
+    }
+
+    const now = new Date();
+    if (now > user.roleExpiresAt) {
+      // El rol ha expirado, revertir al rol anterior
+      user.roleId = user.previousRoleId;
+      user.roleExpiresAt = null;
+      user.previousRoleId = null;
+      
+      await this.userRepository.save(user);
+      return true; // Se revirtió el rol
+    }
+
+    return false; // El rol aún no ha expirado
   }
 
   async remove(id: number): Promise<{ message: string }> {

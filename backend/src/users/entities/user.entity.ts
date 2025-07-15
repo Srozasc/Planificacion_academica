@@ -28,6 +28,16 @@ export class User {
   @JoinColumn({ name: 'role_id' })
   role: Role;
 
+  @Column({ name: 'role_expires_at', nullable: true })
+  roleExpiresAt: Date;
+
+  @Column({ name: 'previous_role_id', nullable: true })
+  previousRoleId: number;
+
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: 'previous_role_id' })
+  previousRole: Role;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

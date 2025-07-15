@@ -9,6 +9,9 @@ export class UserResponseDto {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  roleExpiresAt?: Date;
+  previousRoleId?: number;
+  previousRoleName?: string;
 }
 
 export class UsersListResponseDto {

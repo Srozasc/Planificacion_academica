@@ -4,6 +4,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/multer": "^1.4.13",
     "@types/xlsx": "^0.0.36",
+    "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "multer": "^2.0.1",
     "xlsx": "^0.18.5"

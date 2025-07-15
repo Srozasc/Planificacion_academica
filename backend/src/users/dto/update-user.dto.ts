@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsEmail, IsNumber, IsBoolean, MinLength } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsNumber, IsBoolean, MinLength, IsDateString } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -25,4 +25,12 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha de expiración del rol debe ser válida' })
+  roleExpiresAt?: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El ID del rol anterior debe ser un número' })
+  previousRoleId?: number;
 }

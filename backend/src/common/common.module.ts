@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Role } from './entities/role.entity';
 import { Bimestre } from './entities/bimestre.entity';
+import { User } from '../users/entities/user.entity';
 
 /**
  * CommonModule - Módulo global que proporciona servicios compartidos
@@ -68,7 +69,7 @@ import { Bimestre } from './entities/bimestre.entity';
       }),
       inject: [ConfigService],
     }),    // Registrar entidades compartidas
-    TypeOrmModule.forFeature([Role, Bimestre]),
+    TypeOrmModule.forFeature([Role, Bimestre, User]),
   ],
   
   providers: [
