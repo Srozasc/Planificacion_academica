@@ -55,7 +55,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         documentoIdentificacion: user.documentoIdentificacion,
         telefono: user.telefono || '',
         roleId: user.roleId,
-        roleExpiresAt: user.roleExpiresAt ? user.roleExpiresAt.split('T')[0] : '',
+        roleExpiresAt: user.roleExpiresAt ? new Date(user.roleExpiresAt).toISOString().split('T')[0] : '',
         previousRoleId: user.previousRoleId,
         isActive: user.isActive
       });
@@ -107,7 +107,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       // Preparar datos para envío, filtrando valores vacíos
       const updateData = {
         ...formData,
-        roleExpiresAt: formData.roleExpiresAt || undefined,
+        roleExpiresAt: formData.roleExpiresAt ? `${formData.roleExpiresAt}T23:59:59` : undefined,
         previousRoleId: formData.previousRoleId || undefined
       };
       
