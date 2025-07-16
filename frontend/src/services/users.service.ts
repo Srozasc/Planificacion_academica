@@ -8,6 +8,9 @@ export interface User {
   telefono?: string;
   roleId: number;
   roleName?: string;
+  roleExpiresAt?: string;
+  previousRoleId?: number;
+  previousRoleName?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

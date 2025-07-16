@@ -16,6 +16,8 @@ interface FormData {
   documentoIdentificacion: string;
   telefono: string;
   roleId: number;
+  roleExpiresAt?: string;
+  previousRoleId?: number;
   isActive: boolean;
 }
 
@@ -31,6 +33,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     documentoIdentificacion: '',
     telefono: '',
     roleId: 7,
+    roleExpiresAt: '',
+    previousRoleId: undefined,
     isActive: true
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -51,6 +55,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         documentoIdentificacion: user.documentoIdentificacion,
         telefono: user.telefono || '',
         roleId: user.roleId,
+        roleExpiresAt: user.roleExpiresAt ? user.roleExpiresAt.split('T')[0] : '',
+        previousRoleId: user.previousRoleId,
         isActive: user.isActive
       });
     }
@@ -61,7 +67,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-               name === 'roleId' ? parseInt(value) : value
+               name === 'roleId' || name === 'previousRoleId' ? parseInt(value) || undefined : value
     }));
     
     // Limpiar error del campo cuando el usuario empiece a escribir
@@ -98,7 +104,14 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
 
     setIsLoading(true);
     try {
-      await usersService.updateUser(user.id, formData);
+      // Preparar datos para envío, filtrando valores vacíos
+      const updateData = {
+        ...formData,
+        roleExpiresAt: formData.roleExpiresAt || undefined,
+        previousRoleId: formData.previousRoleId || undefined
+      };
+      
+      await usersService.updateUser(user.id, updateData);
       onUserUpdated();
       onClose();
     } catch (error) {
@@ -214,6 +227,47 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="roleExpiresAt" className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha de expiración del rol
+          </label>
+          <input
+            type="date"
+            id="roleExpiresAt"
+            name="roleExpiresAt"
+            value={formData.roleExpiresAt || ''}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            min={new Date().toISOString().split('T')[0]}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Si se especifica, el rol se revertirá automáticamente al rol anterior en esta fecha
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="previousRoleId" className="block text-sm font-medium text-gray-700 mb-1">
+            Rol anterior (para reversión)
+          </label>
+          <select
+            id="previousRoleId"
+            name="previousRoleId"
+            value={formData.previousRoleId || ''}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar rol anterior</option>
+            {roleOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            Rol al que se revertirá cuando expire el rol temporal
+          </p>
         </div>
 
         <div className="flex items-center">

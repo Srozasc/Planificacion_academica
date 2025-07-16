@@ -302,6 +302,9 @@ const UsersPage: React.FC = () => {
                     Rol
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Rol Temporal
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Documento
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -318,7 +321,7 @@ const UsersPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-uc-blue"></div>
                         <span className="ml-2 text-gray-500">Cargando usuarios...</span>
@@ -327,7 +330,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="text-red-500">
                         <p>{error}</p>
                         <button 
@@ -341,7 +344,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                       No se encontraron usuarios
                     </td>
                   </tr>
@@ -365,6 +368,22 @@ const UsersPage: React.FC = () => {
                         <span className={getRoleBadge(user.roleId)}>
                           {getRoleNameFromUser(user)}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.roleExpiresAt ? (
+                          <div className="text-xs">
+                            <div className="text-orange-600 font-medium">
+                              Expira: {new Date(user.roleExpiresAt).toLocaleDateString()}
+                            </div>
+                            {user.previousRoleName && (
+                              <div className="text-gray-500">
+                                Revertirá a: {user.previousRoleName}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Permanente</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {user.documentoIdentificacion}
