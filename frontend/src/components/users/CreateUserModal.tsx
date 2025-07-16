@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import usersService, { CreateUserData } from '../../services/users.service';
+import { authService, Role } from '../../services/auth.service';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -13,9 +14,9 @@ interface FormData {
   emailInstitucional: string;
   password: string;
   confirmPassword: string;
-  documentoIdentificacion: string;
-  telefono: string;
   roleId: number;
+  roleExpiresAt?: string;
+  previousRoleId?: number;
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({
@@ -28,26 +29,90 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     emailInstitucional: '',
     password: '',
     confirmPassword: '',
-    documentoIdentificacion: '',
-    telefono: '',
-    roleId: 7 // Visualizador por defecto
+    roleId: 1, // Visualizador por defecto (nuevo ID)
+    roleExpiresAt: '',
+    previousRoleId: undefined
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
-  // Opciones de roles
-  const roleOptions = [
-    { value: 9, label: 'Maestro' },
-    { value: 8, label: 'Editor' },
-    { value: 7, label: 'Visualizador' }
-  ];
+  // Obtener el ID del rol "Editor" dinámicamente
+  const getEditorRoleId = (): number => {
+    const editorRole = roles.find(role => role.name === 'Editor');
+    return editorRole?.id || 2; // Fallback al ID 2 (asumiendo nuevo ID de Editor)
+  };
+
+  // Obtener el ID del rol "Visualizador" dinámicamente
+  const getVisualizadorRoleId = (): number => {
+    const visualizadorRole = roles.find(role => role.name === 'Visualizador');
+    return visualizadorRole?.id || 1; // Fallback al ID 1 (nuevo ID de Visualizador)
+  };
+
+  // Cargar roles disponibles
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        setRolesLoading(true);
+        const rolesData = await authService.getRoles();
+        setRoles(rolesData);
+        
+        // Obtener el ID del rol "Visualizador" para inicializar previousRoleId
+        const visualizadorRole = rolesData.find(role => role.name === 'Visualizador');
+        const visualizadorId = visualizadorRole?.id || 1;
+        
+        // Si no hay roleId seleccionado y hay roles disponibles, seleccionar el primero
+        if (!formData.roleId && rolesData.length > 0) {
+          setFormData(prev => ({ 
+            ...prev, 
+            roleId: rolesData[0].id,
+            previousRoleId: visualizadorId
+          }));
+        } else {
+          // Asegurar que previousRoleId esté inicializado
+          setFormData(prev => ({ 
+            ...prev, 
+            previousRoleId: prev.previousRoleId || visualizadorId
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading roles:', error);
+        setErrors(prev => ({ ...prev, roles: 'Error al cargar los roles' }));
+      } finally {
+        setRolesLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadRoles();
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'roleId' ? parseInt(value) : value
-    }));
+    
+    if (name === 'roleId') {
+      const newRoleId = parseInt(value);
+      setFormData(prev => {
+        const updatedData = {
+          ...prev,
+          roleId: newRoleId
+        };
+        
+        // Si el nuevo rol no es Editor, limpiar la fecha de expiración
+        if (newRoleId !== getEditorRoleId()) {
+          updatedData.roleExpiresAt = '';
+        }
+        
+        return updatedData;
+      });
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[name]) {
@@ -80,10 +145,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
-    if (!formData.documentoIdentificacion.trim()) {
-      newErrors.documentoIdentificacion = 'El documento de identificación es requerido';
-    }
-
     if (!formData.roleId) {
       newErrors.roleId = 'Seleccione un rol';
     }
@@ -103,9 +164,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         name: formData.name,
         emailInstitucional: formData.emailInstitucional,
         password: formData.password,
-        documentoIdentificacion: formData.documentoIdentificacion,
-        telefono: formData.telefono || undefined,
-        roleId: formData.roleId
+        roleId: formData.roleId,
+        previousRoleId: formData.previousRoleId,
+        ...(formData.roleExpiresAt && formData.roleId === getEditorRoleId() && {
+          roleExpiresAt: `${formData.roleExpiresAt}T23:59:59`
+        })
       };
 
       await usersService.createUser(createUserData);
@@ -129,9 +192,9 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       emailInstitucional: '',
       password: '',
       confirmPassword: '',
-      documentoIdentificacion: '',
-      telefono: '',
-      roleId: 7
+      roleId: 1,
+      roleExpiresAt: '',
+      previousRoleId: undefined
     });
     setErrors({});
     onClose();
@@ -220,38 +283,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
           </div>
         </div>
 
-        <div>
-          <label htmlFor="documentoIdentificacion" className="block text-sm font-medium text-gray-700 mb-1">
-            Documento de identificación *
-          </label>
-          <input
-            type="text"
-            id="documentoIdentificacion"
-            name="documentoIdentificacion"
-            value={formData.documentoIdentificacion}
-            onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.documentoIdentificacion ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Cédula, RUT, etc."
-          />
-          {errors.documentoIdentificacion && <p className="text-red-500 text-sm mt-1">{errors.documentoIdentificacion}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono
-          </label>
-          <input
-            type="tel"
-            id="telefono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Número de teléfono (opcional)"
-          />
-        </div>
 
         <div>
           <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-1">
@@ -262,18 +293,47 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             name="roleId"
             value={formData.roleId}
             onChange={handleInputChange}
+            disabled={rolesLoading}
             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               errors.roleId ? 'border-red-500' : 'border-gray-300'
-            }`}
+            } ${rolesLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {roleOptions.map(role => (
-              <option key={role.value} value={role.value}>
-                {role.label}
-              </option>
-            ))}
+            {rolesLoading ? (
+              <option value="">Cargando roles...</option>
+            ) : (
+              roles.map(role => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))
+            )}
           </select>
           {errors.roleId && <p className="text-red-500 text-sm mt-1">{errors.roleId}</p>}
         </div>
+
+        {/* Campo de fecha de expiración - solo visible para rol Editor */}
+        {formData.roleId === getEditorRoleId() && (
+          <div>
+            <label htmlFor="roleExpiresAt" className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de expiración del rol Editor
+            </label>
+            <input
+              type="date"
+              id="roleExpiresAt"
+              name="roleExpiresAt"
+              value={formData.roleExpiresAt}
+              onChange={handleInputChange}
+              min={new Date().toISOString().split('T')[0]}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.roleExpiresAt ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.roleExpiresAt && <p className="text-red-500 text-sm mt-1">{errors.roleExpiresAt}</p>}
+            <p className="text-sm text-gray-600 mt-1">
+              Después de esta fecha, el rol cambiará automáticamente a Visualizador
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3 pt-4">
           <button

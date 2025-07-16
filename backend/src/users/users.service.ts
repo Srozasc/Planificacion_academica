@@ -20,12 +20,13 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.userRepository.createQueryBuilder('user')
-      .leftJoinAndSelect('user.role', 'role');
+      .leftJoinAndSelect('user.role', 'role')
+      .leftJoinAndSelect('user.previousRole', 'previousRole');
 
     // Aplicar filtros
     if (search) {
       queryBuilder.andWhere(
-        '(user.name LIKE :search OR user.emailInstitucional LIKE :search OR user.documentoIdentificacion LIKE :search)',
+        '(user.name LIKE :search OR user.emailInstitucional LIKE :search)',
         { search: `%${search}%` }
       );
     }
@@ -53,13 +54,16 @@ export class UsersService {
       id: user.id,
       emailInstitucional: user.emailInstitucional,
       name: user.name,
-      documentoIdentificacion: user.documentoIdentificacion,
+
       telefono: user.telefono,
       roleId: user.roleId,
       roleName: user.role?.name,
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      roleExpiresAt: user.roleExpiresAt,
+      previousRoleId: user.previousRoleId,
+      previousRoleName: user.previousRoleId ? user.previousRole?.name : undefined,
     }));
 
     return {
@@ -84,7 +88,7 @@ export class UsersService {
       id: user.id,
       emailInstitucional: user.emailInstitucional,
       name: user.name,
-      documentoIdentificacion: user.documentoIdentificacion,
+
       telefono: user.telefono,
       roleId: user.roleId,
       roleName: user.role?.name,
@@ -104,46 +108,52 @@ export class UsersService {
       throw new ConflictException('Ya existe un usuario con este email institucional');
     }
 
-    // Verificar si el documento ya existe
-    const existingUserByDocument = await this.userRepository.findOne({
-      where: { documentoIdentificacion: createUserDto.documentoIdentificacion, deletedAt: null },
-    });
 
-    if (existingUserByDocument) {
-      throw new ConflictException('Ya existe un usuario con este documento de identificación');
-    }
 
     // Hashear la contraseña
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
 
     // Crear el nuevo usuario
-    const newUser = this.userRepository.create({
+    const userData: any = {
       emailInstitucional: createUserDto.emailInstitucional,
       passwordHash: hashedPassword,
       name: createUserDto.name,
-      documentoIdentificacion: createUserDto.documentoIdentificacion,
       telefono: createUserDto.telefono,
       roleId: createUserDto.roleId,
       isActive: true,
-    });
+    };
 
-    const savedUser = await this.userRepository.save(newUser);
+    // Agregar roleExpiresAt si está presente
+    if (createUserDto.roleExpiresAt) {
+      userData.roleExpiresAt = new Date(createUserDto.roleExpiresAt);
+    }
+
+    // Agregar previousRoleId si está presente
+    if (createUserDto.previousRoleId) {
+      userData.previousRoleId = createUserDto.previousRoleId;
+    }
+
+    const newUser = this.userRepository.create(userData);
+
+    const savedUser = await this.userRepository.save(newUser) as unknown as User;
 
     // Obtener el usuario con la relación del rol
     const userWithRole = await this.userRepository.findOne({
       where: { id: savedUser.id },
-      relations: ['role'],
+      relations: ['role', 'previousRole'],
     });
 
     return {
       id: userWithRole.id,
       emailInstitucional: userWithRole.emailInstitucional,
       name: userWithRole.name,
-      documentoIdentificacion: userWithRole.documentoIdentificacion,
       telefono: userWithRole.telefono,
       roleId: userWithRole.roleId,
       roleName: userWithRole.role?.name,
+      roleExpiresAt: userWithRole.roleExpiresAt,
+      previousRoleId: userWithRole.previousRoleId,
+      previousRoleName: userWithRole.previousRole?.name,
       isActive: userWithRole.isActive,
       createdAt: userWithRole.createdAt,
       updatedAt: userWithRole.updatedAt,
@@ -181,7 +191,6 @@ export class UsersService {
       id: userWithRole.id,
       emailInstitucional: userWithRole.emailInstitucional,
       name: userWithRole.name,
-      documentoIdentificacion: userWithRole.documentoIdentificacion,
       telefono: userWithRole.telefono,
       roleId: userWithRole.roleId,
       roleName: userWithRole.role?.name,

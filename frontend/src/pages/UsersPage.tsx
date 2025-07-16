@@ -5,6 +5,7 @@ import usersService, { User, UsersListResponse } from '../services/users.service
 import EditUserModal from '../components/users/EditUserModal';
 import CreateUserModal from '../components/users/CreateUserModal';
 import DeleteUserModal from '../components/users/DeleteUserModal';
+import { authService, Role } from '../services/auth.service';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -20,6 +21,7 @@ const UsersPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [roles, setRoles] = useState<Role[]>([]);
   const limit = 10;
 
   // Cargar usuarios desde la API
@@ -47,14 +49,10 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  // Mapear nombres de roles a IDs (basado en los datos reales de la API)
+  // Mapear nombres de roles a IDs usando los roles dinámicos
   const getRoleIdFromName = (roleName: string): number | undefined => {
-    const roleMap: { [key: string]: number } = {
-      'Maestro': 9,
-      'Editor': 8,
-      'Visualizador': 7, // Asumiendo que existe con ID 7
-    };
-    return roleMap[roleName];
+    const role = roles.find(r => r.name === roleName);
+    return role?.id;
   };
 
   // Obtener nombre del rol desde el usuario (ya viene del backend)
@@ -64,12 +62,30 @@ const UsersPage: React.FC = () => {
 
   // Estadísticas calculadas
   const activeUsers = users.filter(user => user.isActive).length;
-  const maestros = users.filter(user => user.roleId === 9).length;
-  const editores = users.filter(user => user.roleId === 8).length;
+  const maestroRole = roles.find(r => r.name === 'Maestro');
+  const editorRole = roles.find(r => r.name === 'Editor');
+  const maestros = maestroRole ? users.filter(user => user.roleId === maestroRole.id).length : 0;
+  const editores = editorRole ? users.filter(user => user.roleId === editorRole.id).length : 0;
+
+  // Cargar roles al inicializar
+  const loadRoles = async () => {
+    try {
+      const rolesData = await authService.getRoles();
+      setRoles(rolesData);
+    } catch (err) {
+      console.error('Error loading roles:', err);
+    }
+  };
 
   useEffect(() => {
-    loadUsers();
-  }, [currentPage, searchTerm, roleFilter]);
+    loadRoles();
+  }, []);
+
+  useEffect(() => {
+    if (roles.length > 0) {
+      loadUsers();
+    }
+  }, [currentPage, searchTerm, roleFilter, roles]);
 
   // Debounce para la búsqueda
   useEffect(() => {
@@ -111,12 +127,15 @@ const UsersPage: React.FC = () => {
   };
 
   const getRoleBadge = (roleId: number) => {
-    switch (roleId) {
-      case 9: // Maestro
+    const role = roles.find(r => r.id === roleId);
+    const roleName = role?.name || 'Desconocido';
+    
+    switch (roleName) {
+      case 'Maestro':
         return 'bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium';
-      case 8: // Editor
+      case 'Editor':
         return 'bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium';
-      case 7: // Visualizador
+      case 'Visualizador':
         return 'bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium';
       default:
         return 'bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium';
@@ -124,12 +143,15 @@ const UsersPage: React.FC = () => {
   };
 
   const getAvatarColor = (roleId: number) => {
-    switch (roleId) {
-      case 9: // Maestro
+    const role = roles.find(r => r.id === roleId);
+    const roleName = role?.name || 'Desconocido';
+    
+    switch (roleName) {
+      case 'Maestro':
         return 'bg-purple-500';
-      case 8: // Editor
+      case 'Editor':
         return 'bg-yellow-500';
-      case 7: // Visualizador
+      case 'Visualizador':
         return 'bg-gray-500';
       default:
         return 'bg-blue-500';
@@ -262,9 +284,9 @@ const UsersPage: React.FC = () => {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option>Todos los roles</option>
-                <option>Maestro</option>
-                <option>Editor</option>
-                <option>Visualizador</option>
+                {roles.map(role => (
+                  <option key={role.id} value={role.name}>{role.name}</option>
+                ))}
               </select>
             </div>
 
@@ -304,9 +326,7 @@ const UsersPage: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Rol Temporal
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Documento
-                  </th>
+
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
@@ -321,7 +341,7 @@ const UsersPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-uc-blue"></div>
                         <span className="ml-2 text-gray-500">Cargando usuarios...</span>
@@ -330,7 +350,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="text-red-500">
                         <p>{error}</p>
                         <button 
@@ -344,7 +364,7 @@ const UsersPage: React.FC = () => {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       No se encontraron usuarios
                     </td>
                   </tr>
@@ -385,9 +405,7 @@ const UsersPage: React.FC = () => {
                           <span className="text-xs text-gray-400">Permanente</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.documentoIdentificacion}
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={getStatusBadge(user.isActive)}>
                           {user.isActive ? 'Activo' : 'Inactivo'}

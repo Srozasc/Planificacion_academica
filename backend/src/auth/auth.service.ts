@@ -144,4 +144,11 @@ export class AuthService {
     
     return { message: 'Contraseña del admin actualizada correctamente' };
   }
+
+  async getRoles(): Promise<Array<{id: number, name: string, description: string}>> {
+    const roles = await this.entityManager.query(
+      'SELECT id, name, description FROM roles WHERE is_active = TRUE ORDER BY name'
+    );
+    return roles;
+  }
 }

@@ -4,7 +4,6 @@ export interface User {
   id: number;
   emailInstitucional: string;
   name: string;
-  documentoIdentificacion: string;
   telefono?: string;
   roleId: number;
   roleName?: string;
@@ -35,9 +34,10 @@ export interface CreateUserData {
   emailInstitucional: string;
   password: string;
   name: string;
-  documentoIdentificacion: string;
   telefono?: string;
   roleId: number;
+  roleExpiresAt?: string;
+  previousRoleId?: number;
 }
 
 class UsersService {

@@ -15,8 +15,7 @@ export class User {
   @Column()
   name: string;
 
-  @Column({ name: 'documento_identificacion', unique: true })
-  documentoIdentificacion: string;
+
 
   @Column({ nullable: true })
   telefono: string;

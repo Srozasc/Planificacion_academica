@@ -48,6 +48,12 @@ export interface ChangePasswordResponse {
   message: string;
 }
 
+export interface Role {
+  id: number;
+  name: string;
+  description: string;
+}
+
 class AuthService {  // Login
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
@@ -127,6 +133,12 @@ class AuthService {  // Login
   // Verificar si el usuario está autenticado
   isAuthenticated(): boolean {
     return this.hasToken();
+  }
+
+  // Obtener roles disponibles
+  async getRoles(): Promise<Role[]> {
+    const response = await apiClient.get('/auth/roles');
+    return response.data;
   }
 }
 

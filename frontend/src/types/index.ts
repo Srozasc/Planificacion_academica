@@ -4,7 +4,6 @@ export interface User {
   email_institucional: string;
   name: string;
   role_id: number;
-  documento_identificacion?: string;
   telefono?: string;
   is_active: boolean;
   created_at: string;
@@ -17,7 +16,6 @@ export interface CreateUserDto {
   password: string;
   name: string;
   role_id: number;
-  documento_identificacion?: string;
   telefono?: string;
 }
 
@@ -25,7 +23,6 @@ export interface UpdateUserDto {
   email_institucional?: string;
   name?: string;
   role_id?: number;
-  documento_identificacion?: string;
   telefono?: string;
   is_active?: boolean;
 }

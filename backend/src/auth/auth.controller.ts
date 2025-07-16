@@ -70,4 +70,9 @@ export class AuthController {
   async updateAdminPassword() {
     return this.authService.updateAdminPassword();
   }
+
+  @Get('roles')
+  async getRoles() {
+    return this.authService.getRoles();
+  }
 }

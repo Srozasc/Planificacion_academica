@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsInt, Min, IsDateString } from 'class-validator';
 
 export class CreateUserDto {
   @IsEmail({}, { message: 'El email debe tener un formato válido' })
@@ -13,9 +13,7 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'El nombre es requerido' })
   name: string;
 
-  @IsString({ message: 'El documento de identificación debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El documento de identificación es requerido' })
-  documentoIdentificacion: string;
+
 
   @IsOptional()
   @IsString({ message: 'El teléfono debe ser una cadena de texto' })
@@ -24,4 +22,13 @@ export class CreateUserDto {
   @IsInt({ message: 'El ID del rol debe ser un número entero' })
   @Min(1, { message: 'El ID del rol debe ser mayor a 0' })
   roleId: number;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha de expiración del rol debe tener un formato válido' })
+  roleExpiresAt?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'El ID del rol anterior debe ser un número entero' })
+  @Min(1, { message: 'El ID del rol anterior debe ser mayor a 0' })
+  previousRoleId?: number;
 }

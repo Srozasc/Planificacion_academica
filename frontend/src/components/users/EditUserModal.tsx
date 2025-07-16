@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { User } from '../../services/users.service';
 import usersService from '../../services/users.service';
+import { authService, Role } from '../../services/auth.service';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -13,10 +14,8 @@ interface EditUserModalProps {
 interface FormData {
   name: string;
   emailInstitucional: string;
-  documentoIdentificacion: string;
-  telefono: string;
   roleId: number;
-  roleExpiresAt?: string;
+  roleExpiresAt: string;
   previousRoleId?: number;
   isActive: boolean;
 }
@@ -27,48 +26,98 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   user,
   onUserUpdated
 }) => {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState({
     name: '',
     emailInstitucional: '',
-    documentoIdentificacion: '',
-    telefono: '',
-    roleId: 7,
+    roleId: 1, // Nuevo ID de Visualizador
     roleExpiresAt: '',
-    previousRoleId: undefined,
+    previousRoleId: 1, // Por defecto será Visualizador (nuevo ID)
     isActive: true
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(true);
 
-  // Opciones de roles
-  const roleOptions = [
-    { value: 9, label: 'Maestro' },
-    { value: 8, label: 'Editor' },
-    { value: 7, label: 'Visualizador' }
-  ];
+  // Obtener el ID del rol "Visualizador" dinámicamente
+  const getVisualizadorRoleId = (): number => {
+    const visualizadorRole = roles.find(role => role.name === 'Visualizador');
+    return visualizadorRole?.id || 1; // Fallback al ID 1 (nuevo ID de Visualizador)
+  };
+
+  // Obtener el ID del rol "Editor" dinámicamente
+  const getEditorRoleId = (): number => {
+    const editorRole = roles.find(role => role.name === 'Editor');
+    return editorRole?.id || 2; // Fallback al ID 2 (asumiendo nuevo ID de Editor)
+  };
+
+  // Cargar roles al montar el componente
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        setRolesLoading(true);
+        const rolesData = await authService.getRoles();
+        setRoles(rolesData);
+      } catch (error) {
+        console.error('Error cargando roles:', error);
+        // En caso de error, usar roles por defecto con nuevos IDs
+        setRoles([
+          { id: 3, name: 'Maestro', description: 'Rol de maestro' },
+          { id: 2, name: 'Editor', description: 'Rol de editor' },
+          { id: 1, name: 'Visualizador', description: 'Rol de visualizador' }
+        ]);
+      } finally {
+        setRolesLoading(false);
+      }
+    };
+    loadRoles();
+  }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && roles.length > 0) {
+      const visualizadorId = getVisualizadorRoleId();
       setFormData({
         name: user.name,
         emailInstitucional: user.emailInstitucional,
-        documentoIdentificacion: user.documentoIdentificacion,
-        telefono: user.telefono || '',
         roleId: user.roleId,
-        roleExpiresAt: user.roleExpiresAt ? new Date(user.roleExpiresAt).toISOString().split('T')[0] : '',
-        previousRoleId: user.previousRoleId,
+        roleExpiresAt: user.roleExpiresAt ? new Date(user.roleExpiresAt).toISOString().slice(0, 16) : '',
+        previousRoleId: user.previousRoleId || visualizadorId,
         isActive: user.isActive
       });
     }
-  }, [user]);
+  }, [user, roles]);
+
+  // Actualizar formData cuando se cargan los roles por primera vez
+  useEffect(() => {
+    if (roles.length > 0 && !user) {
+      const visualizadorId = getVisualizadorRoleId();
+      setFormData(prev => ({
+        ...prev,
+        roleId: visualizadorId,
+        previousRoleId: visualizadorId
+      }));
+    }
+  }, [roles]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
-               name === 'roleId' || name === 'previousRoleId' ? parseInt(value) || undefined : value
-    }));
+    const newValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+                     name === 'roleId' || name === 'previousRoleId' ? parseInt(value) || undefined : value;
+    
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: newValue
+      };
+      
+      // Si se cambia el rol y no es Editor, limpiar la fecha de expiración
+      const editorId = getEditorRoleId();
+      if (name === 'roleId' && newValue !== editorId) {
+        updated.roleExpiresAt = '';
+      }
+      
+      return updated;
+    });
     
     // Limpiar error del campo cuando el usuario empiece a escribir
     if (errors[name]) {
@@ -89,9 +138,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       newErrors.emailInstitucional = 'El email debe tener un formato válido';
     }
 
-    if (!formData.documentoIdentificacion.trim()) {
-      newErrors.documentoIdentificacion = 'El documento de identificación es requerido';
-    }
+
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -177,38 +224,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           {errors.emailInstitucional && <p className="mt-1 text-sm text-red-600">{errors.emailInstitucional}</p>}
         </div>
 
-        <div>
-          <label htmlFor="documentoIdentificacion" className="block text-sm font-medium text-gray-700 mb-1">
-            Documento de identificación *
-          </label>
-          <input
-            type="text"
-            id="documentoIdentificacion"
-            name="documentoIdentificacion"
-            value={formData.documentoIdentificacion}
-            onChange={handleInputChange}
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.documentoIdentificacion ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Ingrese el documento de identificación"
-          />
-          {errors.documentoIdentificacion && <p className="mt-1 text-sm text-red-600">{errors.documentoIdentificacion}</p>}
-        </div>
 
-        <div>
-          <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono
-          </label>
-          <input
-            type="text"
-            id="telefono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ingrese el número de teléfono"
-          />
-        </div>
+
+
 
         <div>
           <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-1">
@@ -219,13 +237,18 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             name="roleId"
             value={formData.roleId}
             onChange={handleInputChange}
+            disabled={rolesLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {roleOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            {rolesLoading ? (
+              <option value="">Cargando roles...</option>
+            ) : (
+              roles.map(role => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
@@ -239,31 +262,40 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             name="roleExpiresAt"
             value={formData.roleExpiresAt || ''}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={formData.roleId !== getEditorRoleId()}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                formData.roleId !== getEditorRoleId() ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
             min={new Date().toISOString().split('T')[0]}
           />
           <p className="mt-1 text-xs text-gray-500">
-            Si se especifica, el rol se revertirá automáticamente al rol anterior en esta fecha
+            Si se especifica, el rol se revertirá automáticamente a Visualizador en esta fecha
           </p>
         </div>
 
-        <div>
+        {/* Campo oculto para rol anterior - siempre será Visualizador por defecto */}
+        <div style={{ display: 'none' }}>
           <label htmlFor="previousRoleId" className="block text-sm font-medium text-gray-700 mb-1">
             Rol anterior (para reversión)
           </label>
           <select
             id="previousRoleId"
             name="previousRoleId"
-            value={formData.previousRoleId || ''}
+            value={formData.previousRoleId || 1}
             onChange={handleInputChange}
+            disabled={rolesLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar rol anterior</option>
-            {roleOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
+            {rolesLoading ? (
+              <option value="">Cargando roles...</option>
+            ) : (
+              roles.map(role => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))
+            )}
           </select>
           <p className="mt-1 text-xs text-gray-500">
             Rol al que se revertirá cuando expire el rol temporal
