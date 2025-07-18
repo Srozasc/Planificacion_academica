@@ -16,9 +16,8 @@ const ProfilePage: React.FC = () => {
   const [profileData, setProfileData] = useState({
     nombreCompleto: '',
     email: '',
-    cargo: '',
+    rol: '',
     departamento: '',
-    telefono: '',
     ultimoAcceso: ''
   });
 
@@ -48,9 +47,8 @@ const ProfilePage: React.FC = () => {
     setProfileData({
       nombreCompleto,
       email: userData.email,
-      cargo: userData.role || getRoleName(userData.roleId || 0),
+      rol: userData.role || getRoleName(userData.roleId || 0),
       departamento: 'Ingeniería de Sistemas', // Por ahora hardcodeado
-      telefono: '+57 300 123 4567', // Por ahora hardcodeado
       ultimoAcceso: new Date().toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
@@ -236,7 +234,7 @@ const ProfilePage: React.FC = () => {
                   {getUserInitials()}
                 </div>
                 <h3 className="font-semibold text-gray-900">{profileData.nombreCompleto}</h3>
-                <p className="text-sm text-gray-600">{profileData.cargo}</p>
+                <p className="text-sm text-gray-600">{profileData.rol}</p>
               </div>
 
               {/* Navigation */}
@@ -319,17 +317,17 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Cargo
+                        Rol
                       </label>
                       {isEditing ? (
                         <input
                           type="text"
-                          value={profileData.cargo}
-                          onChange={(e) => setProfileData({...profileData, cargo: e.target.value})}
+                          value={profileData.rol}
+                          onChange={(e) => setProfileData({...profileData, rol: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
                         />
                       ) : (
-                        <p className="text-gray-900">{profileData.cargo}</p>
+                        <p className="text-gray-900">{profileData.rol}</p>
                       )}
                     </div>
                     <div>
@@ -347,21 +345,7 @@ const ProfilePage: React.FC = () => {
                         <p className="text-gray-900">{profileData.departamento}</p>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Teléfono
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          value={profileData.telefono}
-                          onChange={(e) => setProfileData({...profileData, telefono: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.telefono}</p>
-                      )}
-                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Último Acceso

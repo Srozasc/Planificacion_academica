@@ -32,51 +32,43 @@ export interface ValidationResult {
 }
 
 export interface SystemStats {
-  temp: { files: number; size: number };
-  processed: { files: number; size: number };
-  failed: { files: number; size: number };
-  academic: { files: number; size: number };
-  teachers: { files: number; size: number };
-  paymentCodes: { files: number; size: number };
-  courseReports: { files: number; size: number };
-  total: { files: number; size: number };
+  staging_adol_simple: number;
+  academic_structures: number;
+  teachers: number;
+  payment_codes: number;
+  course_reports: number;
 }
 
-export interface TemplateInfo {
-  availableTemplates: string[];
-  templates: {
-    [key: string]: {
-      filename: string;
-      description: string;
-      columns: string[];
-    };
-  };
-}
+
 
 // Upload service for API calls
 export const uploadService = {
   // Generic upload method
-  async uploadFile(endpoint: string, file: File, options: { mode?: string; validateOnly?: boolean } = {}): Promise<UploadResult> {
+  async uploadFile(endpoint: string, file: File, options: { mode?: string; validateOnly?: boolean; bimestreId?: number } = {}): Promise<UploadResult> {
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', options.mode || 'UPSERT');
       formData.append('validateOnly', options.validateOnly ? 'true' : 'false');
+      
+      if (options.bimestreId) {
+        formData.append('bimestreId', options.bimestreId.toString());
+      }
 
       const response = await apiClient.post(`/uploads/${endpoint}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });      return {
-        success: true,
+        success: response.data.success || true,
         message: response.data.message || 'Archivo procesado exitosamente',
         summary: {
-          totalRecords: response.data.totalRecords || 0,
-          validRecords: response.data.processedRecords || 0,
-          invalidRecords: response.data.errorCount || 0,
-          errors: response.data.errors || []
+          totalRecords: response.data.data?.summary?.totalRecords || 0,
+          validRecords: response.data.data?.summary?.validRecords || 0,
+          invalidRecords: response.data.data?.summary?.invalidRecords || 0,
+          errors: response.data.data?.summary?.errors || []
         },
-        data: response.data
+        data: response.data.data
       };
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -85,10 +77,14 @@ export const uploadService = {
   },
 
   // Validation only method
-  async validateFile(endpoint: string, file: File): Promise<ValidationResult> {
+  async validateFile(endpoint: string, file: File, options: { bimestreId?: number } = {}): Promise<ValidationResult> {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
+      if (options.bimestreId) {
+        formData.append('bimestreId', options.bimestreId.toString());
+      }
 
       const response = await apiClient.post(`/uploads/validate/${endpoint}`, formData, {
         headers: {
@@ -132,37 +128,6 @@ export const uploadService = {
       throw new Error(error.response?.data?.message || 'Error al verificar el estado del sistema');
     }
   },
-  // Get available templates
-  async getTemplates(): Promise<TemplateInfo> {
-    try {
-      const response = await apiClient.get('/templates');
-      return response.data;
-    } catch (error: any) {
-      console.error('Templates error:', error);
-      throw new Error(error.response?.data?.message || 'Error al obtener plantillas');
-    }
-  },
-  // Download template
-  async downloadTemplate(templateType: string): Promise<void> {
-    try {
-      const response = await apiClient.get(`/templates/${templateType}`, {
-        responseType: 'blob',
-      });
-
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `template_${templateType}.xlsx`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error('Template download error:', error);
-      throw new Error(error.response?.data?.message || 'Error al descargar la plantilla');
-    }
-  },
 
   // Cleanup files
   async cleanupFiles(type?: string): Promise<any> {
@@ -191,5 +156,9 @@ export const uploadService = {
 
   async uploadPaymentCodes(file: File): Promise<UploadResult> {
     return this.uploadFile('payment-codes', file);
+  },
+
+  async uploadDol(file: File): Promise<UploadResult> {
+    return this.uploadFile('dol', file);
   }
 };

@@ -34,11 +34,7 @@ async function testBackendEndpoints() {
   console.log('📋 Verificando endpoints del backend...\n');
   
   const endpoints = [
-    { name: 'Lista de plantillas', path: '/api/templates' },
-    { name: 'Plantilla códigos de pago', path: '/api/templates/payment-codes' },
-    { name: 'Plantilla estructuras académicas', path: '/api/templates/academic-structures' },
-    { name: 'Plantilla docentes', path: '/api/templates/teachers' },
-    { name: 'Plantilla reportes cursables', path: '/api/templates/course-reports' },
+
     { name: 'Upload académicas', path: '/api/uploads/academic-structures/upload' },
     { name: 'Upload docentes', path: '/api/uploads/teachers/upload' },
     { name: 'Upload códigos pago', path: '/api/uploads/payment-codes/upload' },
@@ -63,14 +59,7 @@ async function testBackendEndpoints() {
       
       console.log(`${status} ${endpoint.name}: ${response.statusCode}`);
       
-      if (response.statusCode === 200 && endpoint.path === '/api/templates') {
-        try {
-          const data = JSON.parse(response.data.toString());
-          console.log(`   📄 Plantillas disponibles: ${data.join(', ')}`);
-        } catch (e) {
-          console.log(`   📄 Respuesta: ${response.data.toString().substring(0, 100)}...`);
-        }
-      }
+
       
     } catch (error) {
       console.log(`❌ ${endpoint.name}: Error - ${error.message}`);

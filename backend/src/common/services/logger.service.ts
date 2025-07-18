@@ -132,7 +132,7 @@ export class AppLoggerService implements ILogger, LoggerService {
   private maskEmail(email: string): string {
     const [local, domain] = email.split('@');
     const maskedLocal = local.length > 2 
-      ? local.substring(0, 2) + '*'.repeat(local.length - 2)
+      ? local.substring(0, 2) + '**' // Siempre dos asteriscos
       : local;
     return `${maskedLocal}@${domain}`;
   }

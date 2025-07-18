@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { uploadService } from './services/upload.service';
+import { uploadService, SystemStats } from './services/upload.service';
+import { useBimestreStore } from '../../store/bimestre.store';
 
 // Types
 interface FileType {
@@ -43,12 +44,15 @@ interface RecentUpload {
 
 const DataUploadPage: React.FC = () => {
   const [selectedFileType, setSelectedFileType] = useState('');
+  const [selectedBimestreId, setSelectedBimestreId] = useState<number | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([]);
-  const [systemStats, setSystemStats] = useState<any>(null);
+  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  
+  const { bimestres, fetchBimestresActivos } = useBimestreStore();
 
   const fileTypes: FileType[] = [
     {
@@ -86,6 +90,33 @@ const DataUploadPage: React.FC = () => {
       format: '.xlsx',
       templateName: 'siglas_pago_template.xlsx',
       endpoint: 'payment-codes'
+    },
+    {
+      id: 'adol',
+      name: 'ADOL - Cargos Docentes',
+      description: 'Cargos que se pueden asignar a docentes y sus siglas identificadoras',
+      icon: '👔',
+      format: '.xlsx',
+      templateName: 'adol_template.xlsx',
+      endpoint: 'adol'
+    },
+    {
+      id: 'dol',
+      name: 'DOL - Cargos Docentes',
+      description: 'Cargos que se pueden asignar a docentes y sus siglas identificadoras',
+      icon: '📋',
+      format: '.xlsx',
+      templateName: 'dol_template.xlsx',
+      endpoint: 'dol'
+    },
+    {
+      id: 'vacantes-inicio',
+      name: 'Vacantes Inicio',
+      description: 'En construcción - Módulo para cargar información de vacantes de inicio',
+      icon: '🏁',
+      format: '.xlsx',
+      templateName: 'vacantes_inicio_template.xlsx',
+      endpoint: 'vacantes-inicio'
     }
   ];
 
@@ -93,7 +124,13 @@ const DataUploadPage: React.FC = () => {
   useEffect(() => {
     loadSystemStats();
     loadRecentUploads();
-  }, []);
+    fetchBimestresActivos();
+  }, [fetchBimestresActivos]);
+
+  // Mantener selección de bimestre para todos los tipos de archivo
+  // useEffect(() => {
+  //   // Ya no es necesario limpiar la selección ya que todos requieren bimestre
+  // }, [selectedFileType]);
 
   const loadSystemStats = async () => {
     try {
@@ -171,6 +208,12 @@ const DataUploadPage: React.FC = () => {
       return;
     }
 
+    // Validar bimestre (requerido para todos los tipos de archivo)
+    if (!selectedBimestreId) {
+      alert(`Por favor selecciona un bimestre para cargar datos de ${fileType.name}`);
+      return;
+    }
+
     // Validate file
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       alert('Solo se permiten archivos Excel (.xlsx, .xls)');
@@ -199,7 +242,10 @@ const DataUploadPage: React.FC = () => {
       }, 200);
 
       // Call upload service
-      const result = await uploadService.uploadFile(fileType.endpoint, file);
+      const uploadOptions = selectedBimestreId 
+        ? { bimestreId: selectedBimestreId }
+        : {};
+      const result = await uploadService.uploadFile(fileType.endpoint, file, uploadOptions);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -241,14 +287,7 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
-  const downloadTemplate = async (fileType: FileType) => {
-    try {
-      await uploadService.downloadTemplate(fileType.id);
-    } catch (error) {
-      console.error('Error downloading template:', error);
-      alert('Error al descargar la plantilla. Por favor intenta nuevamente.');
-    }
-  };
+
 
   const validateOnly = async (file: File) => {
     if (!selectedFileType) {
@@ -259,9 +298,18 @@ const DataUploadPage: React.FC = () => {
     const fileType = fileTypes.find(t => t.id === selectedFileType);
     if (!fileType) return;
 
+    // Validar bimestre (requerido para todos los tipos de archivo)
+    if (!selectedBimestreId) {
+      alert(`Por favor selecciona un bimestre para validar datos de ${fileType.name}`);
+      return;
+    }
+
     try {
       setIsUploading(true);
-      const result = await uploadService.validateFile(fileType.endpoint, file);
+      const validateOptions = selectedBimestreId 
+        ? { bimestreId: selectedBimestreId }
+        : {};
+      const result = await uploadService.validateFile(fileType.endpoint, file, validateOptions);
       setUploadResult({
         success: true,
         message: 'Validación completada',
@@ -308,16 +356,24 @@ const DataUploadPage: React.FC = () => {
         {systemStats && (
           <div className="mt-4 flex items-center space-x-6 text-sm text-gray-600">
             <div className="flex items-center">
-              <span className="mr-1">📊</span>
-              <span>Total archivos: {systemStats.total.files}</span>
+              <span className="mr-1">🏛️</span>
+              <span>Estructuras académicas: {systemStats.academic_structures}</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-1">💾</span>
-              <span>Tamaño total: {(systemStats.total.size / 1024 / 1024).toFixed(2)} MB</span>
+              <span className="mr-1">👨‍🏫</span>
+              <span>Docentes: {systemStats.teachers}</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-1">✅</span>
-              <span>Procesados: {systemStats.processed.files}</span>
+              <span className="mr-1">💰</span>
+              <span>Códigos de pago: {systemStats.payment_codes}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">📚</span>
+              <span>Reportes de curso: {systemStats.course_reports}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">📋</span>
+              <span>ADOL: {systemStats.staging_adol_simple}</span>
             </div>
           </div>
         )}
@@ -355,8 +411,7 @@ const DataUploadPage: React.FC = () => {
         <div className="mb-8">
           <div className="bg-white rounded-lg shadow-md border border-gray-200">
             <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
+              <div>
                   <h3 className="text-lg font-semibold text-gray-900">
                     Cargar {fileTypes.find(t => t.id === selectedFileType)?.name}
                   </h3>
@@ -364,19 +419,34 @@ const DataUploadPage: React.FC = () => {
                     Arrastra tu archivo aquí o haz clic para seleccionar
                   </p>
                 </div>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={() => {
-                      const fileType = fileTypes.find(t => t.id === selectedFileType);
-                      if (fileType) downloadTemplate(fileType);
-                    }}
-                    className="px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors duration-200"
+              
+              {/* Selector de Bimestre (Requerido para todos los tipos de archivo) */}
+              {selectedFileType && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <span className="mr-2">📅</span>
+                    Seleccionar Bimestre (Requerido)
+                  </label>
+                  <select
+                    value={selectedBimestreId || ''}
+                    onChange={(e) => setSelectedBimestreId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-uc-blue focus:border-uc-blue"
+                    required
                   >
-                    <span className="mr-2">📥</span>
-                    Descargar Plantilla
-                  </button>
+                    <option value="">Selecciona un bimestre...</option>
+                    {bimestres.map((bimestre) => (
+                      <option key={bimestre.id} value={bimestre.id}>
+                        {bimestre.nombre} ({new Date(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {new Date(bimestre.fechaFin).toLocaleDateString('es-ES')})
+                      </option>
+                    ))}
+                  </select>
+                  {!selectedBimestreId && (
+                    <p className="mt-2 text-sm text-amber-600">
+                      ⚠️ Debes seleccionar un bimestre antes de cargar el archivo {selectedFileType?.toUpperCase()}
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Drop Zone */}

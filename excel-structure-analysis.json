@@ -1,0 +1,804 @@
+{
+  "timestamp": "2025-07-17T21:58:25.422Z",
+  "summary": {
+    "totalFiles": 8,
+    "successfulAnalyses": 8,
+    "errors": 0,
+    "impactLevels": {
+      "HIGH": 7,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "UNKNOWN": 1
+    }
+  },
+  "fileAnalyses": [
+    {
+      "fileName": "ADOL.xlsx",
+      "fileSize": 9774,
+      "sheets": [
+        {
+          "name": "Hoja1",
+          "headers": [
+            "SIGLA",
+            "DESCRIPCIÓN"
+          ],
+          "headerCount": 2,
+          "dataRowCount": 22,
+          "sampleData": [
+            [
+              "ADOL001",
+              "COORDINADOR DE LÍNEA ONLINE"
+            ],
+            [
+              "ADOL002",
+              "COORDINADOR DE PORTAFOLIO ONLINE"
+            ],
+            [
+              "ADOL003",
+              "COORDINADOR DE EXTENSIÓN Y VINCULACIÓN CON EL MEDIO ONLINE"
+            ]
+          ],
+          "uniqueValues": {
+            "SIGLA": {
+              "count": 22,
+              "samples": [
+                "ADOL001",
+                "ADOL002",
+                "ADOL003",
+                "ADOL004",
+                "ADOL005"
+              ]
+            },
+            "DESCRIPCIÓN": {
+              "count": 22,
+              "samples": [
+                "COORDINADOR DE LÍNEA ONLINE",
+                "COORDINADOR DE PORTAFOLIO ONLINE",
+                "COORDINADOR DE EXTENSIÓN Y VINCULACIÓN CON EL MEDIO ONLINE",
+                "COORDINADOR RENDIMIENTO ACADÉMICO ONLINE",
+                "TUTOR RENDIMIENTO ACADÉMICO ONLINE"
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 22,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "payment_codes",
+        "newFields": [
+          "sigla",
+          "descripci_n"
+        ],
+        "missingFields": [
+          "code_name",
+          "description",
+          "factor",
+          "base_amount",
+          "category",
+          "type",
+          "is_active",
+          "requires_hours",
+          "is_taxable",
+          "valid_from",
+          "valid_until"
+        ],
+        "reasons": [
+          "11 campos faltantes en Excel"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "Cursables a Implementar.xlsx",
+      "fileSize": 123339,
+      "sheets": [
+        {
+          "name": "Export",
+          "headers": [
+            "RUT",
+            "PLAN",
+            "NIVEL",
+            "SIGLA",
+            "ASIGNATURA"
+          ],
+          "headerCount": 5,
+          "dataRowCount": 3874,
+          "sampleData": [
+            [
+              "101223906",
+              1114401,
+              3,
+              "CCA2202",
+              "CONTABILIDAD II"
+            ],
+            [
+              "101223906",
+              1114401,
+              3,
+              "FNA2202",
+              "INTRODUCCIÓN A LAS FINANZAS"
+            ],
+            [
+              "101729133",
+              1116221,
+              13,
+              "MKA2213",
+              "INBOUND MARKETING III"
+            ]
+          ],
+          "uniqueValues": {
+            "RUT": {
+              "count": 1569,
+              "samples": [
+                "101223906",
+                "101729133",
+                "102862112",
+                "103736463",
+                "103745756"
+              ]
+            },
+            "PLAN": {
+              "count": 12,
+              "samples": [
+                1114401,
+                1116221,
+                1115401,
+                1444728,
+                1115301
+              ]
+            },
+            "NIVEL": {
+              "count": 10,
+              "samples": [
+                3,
+                13,
+                5,
+                7,
+                8
+              ]
+            },
+            "SIGLA": {
+              "count": 83,
+              "samples": [
+                "CCA2202",
+                "FNA2202",
+                "MKA2213",
+                "OPT",
+                "VNA2204"
+              ]
+            },
+            "ASIGNATURA": {
+              "count": 79,
+              "samples": [
+                "CONTABILIDAD II",
+                "INTRODUCCIÓN A LAS FINANZAS",
+                "INBOUND MARKETING III",
+                "FORMACIÓN COMPLEMENTARIA 1116221",
+                "GESTIÓN DE EQUIPOS DE VENTA"
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 3874,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "course_reports_data",
+        "newFields": [
+          "rut",
+          "plan",
+          "nivel",
+          "sigla",
+          "asignatura"
+        ],
+        "missingFields": [
+          "academic_structure_id",
+          "student_count",
+          "term",
+          "year",
+          "section",
+          "modality",
+          "enrolled_count",
+          "passed_count",
+          "failed_count",
+          "withdrawn_count",
+          "weekly_hours",
+          "total_hours",
+          "is_validated",
+          "validated_by",
+          "validated_at",
+          "notes"
+        ],
+        "reasons": [
+          "5 campos nuevos detectados",
+          "16 campos faltantes en Excel"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "Docentes.xlsx",
+      "fileSize": 15537,
+      "sheets": [
+        {
+          "name": "Hoja1",
+          "headers": [
+            "DOCENTE",
+            "ID DOCENTE",
+            "RUT DOCENTE"
+          ],
+          "headerCount": 3,
+          "dataRowCount": 145,
+          "sampleData": [
+            [
+              "ALBERTO FERMIN CAMPOS VIDAL",
+              60014655,
+              "12.716.420-7"
+            ],
+            [
+              "ALBERTO NICOLAS BARAHONA JARA",
+              60020845
+            ],
+            [
+              "ALDO MAURICIO IBACETA",
+              50003373,
+              "16.539.889-0"
+            ]
+          ],
+          "uniqueValues": {
+            "DOCENTE": {
+              "count": 145,
+              "samples": [
+                "ALBERTO FERMIN CAMPOS VIDAL",
+                "ALBERTO NICOLAS BARAHONA JARA",
+                "ALDO MAURICIO IBACETA",
+                "ALEJANDRO LORENZO ASPILLAGA",
+                "ALEJANDRO MAURICIO BECERRA GUZMAN"
+              ]
+            },
+            "ID DOCENTE": {
+              "count": 145,
+              "samples": [
+                60014655,
+                60020845,
+                50003373,
+                60013571,
+                60019821
+              ]
+            },
+            "RUT DOCENTE": {
+              "count": 81,
+              "samples": [
+                "12.716.420-7",
+                "16.539.889-0",
+                "09.163.593-3",
+                "16.416.265-6",
+                "14.082.522-0"
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 145,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "teachers",
+        "newFields": [
+          "docente",
+          "id_docente",
+          "rut_docente"
+        ],
+        "missingFields": [
+          "rut",
+          "name",
+          "email",
+          "phone",
+          "address",
+          "academic_degree",
+          "specialization",
+          "university",
+          "category_id",
+          "contract_type_id",
+          "hire_date",
+          "contract_hours",
+          "salary_base",
+          "is_active",
+          "can_coordinate",
+          "max_hours_per_week"
+        ],
+        "reasons": [
+          "3 campos nuevos detectados",
+          "16 campos faltantes en Excel"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "DOL.xlsx",
+      "fileSize": 9536,
+      "sheets": [
+        {
+          "name": "Hoja1",
+          "headers": [
+            "PLAN",
+            "SIGLA",
+            "DESCRIPCIÓN"
+          ],
+          "headerCount": 3,
+          "dataRowCount": 12,
+          "sampleData": [
+            [
+              1116221,
+              "DOL002",
+              "DOCENCIA MKT SEDE ONLINE"
+            ],
+            [
+              1114501,
+              "DOL003",
+              "DOCENCIA ADM SEDE ONLINE"
+            ],
+            [
+              1114401,
+              "DOL004",
+              "DOCENCIA COT SEDE ONLINE"
+            ]
+          ],
+          "uniqueValues": {
+            "PLAN": {
+              "count": 12,
+              "samples": [
+                1116221,
+                1114501,
+                1114401,
+                2224024,
+                1444728
+              ]
+            },
+            "SIGLA": {
+              "count": 11,
+              "samples": [
+                "DOL002",
+                "DOL003",
+                "DOL004",
+                "DOL005",
+                "DOL006"
+              ]
+            },
+            "DESCRIPCIÓN": {
+              "count": 11,
+              "samples": [
+                "DOCENCIA MKT SEDE ONLINE",
+                "DOCENCIA ADM SEDE ONLINE",
+                "DOCENCIA COT SEDE ONLINE",
+                "DOCENCIA DDW SEDE ONLINE",
+                "DOCENCIA APC SEDE ONLINE"
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 12,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "teacher_assignments",
+        "newFields": [
+          "plan",
+          "sigla",
+          "descripci_n"
+        ],
+        "missingFields": [],
+        "reasons": [
+          "3 campos nuevos detectados",
+          "Tabla nueva requerida"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "Estructura Académica Final.xlsx",
+      "fileSize": 29366,
+      "sheets": [
+        {
+          "name": "Estructura Académica",
+          "headers": [
+            "PLAN",
+            "CARRERA",
+            "NIVEL",
+            "SIGLA",
+            "ASIGNATURA",
+            "CRÉDITOS",
+            "CATEGORIA",
+            "HORAS",
+            "DURACIÓN CARRERA",
+            "ClPlEstud",
+            "CODIGO ESCUELA",
+            "ESCUELA / PROGRAMA"
+          ],
+          "headerCount": 12,
+          "dataRowCount": 281,
+          "sampleData": [
+            [
+              1444728,
+              "ANALISTA PROGRAMADOR COMPUTACIONAL",
+              1,
+              "MAT1240",
+              "MATEMÁTICAS PARA LA PROGRAMACIÓN",
+              6,
+              "TRAN",
+              54,
+              10,
+              "TECN",
+              93,
+              "Programa de Matemáticas"
+            ],
+            [
+              1444728,
+              "ANALISTA PROGRAMADOR COMPUTACIONAL",
+              1,
+              "MAT1210",
+              "MATEMÁTICA ELEMENTAL",
+              4,
+              "TRAN",
+              36,
+              10,
+              "TECN",
+              93,
+              "Programa de Matemáticas"
+            ],
+            [
+              1444728,
+              "ANALISTA PROGRAMADOR COMPUTACIONAL",
+              1,
+              "PLC1210",
+              "HABILIDADES COMUNICATIVAS",
+              4,
+              "TRAN",
+              36,
+              10,
+              "TECN",
+              94,
+              "Programa de Lenguaje y Comunicación"
+            ]
+          ],
+          "uniqueValues": {
+            "PLAN": {
+              "count": 12,
+              "samples": [
+                1444728,
+                1116221,
+                2224024,
+                1444901,
+                1444601
+              ]
+            },
+            "CARRERA": {
+              "count": 11,
+              "samples": [
+                "ANALISTA PROGRAMADOR COMPUTACIONAL",
+                "INGENIERÍA EN MARKETING DIGITAL",
+                "DESARROLLO Y DISEÑO WEB",
+                "INGENIERÍA EN DESARROLLO DE SOFTWARE",
+                "DESARROLLO DE APLICACIONES"
+              ]
+            },
+            "NIVEL": {
+              "count": 20,
+              "samples": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ]
+            },
+            "SIGLA": {
+              "count": 232,
+              "samples": [
+                "MAT1240",
+                "MAT1210",
+                "PLC1210",
+                "PRY2211",
+                "MAT2220"
+              ]
+            },
+            "ASIGNATURA": {
+              "count": 221,
+              "samples": [
+                "MATEMÁTICAS PARA LA PROGRAMACIÓN",
+                "MATEMÁTICA ELEMENTAL",
+                "HABILIDADES COMUNICATIVAS",
+                "DISEÑO DE PROTOTIPOS",
+                "ÁLGEBRA APLICADA"
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 281,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "academic_structures",
+        "newFields": [
+          "plan",
+          "carrera",
+          "nivel",
+          "sigla",
+          "asignatura",
+          "cr_ditos",
+          "categoria",
+          "horas",
+          "duraci_n_carrera",
+          "clplestud",
+          "codigo_escuela",
+          "escuela___programa"
+        ],
+        "missingFields": [
+          "code",
+          "name",
+          "credits",
+          "plan_id",
+          "type",
+          "semester",
+          "prerequisites",
+          "description",
+          "hours_per_week",
+          "is_active"
+        ],
+        "reasons": [
+          "12 campos nuevos detectados",
+          "10 campos faltantes en Excel"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "Usuarios Agendador Campus.xlsx",
+      "fileSize": 9820,
+      "sheets": [
+        {
+          "name": "Hoja1",
+          "headers": [
+            "Usuario",
+            "Mail",
+            "Nombre",
+            "Cargo",
+            "Carrera",
+            "Tipo de Rol"
+          ],
+          "headerCount": 6,
+          "dataRowCount": 21,
+          "sampleData": [
+            [
+              "jrebolledos",
+              "jrebolledos@duoc.cl",
+              "Jessica Rebolledo",
+              "Directora de Carrera",
+              1444728,
+              "Editor"
+            ],
+            [
+              "jrebolledos",
+              "jrebolledos@duoc.cl",
+              "Jessica Rebolledo",
+              "Directora de Carrera",
+              1444601,
+              "Editor"
+            ],
+            [
+              "jrebolledos",
+              "jrebolledos@duoc.cl",
+              "Jessica Rebolledo",
+              "Directora de Carrera",
+              1444901,
+              "Editor"
+            ]
+          ],
+          "uniqueValues": {
+            "Usuario": {
+              "count": 12,
+              "samples": [
+                "jrebolledos",
+                "csilvag",
+                "cmunozc",
+                "aaguilerab",
+                "avalrelar"
+              ]
+            },
+            "Mail": {
+              "count": 12,
+              "samples": [
+                "jrebolledos@duoc.cl",
+                "csilvag@duoc.cl",
+                "cmunozc@duoc.cl",
+                "aaguilerab@duoc.cl",
+                "avarelar@duoc.cl"
+              ]
+            },
+            "Nombre": {
+              "count": 12,
+              "samples": [
+                "Jessica Rebolledo",
+                "Cristopher Silva",
+                "Carolina Muñoz",
+                "Andrea Aguilera",
+                "Alejajandra Varela"
+              ]
+            },
+            "Cargo": {
+              "count": 11,
+              "samples": [
+                "Directora de Carrera",
+                "Director de Carrera",
+                "Jefa de Programas Transversales",
+                "Jefa UAP",
+                "Tutora Docente"
+              ]
+            },
+            "Carrera": {
+              "count": 13,
+              "samples": [
+                1444728,
+                1444601,
+                1444901,
+                2224024,
+                1444729
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 21,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "campus_scheduler_users",
+        "newFields": [
+          "usuario",
+          "mail",
+          "nombre",
+          "cargo",
+          "carrera",
+          "tipo_de_rol"
+        ],
+        "missingFields": [],
+        "reasons": [
+          "6 campos nuevos detectados",
+          "Tabla nueva requerida"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "Vacantes Inicio.xlsx",
+      "fileSize": 9204,
+      "sheets": [
+        {
+          "name": "Hoja1",
+          "headers": [
+            "CODIGO PLAN",
+            "CARREA",
+            "SIGLA ASIGNATURA",
+            "ASIGNATURA",
+            "NIVEL",
+            "CREDITOS",
+            "VACANTES"
+          ],
+          "headerCount": 7,
+          "dataRowCount": 1,
+          "sampleData": [
+            [
+              2224024,
+              "DESARROLLO Y DISEÑO WEB",
+              "IFD2202",
+              "LENGUAJES INTERACTIVOS",
+              6,
+              12,
+              30
+            ]
+          ],
+          "uniqueValues": {
+            "CODIGO PLAN": {
+              "count": 1,
+              "samples": [
+                2224024
+              ]
+            },
+            "CARREA": {
+              "count": 1,
+              "samples": [
+                "DESARROLLO Y DISEÑO WEB"
+              ]
+            },
+            "SIGLA ASIGNATURA": {
+              "count": 1,
+              "samples": [
+                "IFD2202"
+              ]
+            },
+            "ASIGNATURA": {
+              "count": 1,
+              "samples": [
+                "LENGUAJES INTERACTIVOS"
+              ]
+            },
+            "NIVEL": {
+              "count": 1,
+              "samples": [
+                6
+              ]
+            }
+          }
+        }
+      ],
+      "totalRows": 1,
+      "estimatedImpact": "HIGH",
+      "dbComparison": {
+        "impact": "HIGH",
+        "tableName": "program_vacancies",
+        "newFields": [
+          "codigo_plan",
+          "carrea",
+          "sigla_asignatura",
+          "asignatura",
+          "nivel",
+          "creditos",
+          "vacantes"
+        ],
+        "missingFields": [],
+        "reasons": [
+          "7 campos nuevos detectados",
+          "Tabla nueva requerida"
+        ],
+        "compatibility": "PARTIAL"
+      }
+    },
+    {
+      "fileName": "~$Estructura Académica Final.xlsx",
+      "fileSize": 165,
+      "sheets": [
+        {
+          "name": "Sheet1",
+          "headers": [
+            "\u000fASUS TUF F15 i5                                       \u000f\u0000A\u0000S\u0000U\u0000S\u0000 \u0000T\u0000U\u0000F\u0000 \u0000F\u00001\u00005\u0000 \u0000i\u00005\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000"
+          ],
+          "headerCount": 1,
+          "dataRowCount": 0,
+          "sampleData": [],
+          "uniqueValues": {
+            "\u000fASUS TUF F15 i5                                       \u000f\u0000A\u0000S\u0000U\u0000S\u0000 \u0000T\u0000U\u0000F\u0000 \u0000F\u00001\u00005\u0000 \u0000i\u00005\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000": {
+              "count": 0,
+              "samples": []
+            }
+          }
+        }
+      ],
+      "totalRows": 0,
+      "estimatedImpact": "UNKNOWN",
+      "dbComparison": {
+        "impact": "UNKNOWN",
+        "reason": "No hay mapeo definido para este archivo"
+      }
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "message": "7 archivos requieren cambios significativos en la BD",
+      "files": [
+        "ADOL.xlsx",
+        "Cursables a Implementar.xlsx",
+        "Docentes.xlsx",
+        "DOL.xlsx",
+        "Estructura Académica Final.xlsx",
+        "Usuarios Agendador Campus.xlsx",
+        "Vacantes Inicio.xlsx"
+      ]
+    }
+  ]
+}

@@ -53,7 +53,7 @@ REM ================================================
 echo [94m🔧 Pruebas de Endpoints de Utilidad[0m
 
 echo [93mTesting:[0m Obtener todas las plantillas
-curl -s -o nul -w "%%{http_code}" -X GET "%BASE_URL%/uploads/templates" > temp_response.txt
+
 set /p response_code=<temp_response.txt
 del temp_response.txt
 if "%response_code%"=="200" (

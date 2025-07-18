@@ -8,9 +8,9 @@ import DataUploadPage from './features/dataUpload/DataUploadPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 import SchedulingPage from './features/scheduling/SchedulingPage';
-import ResourceManagementPage from './features/resourceManagement/ResourceManagementPage';
+
 import ReportsPage from './features/reports/ReportsPage';
-import ApprovalDashboardPage from './features/approvalWorkflow/ApprovalDashboardPage';
+
 import { useAuthStore } from './store/auth.store';
 
 function App() {
@@ -29,9 +29,9 @@ function App() {
               <Route path="perfil" element={<ProfilePage />} />
               <Route path="carga-datos" element={<DataUploadPage />} />
               <Route path="/programacion" element={<SchedulingPage />} />
-              <Route path="/recursos" element={<ResourceManagementPage />} />
+
               <Route path="/reportes" element={<ReportsPage />} />
-              <Route path="/aprobaciones" element={<ApprovalDashboardPage />} />
+
             </Route>
           ) : (
             <Route path="*" element={<Navigate to="/login" replace />} />

@@ -266,7 +266,7 @@ sp_execution.log
 # ===== ARCHIVOS TEMPORALES DE DESARROLLO =====
 # Scripts de debugging y testing (organizados durante resolución de problemas)
 backend/scripts/
-backend/templates/
+
 backend/test/
 backend/test-files/
 

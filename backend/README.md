@@ -124,7 +124,7 @@ backend/
 | POST | `/teachers` | Cargar nómina de docentes | JWT |
 | POST | `/payment-codes` | Cargar códigos de pago | JWT |
 | POST | `/course-reports` | Cargar reportes de cursables | JWT |
-| GET | `/templates` | Obtener plantillas Excel | JWT |
+
 | POST | `/validate/:type` | Validar archivo sin procesar | JWT |
 | GET | `/admin/health` | Health check del sistema | JWT |
 | GET | `/admin/stats` | Estadísticas de archivos | JWT |

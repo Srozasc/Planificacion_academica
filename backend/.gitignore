@@ -32,7 +32,7 @@ Thumbs.db
 # Archivos de testing temporal
 test/
 scripts/
-templates/
+
 
 # Archivos de documentación temporal (mantener solo la carpeta Documentacion)
 *.md

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/auth.store';
+import { useBimestreStore } from '../store/bimestre.store';
 
 interface AppWrapperProps {
   children: React.ReactNode;
@@ -7,12 +8,18 @@ interface AppWrapperProps {
 
 const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
   const { loadSession, isLoading } = useAuthStore();
+  const { fetchBimestreActual, fetchBimestresActivos } = useBimestreStore();
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
         await loadSession();
+        // Cargar bimestres después de cargar la sesión
+        await Promise.all([
+          fetchBimestreActual(),
+          fetchBimestresActivos()
+        ]);
       } catch (error) {
         console.error('Error inicializando la aplicación:', error);
       } finally {
@@ -21,7 +28,7 @@ const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
     };
 
     initializeApp();
-  }, [loadSession]);
+  }, [loadSession, fetchBimestreActual, fetchBimestresActivos]);
 
   // Mostrar loading mientras se carga la sesión
   if (!isInitialized || isLoading) {

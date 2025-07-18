@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
-import { Bars3Icon, XMarkIcon, UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { useBimestreStore } from '../../store/bimestre.store';
+import { Bars3Icon, XMarkIcon, UserIcon, ArrowRightOnRectangleIcon, CalendarIcon } from '@heroicons/react/24/outline';
 
 const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { bimestreSeleccionado } = useBimestreStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const handleLogout = async () => {
     try {
@@ -30,9 +32,9 @@ const Navbar: React.FC = () => {
     { path: '/usuarios', label: 'Usuarios', icon: '👥' },
     { path: '/carga-datos', label: 'Carga de Datos', icon: '📁' },
     { path: '/programacion', label: 'Programación', icon: '📅' },
-    { path: '/recursos', label: 'Recursos', icon: '📚' },
+
     { path: '/reportes', label: 'Reportes', icon: '📊' },
-    { path: '/aprobaciones', label: 'Aprobaciones', icon: '✅' },
+
   ];return (
     <>
       {/* Header superior amarillo */}
@@ -43,6 +45,24 @@ const Navbar: React.FC = () => {
             <span className="font-bold text-lg">Sistema de Planificación Académica</span>
           </div>
           <div className="flex items-center space-x-6">
+            {/* Indicador de Bimestre Seleccionado */}
+            {bimestreSeleccionado && (
+              <div 
+                className="flex items-center space-x-2 text-sm bg-black bg-opacity-10 px-3 py-1 rounded-md"
+                data-bimestre-id={bimestreSeleccionado.id}
+                data-bimestre-nombre={bimestreSeleccionado.nombre}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                <span className="font-medium">
+                  {bimestreSeleccionado.nombre}
+                </span>
+                <span className="text-xs opacity-75">
+                  ({new Date(bimestreSeleccionado.fechaInicio).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - 
+                  {new Date(bimestreSeleccionado.fechaFin).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })})
+                </span>
+              </div>
+            )}
+            
             <Link 
               to="/perfil"
               className="flex items-center space-x-2 text-sm hover:underline transition-colors duration-200"

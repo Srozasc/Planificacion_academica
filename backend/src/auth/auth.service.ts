@@ -6,6 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { TokenPayloadDto, LoginResponseDto } from './dto/token-payload.dto';
+import { UsersService } from '../users/users.service'; // Importar UsersService
 
 @Injectable()
 export class AuthService {
@@ -13,39 +14,54 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private readonly usersService: UsersService, // Inyectar UsersService
   ) {}
+
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
     // Primero obtener el usuario y su hash almacenado
-    const [userResult] = await this.entityManager.query(
-      `SELECT u.id, u.password_hash, u.name, u.is_active, r.name as role_name 
+    const [userResultInitial] = await this.entityManager.query(
+      `SELECT u.id, u.password_hash, u.name, u.is_active, u.role_id, u.role_expires_at, u.previous_role_id, r.name as role_name 
        FROM users u 
        INNER JOIN roles r ON u.role_id = r.id 
        WHERE u.email_institucional = ?`,
       [loginDto.email_institucional]
     );
 
-    if (!userResult) {
+    if (!userResultInitial) {
       throw new UnauthorizedException('Usuario no encontrado');
     }
 
-    if (!userResult.is_active) {
+    if (!userResultInitial.is_active) {
       throw new UnauthorizedException('Cuenta deshabilitada');
     }
 
     // Verificar la contraseña usando bcrypt.compare
-    const isPasswordValid = await bcrypt.compare(loginDto.password, userResult.password_hash);
+    const isPasswordValid = await bcrypt.compare(loginDto.password, userResultInitial.password_hash);
     
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales inválidas');
-    }    // Obtener permisos del usuario
+    }
+
+    // *** Lógica para verificar y revertir rol temporal ***
+    await this.usersService.checkAndRevertExpiredRole(userResultInitial.id);
+
+    // Obtener los datos del usuario actualizados después de la posible reversión del rol
+    const userResult = await this.usersService.findOne(userResultInitial.id);
+
+    if (!userResult) {
+      // Esto no debería pasar si userResultInitial existía, pero es una buena práctica
+      throw new UnauthorizedException('Error al obtener datos de usuario actualizados');
+    }
+
+    // Obtener permisos del usuario con el rol actualizado
     const permissions = await this.getUserPermissions(userResult.id);
     
-    // Crear payload del JWT
+    // Crear payload del JWT con los datos actualizados
     const payload: TokenPayloadDto = {
       userId: userResult.id,
-      email: loginDto.email_institucional,
+      email: userResult.emailInstitucional,
       name: userResult.name,
-      role: userResult.role_name,
+      role: userResult.roleName, // Usar el roleName actualizado
       permissions: permissions.map(p => p.permission_name),
     };
 
@@ -56,13 +72,15 @@ export class AuthService {
       access_token,
       user: {
         id: userResult.id,
-        email: loginDto.email_institucional,
+        email: userResult.emailInstitucional,
         name: userResult.name,
-        role: userResult.role_name,
+        role: userResult.roleName, // Usar el roleName actualizado
         permissions: permissions.map(p => p.permission_name),
       },
     };
-  }  async getUserPermissions(userId: number): Promise<Array<{permission_name: string, permission_description: string}>> {
+  }
+
+  async getUserPermissions(userId: number): Promise<Array<{permission_name: string, permission_description: string}>> {
     const result = await this.entityManager.query('CALL sp_GetUserPermissions(?)', [userId]);
     
     // Los stored procedures pueden devolver arrays anidados en TypeORM

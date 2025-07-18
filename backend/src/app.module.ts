@@ -6,6 +6,9 @@ import { BimestresModule } from './bimestres/bimestres.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { CommonModule } from './common/common.module';
 import { UsersModule } from './users/users.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { AdolModule } from './adol/adol.module';
+import { DolModule } from './dol/dol.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({  imports: [
@@ -17,6 +20,9 @@ import { ConfigModule } from '@nestjs/config';
     BimestresModule,  // Academic semester configuration
     SchedulingModule, // Event scheduling and calendar management
     UsersModule,      // User management
+    UploadsModule,    // File upload management
+    AdolModule,       // ADOL positions management
+    DolModule,        // DOL positions management
   ],
   controllers: [AppController],
   providers: [AppService],

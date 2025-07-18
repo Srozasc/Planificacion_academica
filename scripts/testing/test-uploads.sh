@@ -114,10 +114,7 @@ echo ""
 
 echo -e "${BLUE}🔧 Pruebas de Endpoints de Utilidad${NC}"
 
-# Templates
-test_endpoint "GET" "/uploads/templates" 200 "Obtener todas las plantillas"
-test_endpoint "GET" "/uploads/templates?type=academic-structures" 200 "Obtener plantilla específica"
-test_endpoint "GET" "/uploads/templates?type=invalid-type" 200 "Plantilla con tipo inválido (debería retornar todas)"
+
 
 # Health check
 test_endpoint "GET" "/uploads/admin/health" 200 "Health check del sistema"
