@@ -105,7 +105,6 @@ export enum ModuleType {
   SCHEDULING = 'scheduling',
   ACADEMIC = 'academic',
   TEACHERS = 'teachers',
-  PAYMENT_CODES = 'payment_codes',
   COURSE_REPORTS = 'course_reports',
   REPORTS = 'reports',
   APPROVAL = 'approval'

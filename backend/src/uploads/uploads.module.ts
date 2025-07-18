@@ -5,6 +5,10 @@ import { UploadsController } from './uploads.controller';
 import { UploadService } from './uploads.service';
 import { StagingAdolSimple } from '../adol/entities/adol-position.entity';
 import { StagingDol } from '../dol/entities/dol-position.entity';
+import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inicio.entity';
+import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
+import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
+import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
 import { DolModule } from '../dol/dol.module';
 import { ResponseService } from '../common/services/response.service';
 import { multerConfig } from './config/multer.config';
@@ -14,6 +18,10 @@ import { multerConfig } from './config/multer.config';
     TypeOrmModule.forFeature([
       StagingAdolSimple,
       StagingDol,
+      StagingVacantesInicio,
+      StagingEstructuraAcademica,
+      StagingReporteCursables,
+      StagingNominaDocentes,
     ]),
     MulterModule.register(multerConfig),
     DolModule,

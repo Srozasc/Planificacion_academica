@@ -33,9 +33,10 @@ export interface ValidationResult {
 
 export interface SystemStats {
   staging_adol_simple: number;
+  staging_dol: number;
+  staging_vacantes_inicio: number;
   academic_structures: number;
   teachers: number;
-  payment_codes: number;
   course_reports: number;
 }
 
@@ -59,6 +60,7 @@ export const uploadService = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 300000, // 5 minutos para cargas de archivos grandes
       });      return {
         success: response.data.success || true,
         message: response.data.message || 'Archivo procesado exitosamente',
@@ -90,6 +92,7 @@ export const uploadService = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 300000, // 5 minutos para validaciones de archivos grandes
       });
 
       return {
@@ -142,23 +145,27 @@ export const uploadService = {
   },
 
   // Legacy methods for backward compatibility
-  async uploadAcademicStructure(file: File): Promise<UploadResult> {
-    return this.uploadFile('academic-structures', file);
+  async uploadAcademicStructure(file: File, options: { bimestreId: number }): Promise<UploadResult> {
+    return this.uploadFile('estructura-academica', file, options);
   },
 
-  async uploadCourseReports(file: File): Promise<UploadResult> {
-    return this.uploadFile('course-reports', file);
+  async uploadReporteCursables(file: File): Promise<UploadResult> {
+    return this.uploadFile('reporte-cursables', file);
   },
 
-  async uploadTeachers(file: File): Promise<UploadResult> {
-    return this.uploadFile('teachers', file);
+  async uploadTeachers(file: File, options: { bimestreId: number }): Promise<UploadResult> {
+    return this.uploadFile('nomina-docentes', file, options);
   },
 
-  async uploadPaymentCodes(file: File): Promise<UploadResult> {
-    return this.uploadFile('payment-codes', file);
+  async uploadNominaDocentes(file: File, options: { bimestreId: number }): Promise<UploadResult> {
+    return this.uploadFile('nomina-docentes', file, options);
   },
 
   async uploadDol(file: File): Promise<UploadResult> {
     return this.uploadFile('dol', file);
+  },
+
+  async uploadVacantesInicio(file: File): Promise<UploadResult> {
+    return this.uploadFile('vacantes-inicio', file);
   }
 };

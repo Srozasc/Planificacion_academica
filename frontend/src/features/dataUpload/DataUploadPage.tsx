@@ -62,34 +62,25 @@ const DataUploadPage: React.FC = () => {
       icon: '🏛️',
       format: '.xlsx',
       templateName: 'estructura_academica_template.xlsx',
-      endpoint: 'academic-structures'
+      endpoint: 'estructura-academica'
     },
     {
-      id: 'course-reports',
+      id: 'reporte-cursables',
       name: 'Reporte de Cursables',
       description: 'Asignaturas disponibles para programar en el período',
       icon: '📚',
       format: '.xlsx',
       templateName: 'reporte_cursables_template.xlsx',
-      endpoint: 'course-reports'
+      endpoint: 'reporte-cursables'
     },
     {
-      id: 'teachers',
+      id: 'nomina-docentes',
       name: 'Nómina de Docentes',
-      description: 'Información de profesores y sus categorías',
+      description: 'Información de profesores con DOCENTE, ID DOCENTE y RUT DOCENTE',
       icon: '👨‍🏫',
       format: '.xlsx',
       templateName: 'nomina_docentes_template.xlsx',
-      endpoint: 'teachers'
-    },
-    {
-      id: 'payment-codes',
-      name: 'Siglas de Pago',
-      description: 'Códigos y factores de pago para docentes',
-      icon: '💰',
-      format: '.xlsx',
-      templateName: 'siglas_pago_template.xlsx',
-      endpoint: 'payment-codes'
+      endpoint: 'nomina-docentes'
     },
     {
       id: 'adol',
@@ -364,10 +355,6 @@ const DataUploadPage: React.FC = () => {
               <span>Docentes: {systemStats.teachers}</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-1">💰</span>
-              <span>Códigos de pago: {systemStats.payment_codes}</span>
-            </div>
-            <div className="flex items-center">
               <span className="mr-1">📚</span>
               <span>Reportes de curso: {systemStats.course_reports}</span>
             </div>
@@ -382,7 +369,7 @@ const DataUploadPage: React.FC = () => {
       {/* File Type Selection */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Seleccionar Tipo de Archivo</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {fileTypes.map((type) => (
             <div
               key={type.id}

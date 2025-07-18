@@ -161,6 +161,203 @@ export class UploadsController {
     }
   }
 
+  @Post('vacantes-inicio')
+  @Roles('Maestro', 'Editor')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadVacantesInicio(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+  ) {
+    try {
+      this.logger.log('=== INICIO PROCESO VACANTES INICIO ===');
+      this.logger.log(`Archivo recibido: ${file ? file.originalname : 'NO FILE'}`);
+      this.logger.log(`Tamaño archivo: ${file ? file.size : 'N/A'} bytes`);
+      this.logger.log(`Body completo recibido:`, JSON.stringify(body));
+      this.logger.log(`BimestreId recibido: '${body.bimestreId}' (tipo: ${typeof body.bimestreId})`);
+      
+      if (!file) {
+        this.logger.error('ERROR: No se ha proporcionado ningún archivo');
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      if (!body.bimestreId) {
+        this.logger.error('ERROR: El ID del bimestre es requerido');
+        throw new BadRequestException('El ID del bimestre es requerido');
+      }
+
+      const bimestreIdNum = parseInt(body.bimestreId, 10);
+      this.logger.log(`BimestreId convertido a número: ${bimestreIdNum}`);
+      
+      if (isNaN(bimestreIdNum)) {
+        this.logger.error(`ERROR: BimestreId inválido: '${body.bimestreId}'`);
+        throw new BadRequestException('El ID del bimestre debe ser un número válido');
+      }
+
+      const validateOnly = body.validateOnly === 'true';
+      const mode = body.mode || 'UPSERT';
+      
+      this.logger.log(`Parámetros procesados - Mode: ${mode}, ValidateOnly: ${validateOnly}, BimestreId: ${bimestreIdNum}`);
+
+      const result = await this.uploadService.processVacantesInicio(
+        file,
+        { mode, validateOnly, bimestreId: bimestreIdNum },
+      );
+
+      this.logger.log('=== RESULTADO PROCESO VACANTES INICIO ===');
+      this.logger.log(`Total registros: ${result.summary?.totalRecords || 'N/A'}`);
+      this.logger.log(`Registros válidos: ${result.summary?.validRecords || 'N/A'}`);
+      this.logger.log(`Registros inválidos: ${result.summary?.invalidRecords || 'N/A'}`);
+      this.logger.log('=== FIN PROCESO VACANTES INICIO ===');
+
+      return this.responseService.success(
+        result,
+        validateOnly
+          ? 'Archivo validado exitosamente'
+          : 'Vacantes Inicio cargadas exitosamente',
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR EN PROCESO VACANTES INICIO ===');
+      this.logger.error('Error al procesar Vacantes Inicio:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      return this.responseService.error(
+        'Error al procesar Vacantes Inicio',
+        [error.message],
+      );
+    }
+  }
+
+  @Post('estructura-academica')
+  @Roles('Maestro', 'Editor')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadEstructuraAcademica(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+  ) {
+    try {
+      this.logger.log('=== INICIO PROCESO ESTRUCTURA ACADEMICA ===');
+      this.logger.log(`Archivo recibido: ${file ? file.originalname : 'NO FILE'}`);
+      this.logger.log(`Tamaño archivo: ${file ? file.size : 'N/A'} bytes`);
+      this.logger.log(`Body completo recibido:`, JSON.stringify(body));
+      this.logger.log(`BimestreId recibido: '${body.bimestreId}' (tipo: ${typeof body.bimestreId})`);
+      
+      if (!file) {
+        this.logger.error('ERROR: No se ha proporcionado ningún archivo');
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      if (!body.bimestreId) {
+        this.logger.error('ERROR: El ID del bimestre es requerido');
+        throw new BadRequestException('El ID del bimestre es requerido');
+      }
+
+      const bimestreIdNum = parseInt(body.bimestreId, 10);
+      this.logger.log(`BimestreId convertido a número: ${bimestreIdNum}`);
+      
+      if (isNaN(bimestreIdNum)) {
+        this.logger.error(`ERROR: BimestreId inválido: '${body.bimestreId}'`);
+        throw new BadRequestException('El ID del bimestre debe ser un número válido');
+      }
+
+      const validateOnly = body.validateOnly === 'true';
+      const mode = body.mode || 'UPSERT';
+      
+      this.logger.log(`Parámetros procesados - Mode: ${mode}, ValidateOnly: ${validateOnly}, BimestreId: ${bimestreIdNum}`);
+
+      const result = await this.uploadService.processEstructuraAcademica(
+        file,
+        { mode, validateOnly, bimestreId: bimestreIdNum },
+      );
+
+      this.logger.log('=== RESULTADO PROCESO ESTRUCTURA ACADEMICA ===');
+      this.logger.log(`Total registros: ${result.summary?.totalRecords || 'N/A'}`);
+      this.logger.log(`Registros válidos: ${result.summary?.validRecords || 'N/A'}`);
+      this.logger.log(`Registros inválidos: ${result.summary?.invalidRecords || 'N/A'}`);
+      this.logger.log('=== FIN PROCESO ESTRUCTURA ACADEMICA ===');
+
+      return this.responseService.success(
+        result,
+        validateOnly
+          ? 'Archivo validado exitosamente'
+          : 'Estructura Académica cargada exitosamente',
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR EN PROCESO ESTRUCTURA ACADEMICA ===');
+      this.logger.error('Error al procesar Estructura Académica:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      return this.responseService.error(
+        'Error al procesar Estructura Académica',
+        [error.message],
+      );
+    }
+  }
+
+  @Post('reporte-cursables')
+  @Roles('Maestro', 'Editor')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadReporteCursables(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+  ) {
+    try {
+      this.logger.log('=== INICIO PROCESO REPORTE CURSABLES ===');
+      this.logger.log(`Archivo recibido: ${file ? file.originalname : 'NO FILE'}`);
+      this.logger.log(`Tamaño archivo: ${file ? file.size : 'N/A'} bytes`);
+      this.logger.log(`Body completo recibido:`, JSON.stringify(body));
+      this.logger.log(`BimestreId recibido: '${body.bimestreId}' (tipo: ${typeof body.bimestreId})`);
+      
+      if (!file) {
+        this.logger.error('ERROR: No se ha proporcionado ningún archivo');
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      if (!body.bimestreId) {
+        this.logger.error('ERROR: BimestreId es requerido');
+        throw new BadRequestException('BimestreId es requerido');
+      }
+
+      const bimestreId = parseInt(body.bimestreId, 10);
+      if (isNaN(bimestreId)) {
+        this.logger.error(`ERROR: BimestreId inválido: '${body.bimestreId}'`);
+        throw new BadRequestException('BimestreId debe ser un número válido');
+      }
+
+      this.logger.log(`BimestreId parseado correctamente: ${bimestreId}`);
+
+      const options = {
+        mode: body.mode || 'full',
+        validateOnly: body.validateOnly === 'true',
+        bimestreId: bimestreId,
+      };
+
+      this.logger.log(`Opciones finales para el servicio:`, JSON.stringify(options));
+
+      const result = await this.uploadService.processReporteCursables(file, options);
+      
+      this.logger.log('=== RESULTADO FINAL CONTROLLER REPORTE CURSABLES ===');
+      this.logger.log(JSON.stringify(result, null, 2));
+
+      if (result.success) {
+        return this.responseService.success(
+          result,
+          result.message || 'Reporte Cursables procesado exitosamente',
+        );
+      } else {
+        return this.responseService.error(
+          result.message || 'Error procesando Reporte Cursables',
+          result.errors || [],
+        );
+      }
+    } catch (error) {
+      this.logger.error('=== ERROR EN CONTROLLER REPORTE CURSABLES ===');
+      this.logger.error('Error en uploadReporteCursables:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      return this.responseService.error(
+        'Error interno del servidor al procesar Reporte Cursables',
+        [error.message],
+      );
+    }
+  }
+
   @Get('admin/stats')
   @Roles('Maestro')
   async getSystemStats() {
@@ -192,6 +389,78 @@ export class UploadsController {
       this.logger.error('Error al verificar estado del sistema', error);
       return this.responseService.error(
         'Error al verificar estado del sistema',
+        [error.message],
+      );
+    }
+  }
+
+  @Post('nomina-docentes')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  @Roles('Maestro', 'Editor')
+  async uploadNominaDocentes(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+  ) {
+    try {
+      this.logger.log('=== INICIO PROCESO NOMINA DOCENTES ===');
+      this.logger.log(`Archivo recibido: ${file ? file.originalname : 'NO FILE'}`);
+      this.logger.log(`Tamaño archivo: ${file ? file.size : 'N/A'} bytes`);
+      this.logger.log(`Body completo recibido:`, JSON.stringify(body));
+      this.logger.log(`BimestreId recibido: '${body.bimestreId}' (tipo: ${typeof body.bimestreId})`);
+      
+      if (!file) {
+        this.logger.error('ERROR: No se ha proporcionado ningún archivo');
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      if (!body.bimestreId) {
+        this.logger.error('ERROR: El ID del bimestre es requerido');
+        throw new BadRequestException('El ID del bimestre es requerido');
+      }
+
+      const bimestreId = parseInt(body.bimestreId, 10);
+      if (isNaN(bimestreId)) {
+        this.logger.error(`ERROR: BimestreId inválido: '${body.bimestreId}'`);
+        throw new BadRequestException('El ID del bimestre debe ser un número válido');
+      }
+
+      this.logger.log(`BimestreId parseado correctamente: ${bimestreId}`);
+
+      const options = {
+        mode: body.mode || 'full',
+        validateOnly: body.validateOnly === 'true',
+        bimestreId: bimestreId,
+      };
+
+      this.logger.log(`Opciones finales para el servicio:`, JSON.stringify(options));
+      this.logger.log('Llamando al servicio processNominaDocentes...');
+      
+      const result = await this.uploadService.processNominaDocentes(file, options);
+      
+      this.logger.log('=== RESULTADO DEL SERVICIO ===');
+      this.logger.log('Resultado recibido del servicio:', JSON.stringify(result, null, 2));
+      
+      if (result.success) {
+        this.logger.log('=== PROCESO EXITOSO ===');
+        return this.responseService.success(
+          result,
+          result.message,
+        );
+      } else {
+        this.logger.error('=== PROCESO CON ERRORES ===');
+        this.logger.error('Errores:', result.errors);
+        return this.responseService.error(
+          result.message,
+          result.errors || [],
+        );
+      }
+    } catch (error) {
+      this.logger.error('=== ERROR EN CONTROLADOR NOMINA DOCENTES ===');
+      this.logger.error('Error en uploadNominaDocentes:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error interno del servidor',
         [error.message],
       );
     }

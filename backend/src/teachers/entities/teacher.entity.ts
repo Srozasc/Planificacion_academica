@@ -30,10 +30,10 @@ export class Teacher {
   @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Universidad de origen del título' })
   university?: string;
 
-  @Column({ type: 'int', nullable: true, comment: 'ID de categoría docente (FK a payment_codes)' })
+  @Column({ type: 'int', nullable: true, comment: 'ID de categoría docente' })
   category_id?: number;
 
-  @Column({ type: 'int', nullable: true, comment: 'ID tipo de contrato (FK a payment_codes)' })
+  @Column({ type: 'int', nullable: true, comment: 'ID tipo de contrato' })
   contract_type_id?: number;
 
   @Column({ type: 'date', nullable: true, comment: 'Fecha de contratación' })
