@@ -57,8 +57,15 @@ const Navbar: React.FC = () => {
                   {bimestreSeleccionado.nombre}
                 </span>
                 <span className="text-xs opacity-75">
-                  ({new Date(bimestreSeleccionado.fechaInicio).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - 
-                  {new Date(bimestreSeleccionado.fechaFin).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })})
+                  ({(() => {
+                    const parseLocalDate = (dateString: string): Date => {
+                      const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+                      return new Date(year, month - 1, day);
+                    };
+                    const fechaInicio = parseLocalDate(bimestreSeleccionado.fechaInicio).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                    const fechaFin = parseLocalDate(bimestreSeleccionado.fechaFin).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
+                    return `${fechaInicio} - ${fechaFin}`;
+                  })()})
                 </span>
               </div>
             )}

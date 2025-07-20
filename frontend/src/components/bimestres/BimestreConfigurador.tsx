@@ -95,8 +95,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     );
 
     if (resultado.hasOverlap && resultado.conflictingBimestre) {
-      const fechaInicio = new Date(resultado.conflictingBimestre.fechaInicio).toLocaleDateString('es-ES');
-      const fechaFin = new Date(resultado.conflictingBimestre.fechaFin).toLocaleDateString('es-ES');
+      const fechaInicio = parseLocalDate(resultado.conflictingBimestre.fechaInicio).toLocaleDateString('es-ES');
+        const fechaFin = parseLocalDate(resultado.conflictingBimestre.fechaFin).toLocaleDateString('es-ES');
       setAdvertenciaSolapamiento({
         mostrar: true,
         mensaje: `Las fechas se solapan con "${resultado.conflictingBimestre.nombre}" (${fechaInicio} - ${fechaFin})`,
@@ -141,11 +141,29 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     }
   };
 
+  // Función para parsear fechas sin problemas de zona horaria
+  const parseLocalDate = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+    return new Date(year, month - 1, day);
+  };
+
+  // Función para formatear fecha para input type="date"
+  const formatDateForInput = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = parseLocalDate(dateString);
+      return date.toISOString().split('T')[0];
+    } catch (error) {
+      console.error('Error al formatear fecha para input:', error);
+      return '';
+    }
+  };
+
   const handleEditarBimestre = (bimestre: Bimestre) => {
     setFormData({
       nombre: bimestre.nombre,
-      fechaInicio: bimestre.fechaInicio,
-      fechaFin: bimestre.fechaFin,
+      fechaInicio: formatDateForInput(bimestre.fechaInicio),
+      fechaFin: formatDateForInput(bimestre.fechaFin),
       anoAcademico: bimestre.anoAcademico,
       numeroBimestre: bimestre.numeroBimestre,
       descripcion: bimestre.descripcion || ''
@@ -378,8 +396,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                         {bimestre.nombre}
                       </div>
                       <div className="text-sm text-gray-600">
-                        {new Date(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {' '}
-                        {new Date(bimestre.fechaFin).toLocaleDateString('es-ES')} • Año {bimestre.anoAcademico} • Bimestre {bimestre.numeroBimestre}
+                        {parseLocalDate(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {' '}
+                {parseLocalDate(bimestre.fechaFin).toLocaleDateString('es-ES')} • Año {bimestre.anoAcademico} • Bimestre {bimestre.numeroBimestre}
                       </div>
                       {bimestre.descripcion && (
                         <div className="text-sm text-gray-500 mt-1">

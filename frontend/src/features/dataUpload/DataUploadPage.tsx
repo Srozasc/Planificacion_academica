@@ -37,6 +37,7 @@ interface RecentUpload {
   filename: string;
   type: string;
   date: string;
+  bimestre: string;
   status: 'Exitoso' | 'Con errores' | 'Error';
   records: number;
   errors?: number;
@@ -52,7 +53,7 @@ const DataUploadPage: React.FC = () => {
   const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   
-  const { bimestres, fetchBimestresActivos } = useBimestreStore();
+  const { bimestres, bimestreSeleccionado, fetchBimestresActivos } = useBimestreStore();
 
   const fileTypes: FileType[] = [
     {
@@ -123,6 +124,13 @@ const DataUploadPage: React.FC = () => {
   //   // Ya no es necesario limpiar la selección ya que todos requieren bimestre
   // }, [selectedFileType]);
 
+  // Inicializar con el bimestre seleccionado en el navbar
+  useEffect(() => {
+    if (bimestreSeleccionado && !selectedBimestreId) {
+      setSelectedBimestreId(bimestreSeleccionado.id);
+    }
+  }, [bimestreSeleccionado, selectedBimestreId]);
+
   const loadSystemStats = async () => {
     try {
       const stats = await uploadService.getSystemStats();
@@ -139,6 +147,7 @@ const DataUploadPage: React.FC = () => {
         filename: 'estructura_academica_2025.xlsx',
         type: 'Estructura Académica',
         date: '2025-06-14T10:30:00',
+        bimestre: '2025-1',
         status: 'Exitoso',
         records: 245
       },
@@ -146,6 +155,7 @@ const DataUploadPage: React.FC = () => {
         filename: 'nomina_docentes_semestre1.xlsx',
         type: 'Nómina de Docentes',
         date: '2025-06-13T15:45:00',
+        bimestre: '2025-1',
         status: 'Con errores',
         records: 89,
         errors: 3
@@ -154,6 +164,7 @@ const DataUploadPage: React.FC = () => {
         filename: 'reporte_cursables_ing.xlsx',
         type: 'Reporte de Cursables',
         date: '2025-06-12T09:15:00',
+        bimestre: '2025-2',
         status: 'Exitoso',
         records: 156
       }
@@ -336,6 +347,20 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
+  // Función para visualizar datos cargados (stub)
+  const handleViewData = (upload: RecentUpload) => {
+    console.log('Visualizar datos para:', upload.filename);
+    // TODO: Implementar modal o página para mostrar los datos cargados
+    alert(`Funcionalidad de visualización para ${upload.filename} será implementada próximamente`);
+  };
+
+  // Función para aprobar datos (stub)
+  const handleApproveData = (upload: RecentUpload) => {
+    console.log('Aprobar datos para:', upload.filename);
+    // TODO: Implementar lógica de aprobación
+    alert(`Funcionalidad de aprobación para ${upload.filename} será implementada próximamente`);
+  };
+
   return (
     <div className="data-upload-page p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -359,8 +384,16 @@ const DataUploadPage: React.FC = () => {
               <span>Reportes de curso: {systemStats.course_reports}</span>
             </div>
             <div className="flex items-center">
-              <span className="mr-1">📋</span>
+              <span className="mr-1">👔</span>
               <span>ADOL: {systemStats.staging_adol_simple}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">📋</span>
+              <span>DOL: {systemStats.staging_dol}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">🏁</span>
+              <span>Vacantes Inicio: {systemStats.staging_vacantes_inicio}</span>
             </div>
           </div>
         )}
@@ -421,11 +454,19 @@ const DataUploadPage: React.FC = () => {
                     required
                   >
                     <option value="">Selecciona un bimestre...</option>
-                    {bimestres.map((bimestre) => (
-                      <option key={bimestre.id} value={bimestre.id}>
-                        {bimestre.nombre} ({new Date(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {new Date(bimestre.fechaFin).toLocaleDateString('es-ES')})
-                      </option>
-                    ))}
+                    {bimestres.map((bimestre) => {
+                      // Función para parsear fechas sin problemas de zona horaria
+                      const parseLocalDate = (dateString: string): Date => {
+                        const date = new Date(dateString + 'T00:00:00');
+                        return date;
+                      };
+                      
+                      return (
+                        <option key={bimestre.id} value={bimestre.id}>
+                          {bimestre.nombre} ({parseLocalDate(bimestre.fechaInicio).toLocaleDateString('es-ES')} - {parseLocalDate(bimestre.fechaFin).toLocaleDateString('es-ES')})
+                        </option>
+                      );
+                    })}
                   </select>
                   {!selectedBimestreId && (
                     <p className="mt-2 text-sm text-amber-600">
@@ -626,50 +667,88 @@ const DataUploadPage: React.FC = () => {
           </div>
           <div className="p-6">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 text-xs">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Archivo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Tipo
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bimestre
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Registros
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {recentUploads.map((upload, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
                         {upload.filename}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                         {upload.type}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                         {new Date(upload.date).toLocaleString('es-ES')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {upload.bimestre}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           getStatusBadge(upload.status)
                         }`}>
                           {upload.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center space-x-2">
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                        <div className="flex items-center space-x-1">
                           <span>{upload.records}</span>
                           {upload.errors && upload.errors > 0 && (
                             <span className="text-red-500">({upload.errors} errores)</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium">
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleViewData(upload)}
+                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                            title="Visualizar datos cargados"
+                          >
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            Ver
+                          </button>
+                          {upload.status === 'Exitoso' && (
+                            <button
+                              onClick={() => handleApproveData(upload)}
+                              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                              title="Aprobar datos para uso en producción"
+                            >
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Aprobar
+                            </button>
                           )}
                         </div>
                       </td>

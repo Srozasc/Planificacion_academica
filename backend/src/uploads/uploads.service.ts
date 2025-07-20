@@ -319,10 +319,10 @@ export class UploadService {
     const records: StagingAdolSimple[] = [];
 
     try {
-      // Limpiar datos existentes para este bimestre
-      this.logger.log(`Eliminando registros existentes para bimestre ${bimestreId}...`);
-      const deleteResult = await this.stagingAdolRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      // Limpiar todos los datos existentes en la tabla staging
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_adol_simple...');
+      await this.stagingAdolRepository.clear();
+      this.logger.log('Tabla staging_adol_simple limpiada completamente');
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       for (let i = 0; i < data.length; i++) {
@@ -432,10 +432,10 @@ export class UploadService {
     const records: StagingDol[] = [];
 
     try {
-      // Limpiar datos existentes para este bimestre
-      this.logger.log(`Eliminando registros existentes para bimestre ${bimestreId}...`);
-      const deleteResult = await this.stagingDolRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      // Limpiar todos los datos existentes en la tabla staging
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_dol...');
+      await this.stagingDolRepository.clear();
+      this.logger.log('Tabla staging_dol limpiada completamente');
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       for (let i = 0; i < data.length; i++) {
@@ -625,10 +625,10 @@ export class UploadService {
     const records: StagingVacantesInicio[] = [];
 
     try {
-      // Limpiar datos existentes para este bimestre
-      this.logger.log(`Eliminando registros existentes para bimestre ${bimestreId}...`);
-      const deleteResult = await this.stagingVacantesInicioRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      // Limpiar todos los datos existentes en la tabla staging
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_vacantes_inicio...');
+      await this.stagingVacantesInicioRepository.clear();
+      this.logger.log('Tabla staging_vacantes_inicio limpiada completamente');
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       
@@ -839,11 +839,11 @@ export class UploadService {
 
   private async clearEstructuraAcademicaData(bimestreId: number): Promise<void> {
     this.logger.log('=== INICIO CLEAR ESTRUCTURA ACADEMICA DATA ===');
-    this.logger.log(`Limpiando datos existentes para bimestre: ${bimestreId}`);
+    this.logger.log('Limpiando todos los datos existentes de la tabla staging_estructura_academica...');
 
     try {
-      const deleteResult = await this.stagingEstructuraAcademicaRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      await this.stagingEstructuraAcademicaRepository.clear();
+      this.logger.log('Tabla staging_estructura_academica limpiada completamente');
       this.logger.log('=== CLEAR ESTRUCTURA ACADEMICA DATA COMPLETADO ===');
     } catch (error) {
       this.logger.error('=== ERROR EN CLEAR ESTRUCTURA ACADEMICA DATA ===');
@@ -1104,10 +1104,10 @@ export class UploadService {
     const records: StagingReporteCursables[] = [];
 
     try {
-      // Limpiar datos existentes para este bimestre
-      this.logger.log(`Eliminando registros existentes para bimestre ${bimestreId}...`);
-      const deleteResult = await this.stagingReporteCursablesRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      // Limpiar todos los datos existentes en la tabla staging
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_reporte_cursables...');
+      await this.stagingReporteCursablesRepository.clear();
+      this.logger.log('Tabla staging_reporte_cursables limpiada completamente');
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       for (let i = 0; i < data.length; i++) {
@@ -1318,10 +1318,10 @@ export class UploadService {
     const records: StagingNominaDocentes[] = [];
 
     try {
-      // Limpiar datos existentes para este bimestre
-      this.logger.log(`Eliminando registros existentes para bimestre ${bimestreId}...`);
-      const deleteResult = await this.stagingNominaDocentesRepository.delete({ id_bimestre: bimestreId });
-      this.logger.log(`Registros eliminados: ${deleteResult.affected || 0}`);
+      // Limpiar todos los datos existentes en la tabla staging
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_nomina_docentes...');
+      await this.stagingNominaDocentesRepository.clear();
+      this.logger.log('Tabla staging_nomina_docentes limpiada completamente');
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       for (let i = 0; i < data.length; i++) {

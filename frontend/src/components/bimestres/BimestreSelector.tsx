@@ -45,12 +45,18 @@ const BimestreSelector: React.FC<BimestreSelectorProps> = ({
     seleccionarBimestre(bimestre);
     onBimestreChange?.(bimestre?.id || null);
   };
+  // Función para parsear fechas sin conversión de zona horaria
+  const parseLocalDate = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+    return new Date(year, month - 1, day); // month-1 porque Date usa índices 0-11
+  };
+
   const formatBimestreOption = (bimestre: Bimestre) => {
-    const fechaInicio = new Date(bimestre.fechaInicio).toLocaleDateString('es-ES', {
+    const fechaInicio = parseLocalDate(bimestre.fechaInicio).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric'
     });
-    const fechaFin = new Date(bimestre.fechaFin).toLocaleDateString('es-ES', {
+    const fechaFin = parseLocalDate(bimestre.fechaFin).toLocaleDateString('es-ES', {
       month: 'short',
       day: 'numeric'
     });

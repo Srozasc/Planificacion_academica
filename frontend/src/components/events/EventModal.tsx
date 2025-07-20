@@ -52,8 +52,13 @@ const EventModal: React.FC<EventModalProps> = ({
     if (!dateString) return '';
     
     try {
-      // Usar la misma lógica que BimestreSelector: new Date() directamente
-      const date = new Date(dateString);
+      // Función para parsear fechas sin problemas de zona horaria
+      const parseLocalDate = (dateString: string): Date => {
+        const date = new Date(dateString + 'T00:00:00');
+        return date;
+      };
+      
+      const date = parseLocalDate(dateString);
       // Convertir a formato YYYY-MM-DD para inputs
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -202,9 +207,15 @@ const EventModal: React.FC<EventModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (editingEvent) {
+        // Función para parsear fechas sin problemas de zona horaria
+        const parseLocalDate = (dateString: string): Date => {
+          const date = new Date(dateString + 'T00:00:00');
+          return date;
+        };
+        
         // Extraer datos del evento para editar
-        const startDate = new Date(editingEvent.start);
-        const endDate = new Date(editingEvent.end);
+        const startDate = parseLocalDate(editingEvent.start.split('T')[0]);
+        const endDate = parseLocalDate(editingEvent.end.split('T')[0]);
         
         // Extraer el correlativo del título existente si es posible
         const titleMatch = editingEvent.title.match(/ - (\d{3})$/);
