@@ -115,25 +115,7 @@ describe('uploadService', () => {
     expect(result).toEqual(mockResponse.data);
   });
 
-  it('should cleanup files successfully', async () => {
-    const mockResponse = { data: { message: 'Limpieza de archivos completada exitosamente' } };
-    (apiClient.delete as jest.Mock).mockResolvedValue(mockResponse);
 
-    const result = await uploadService.cleanupFiles('temp');
-
-    expect(apiClient.delete).toHaveBeenCalledWith('/uploads/admin/cleanup/temp');
-    expect(result).toEqual(mockResponse.data);
-  });
-
-  it('should cleanup all files successfully if no type is provided', async () => {
-    const mockResponse = { data: { success: true, message: 'Limpieza de archivos completada exitosamente' } };
-    (apiClient.delete as jest.Mock).mockResolvedValue(mockResponse);
-
-    const result = await uploadService.cleanupFiles();
-
-    expect(apiClient.delete).toHaveBeenCalledWith('/uploads/admin/cleanup');
-    expect(result).toEqual(mockResponse.data);
-  });
 
   // Pruebas específicas para el comportamiento de limpieza completa de tablas staging
   describe('Staging table complete replacement behavior', () => {

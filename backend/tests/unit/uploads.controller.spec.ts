@@ -24,7 +24,7 @@ describe('UploadsController', () => {
             processNominaDocentes: jest.fn(),
             getSystemStats: jest.fn(),
             getSystemHealth: jest.fn(),
-            cleanupFiles: jest.fn(),
+        
           },
         },
         {

@@ -1359,11 +1359,5 @@ export class UploadService {
     }
   }
 
-  async cleanupFiles(type?: string): Promise<any> {
-    // Implementar lógica de limpieza de archivos temporales
-    return {
-      message: 'Limpieza completada',
-      filesRemoved: 0,
-    };
-  }
+
 }

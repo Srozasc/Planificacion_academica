@@ -178,27 +178,7 @@ REM ================================================
 
 echo [94m🔧 Pruebas de Administración[0m
 
-echo [93mTesting:[0m Limpieza manual global
-curl -s -o nul -w "%%{http_code}" -X DELETE "%BASE_URL%/uploads/admin/cleanup" > temp_response.txt
-set /p response_code=<temp_response.txt
-del temp_response.txt
-if "%response_code%"=="200" (
-    echo [92m✅ PASS[0m - Limpieza manual global ^(HTTP %response_code%^)
-) else (
-    echo [91m❌ FAIL[0m - Limpieza manual global ^(Expected HTTP 200, got HTTP %response_code%^)
-)
-echo.
 
-echo [93mTesting:[0m Limpieza de archivos temporales
-curl -s -o nul -w "%%{http_code}" -X DELETE "%BASE_URL%/uploads/admin/cleanup/temp" > temp_response.txt
-set /p response_code=<temp_response.txt
-del temp_response.txt
-if "%response_code%"=="200" (
-    echo [92m✅ PASS[0m - Limpieza de archivos temporales ^(HTTP %response_code%^)
-) else (
-    echo [91m❌ FAIL[0m - Limpieza de archivos temporales ^(Expected HTTP 200, got HTTP %response_code%^)
-)
-echo.
 
 REM ================================================
 REM RESUMEN FINAL

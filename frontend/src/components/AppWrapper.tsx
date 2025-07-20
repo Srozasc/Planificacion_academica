@@ -7,7 +7,7 @@ interface AppWrapperProps {
 }
 
 const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
-  const { loadSession, isLoading } = useAuthStore();
+  const { loadSession, isLoading, isAuthenticated } = useAuthStore();
   const { fetchBimestreActual, fetchBimestresActivos } = useBimestreStore();
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -15,20 +15,33 @@ const AppWrapper: React.FC<AppWrapperProps> = ({ children }) => {
     const initializeApp = async () => {
       try {
         await loadSession();
-        // Cargar bimestres después de cargar la sesión
-        await Promise.all([
-          fetchBimestreActual(),
-          fetchBimestresActivos()
-        ]);
       } catch (error) {
-        console.error('Error inicializando la aplicación:', error);
+        console.error('Error cargando sesión:', error);
       } finally {
         setIsInitialized(true);
       }
     };
 
     initializeApp();
-  }, [loadSession, fetchBimestreActual, fetchBimestresActivos]);
+  }, [loadSession]);
+
+  // Cargar bimestres solo cuando el usuario esté autenticado
+  useEffect(() => {
+    if (isAuthenticated && isInitialized) {
+      const loadBimestres = async () => {
+        try {
+          await Promise.all([
+            fetchBimestreActual(),
+            fetchBimestresActivos()
+          ]);
+        } catch (error) {
+          console.error('Error cargando bimestres:', error);
+        }
+      };
+
+      loadBimestres();
+    }
+  }, [isAuthenticated, isInitialized, fetchBimestreActual, fetchBimestresActivos]);
 
   // Mostrar loading mientras se carga la sesión
   if (!isInitialized || isLoading) {

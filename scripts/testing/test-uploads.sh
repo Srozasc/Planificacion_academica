@@ -193,19 +193,7 @@ echo ""
 
 echo -e "${BLUE}🔧 Pruebas de Administración${NC}"
 
-# Limpieza manual
-test_endpoint "DELETE" "/uploads/admin/cleanup" 200 "Limpieza manual global"
 
-# Limpieza por tipo
-test_endpoint "DELETE" "/uploads/admin/cleanup/temp" 200 "Limpieza de archivos temporales"
-test_endpoint "DELETE" "/uploads/admin/cleanup/processed" 200 "Limpieza de archivos procesados"
-test_endpoint "DELETE" "/uploads/admin/cleanup/failed" 200 "Limpieza de archivos fallidos"
-
-# Limpieza con tipo inválido
-test_endpoint "DELETE" "/uploads/admin/cleanup/invalid-type" 400 "Limpieza con tipo inválido"
-
-# Limpieza forzada
-test_endpoint "DELETE" "/uploads/admin/cleanup/temp?force=true" 200 "Limpieza forzada de temporales"
 
 # ================================================
 # RESUMEN FINAL

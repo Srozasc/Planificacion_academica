@@ -531,13 +531,5 @@ describe('UploadService', () => {
     });
   });
 
-  describe('File cleanup', () => {
-    it('should cleanup files successfully', async () => {
-      const result = await service.cleanupFiles('temp');
 
-      expect(result).toBeDefined();
-      expect(result.message).toBe('Limpieza completada');
-      expect(typeof result.filesRemoved).toBe('number');
-    });
-  });
 });

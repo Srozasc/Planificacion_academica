@@ -466,21 +466,4 @@ export class UploadsController {
     }
   }
 
-  @Delete('admin/cleanup/:type?')
-  @Roles('Maestro')
-  async cleanupFiles(@Param('type') type?: string) {
-    try {
-      const result = await this.uploadService.cleanupFiles(type);
-      return this.responseService.success(
-        result,
-        'Limpieza de archivos completada exitosamente',
-      );
-    } catch (error) {
-      this.logger.error('Error al limpiar archivos', error);
-      return this.responseService.error(
-        'Error al limpiar archivos',
-        [error.message],
-      );
-    }
-  }
 }

@@ -132,18 +132,6 @@ export const uploadService = {
     }
   },
 
-  // Cleanup files
-  async cleanupFiles(type?: string): Promise<any> {
-    try {
-      const endpoint = type ? `/uploads/admin/cleanup/${type}` : '/uploads/admin/cleanup';
-      const response = await apiClient.delete(endpoint);
-      return response.data;
-    } catch (error: any) {
-      console.error('Cleanup error:', error);
-      throw new Error(error.response?.data?.message || 'Error al limpiar archivos');
-    }
-  },
-
   // Legacy methods for backward compatibility
   async uploadAcademicStructure(file: File, options: { bimestreId: number }): Promise<UploadResult> {
     return this.uploadFile('estructura-academica', file, options);

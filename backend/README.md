@@ -128,7 +128,7 @@ backend/
 | POST | `/validate/:type` | Validar archivo sin procesar | JWT |
 | GET | `/admin/health` | Health check del sistema | JWT |
 | GET | `/admin/stats` | Estadísticas de archivos | JWT |
-| DELETE | `/admin/cleanup` | Limpiar archivos temporales | JWT |
+
 
 ### Programación Académica (`/api/schedules`)
 
