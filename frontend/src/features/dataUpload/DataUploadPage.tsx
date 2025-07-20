@@ -258,10 +258,12 @@ const DataUploadPage: React.FC = () => {
         setUploadResult(result);
         
         // Add to recent uploads
+        const selectedBimestre = bimestres.find(b => b.id === selectedBimestreId);
         const newUpload: RecentUpload = {
           filename: file.name,
           type: fileType.name,
           date: new Date().toISOString(),
+          bimestre: selectedBimestre ? `${selectedBimestre.nombre} (${selectedBimestre.fechaInicio} - ${selectedBimestre.fechaFin})` : 'No especificado',
           status: result.success ? 'Exitoso' : 'Con errores',
           records: result.summary?.totalRecords || 0,
           errors: result.summary?.invalidRecords || 0
@@ -291,48 +293,7 @@ const DataUploadPage: React.FC = () => {
 
 
 
-  const validateOnly = async (file: File) => {
-    if (!selectedFileType) {
-      alert('Por favor selecciona el tipo de archivo primero');
-      return;
-    }
 
-    const fileType = fileTypes.find(t => t.id === selectedFileType);
-    if (!fileType) return;
-
-    // Validar bimestre (requerido para todos los tipos de archivo)
-    if (!selectedBimestreId) {
-      alert(`Por favor selecciona un bimestre para validar datos de ${fileType.name}`);
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      const validateOptions = selectedBimestreId 
-        ? { bimestreId: selectedBimestreId }
-        : {};
-      const result = await uploadService.validateFile(fileType.endpoint, file, validateOptions);
-      setUploadResult({
-        success: true,
-        message: 'Validación completada',
-        summary: result.summary
-      });
-    } catch (error) {
-      console.error('Validation error:', error);
-      setUploadResult({
-        success: false,
-        message: 'Error en la validación',
-        summary: {
-          totalRecords: 0,
-          validRecords: 0,
-          invalidRecords: 0,
-          errors: [error instanceof Error ? error.message : 'Error en validación']
-        }
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -436,7 +397,7 @@ const DataUploadPage: React.FC = () => {
                     Cargar {fileTypes.find(t => t.id === selectedFileType)?.name}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Arrastra tu archivo aquí o haz clic para seleccionar
+                    Arrastra tu archivo aquí
                   </p>
                 </div>
               
@@ -502,12 +463,7 @@ const DataUploadPage: React.FC = () => {
                 <h4 className="text-lg font-medium text-gray-900 mb-2">
                   Arrastra tu archivo Excel aquí
                 </h4>
-                <p className="text-gray-600 mb-4">
-                  o{' '}
-                  <label htmlFor="file-upload" className="text-uc-blue hover:text-blue-800 cursor-pointer">
-                    haz clic para seleccionar
-                  </label>
-                </p>
+
                 <p className="text-sm text-gray-500">
                   Acepta archivos .xlsx y .xls (máximo 10MB)
                 </p>
@@ -527,24 +483,10 @@ const DataUploadPage: React.FC = () => {
 
                 {/* Action Buttons */}
                 {!isUploading && (
-                  <div className="mt-4 flex justify-center space-x-4">
+                  <div className="mt-4 flex justify-center">
                     <label htmlFor="file-upload" className="px-6 py-2 bg-uc-yellow text-black rounded-lg hover:bg-yellow-500 transition-colors duration-200 cursor-pointer font-medium">
                       Cargar y Procesar
                     </label>
-                    <label htmlFor="file-validate" className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 cursor-pointer">
-                      Solo Validar
-                    </label>
-                    <input
-                      type="file"
-                      id="file-validate"
-                      className="hidden"
-                      accept=".xlsx,.xls"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          validateOnly(e.target.files[0]);
-                        }
-                      }}
-                    />
                   </div>
                 )}
               </div>
