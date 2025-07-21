@@ -10,6 +10,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -461,6 +462,165 @@ export class UploadsController {
       
       return this.responseService.error(
         'Error interno del servidor',
+        [error.message],
+      );
+    }
+  }
+
+  @Get('details/:uploadId')
+  @Roles('Maestro', 'Editor')
+  async getUploadDetails(@Param('uploadId') uploadId: string) {
+    try {
+      this.logger.log(`=== OBTENIENDO DETALLES DE CARGA: ${uploadId} ===`);
+      
+      const details = await this.uploadService.getUploadDetails(uploadId);
+      
+      this.logger.log('Detalles obtenidos exitosamente');
+      return this.responseService.success(
+        details,
+        'Detalles de carga obtenidos exitosamente',
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR AL OBTENER DETALLES DE CARGA ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error al obtener detalles de la carga',
+        [error.message],
+      );
+    }
+  }
+
+  // Nuevos endpoints para gestión de cargas
+  @Get('recent')
+  @Roles('Maestro', 'Editor')
+  async getRecentUploads() {
+    try {
+      this.logger.log('=== OBTENIENDO CARGAS RECIENTES ===');
+      
+      const recentUploads = await this.uploadService.getRecentUploads();
+      
+      this.logger.log('Cargas recientes obtenidas exitosamente');
+      return this.responseService.success(
+        recentUploads,
+        'Cargas recientes obtenidas exitosamente'
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR AL OBTENER CARGAS RECIENTES ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error al obtener cargas recientes',
+        [error.message],
+      );
+    }
+  }
+
+  @Get('history')
+  async getUploadHistory(@Query() query: any) {
+    try {
+      this.logger.log('=== OBTENIENDO HISTORIAL DE CARGAS ===');
+      this.logger.log('Query params:', query);
+      
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 20;
+      const filters = {
+        uploadType: query.uploadType,
+        status: query.status,
+        approvalStatus: query.approvalStatus,
+        dateFrom: query.dateFrom,
+        dateTo: query.dateTo
+      };
+      
+      // Remover filtros vacíos
+      Object.keys(filters).forEach(key => {
+        if (!filters[key]) {
+          delete filters[key];
+        }
+      });
+      
+      const history = await this.uploadService.getUploadHistory(page, limit, filters);
+      
+      this.logger.log('Historial de cargas obtenido exitosamente');
+      return this.responseService.success(
+        history,
+        'Historial de cargas obtenido exitosamente'
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR AL OBTENER HISTORIAL DE CARGAS ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error al obtener historial de cargas',
+        [error.message],
+      );
+    }
+  }
+
+  @Post('approve/:uploadId')
+  @Roles('Maestro')
+  async approveUpload(
+    @Param('uploadId') uploadId: string,
+    @Body() body: { userId: number },
+  ) {
+    try {
+      this.logger.log(`=== APROBANDO CARGA: ${uploadId} ===`);
+      this.logger.log(`Usuario aprobador: ${body.userId}`);
+      
+      const result = await this.uploadService.approveUpload(
+        parseInt(uploadId),
+        body.userId,
+      );
+      
+      this.logger.log('Carga aprobada exitosamente');
+      return this.responseService.success(
+        result,
+        'Carga aprobada exitosamente'
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR AL APROBAR CARGA ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error al aprobar la carga',
+        [error.message],
+      );
+    }
+  }
+
+  @Post('reject/:uploadId')
+  @Roles('Maestro')
+  async rejectUpload(
+    @Param('uploadId') uploadId: string,
+    @Body() body: { userId: number; reason?: string },
+  ) {
+    try {
+      this.logger.log(`=== RECHAZANDO CARGA: ${uploadId} ===`);
+      this.logger.log(`Usuario que rechaza: ${body.userId}`);
+      this.logger.log(`Razón: ${body.reason || 'No especificada'}`);
+      
+      const result = await this.uploadService.rejectUpload(
+        parseInt(uploadId),
+        body.userId,
+        body.reason,
+      );
+      
+      this.logger.log('Carga rechazada exitosamente');
+      return this.responseService.success(
+        result,
+        'Carga rechazada exitosamente'
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR AL RECHAZAR CARGA ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      
+      return this.responseService.error(
+        'Error al rechazar la carga',
         [error.message],
       );
     }

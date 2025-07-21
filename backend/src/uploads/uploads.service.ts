@@ -8,6 +8,7 @@ import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inic
 import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
+import { UploadLog } from './entities/upload-log.entity';
 import { ResponseService } from '../common/services/response.service';
 import { unlinkSync } from 'fs';
 
@@ -64,10 +65,45 @@ export class UploadService {
     private stagingReporteCursablesRepository: Repository<StagingReporteCursables>,
     @InjectRepository(StagingNominaDocentes)
     private stagingNominaDocentesRepository: Repository<StagingNominaDocentes>,
+    @InjectRepository(UploadLog)
+    private uploadLogRepository: Repository<UploadLog>,
     private responseService: ResponseService,
   ) {}
 
+  /**
+   * Registra una operación de carga en la tabla upload_logs
+   */
+  private async logUpload(
+    fileName: string,
+    uploadType: string,
+    bimestreId: number,
+    status: 'Exitoso' | 'Con errores' | 'Error',
+    totalRecords: number = 0,
+    errorCount: number = 0,
+    userId: number = null,
+    errorDetails: string = null
+  ): Promise<void> {
+    try {
+      const uploadLog = this.uploadLogRepository.create({
+        fileName,
+        uploadType,
+        bimestreId,
+        status,
+        totalRecords,
+        errorCount,
+        userId,
+        errorDetails,
+        approvalStatus: 'Pendiente',
+        isProcessed: false
+      });
 
+      await this.uploadLogRepository.save(uploadLog);
+      this.logger.log(`Registro de carga guardado: ${fileName} - ${uploadType} - ${status}`);
+    } catch (error) {
+      this.logger.error(`Error al guardar registro de carga: ${error.message}`);
+      // No lanzamos el error para no interrumpir el proceso principal
+    }
+  }
 
   async processDol(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
     try {
@@ -105,6 +141,19 @@ export class UploadService {
       
       if (!validation.isValid) {
         this.logger.log('Retornando resultado con errores de validación');
+        
+        // Registrar carga con errores
+        await this.logUpload(
+          file.originalname,
+          'DOL',
+          options.bimestreId,
+          'Con errores',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.join('; ')
+        );
+        
         return {
           success: false,
           message: 'Errores de validación encontrados',
@@ -126,6 +175,18 @@ export class UploadService {
         
         this.logger.log(`Registros guardados exitosamente: ${savedRecords.length}`);
         
+        // Registrar carga exitosa
+        await this.logUpload(
+          file.originalname,
+          'DOL',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - savedRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         const result = {
           success: true,
           message: `DOL procesado exitosamente. ${savedRecords.length} registros guardados.`,
@@ -143,6 +204,19 @@ export class UploadService {
         return result;
       } else {
         this.logger.log('Modo validación solamente, no guardando en BD');
+        
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'DOL (Validación)',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         return {
           success: true,
           message: 'Validación completada exitosamente',
@@ -158,6 +232,19 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS DOL SERVICE ===');
       this.logger.error(`Error procesando archivo DOL: ${error.message}`);
       this.logger.error('Stack trace completo:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'DOL',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
+      
       throw new Error(`Error procesando archivo DOL: ${error.message}`);
     }
   }
@@ -198,6 +285,19 @@ export class UploadService {
       
       if (!validation.isValid) {
         this.logger.log('Retornando resultado con errores de validación');
+        
+        // Registrar carga con errores
+        await this.logUpload(
+          file.originalname,
+          'ADOL',
+          options.bimestreId,
+          'Con errores',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.join('; ')
+        );
+        
         return {
           success: false,
           message: 'Errores de validación encontrados',
@@ -219,6 +319,18 @@ export class UploadService {
         
         this.logger.log(`Registros guardados exitosamente: ${savedRecords.length}`);
         
+        // Registrar carga exitosa
+        await this.logUpload(
+          file.originalname,
+          'ADOL',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - savedRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         const result = {
           success: true,
           message: `ADOL procesado exitosamente. ${savedRecords.length} registros guardados.`,
@@ -236,6 +348,19 @@ export class UploadService {
         return result;
       } else {
         this.logger.log('Modo validación solamente, no guardando en BD');
+        
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'ADOL (Validación)',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         return {
           success: true,
           message: 'Validación completada exitosamente',
@@ -251,6 +376,19 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS ADOL SERVICE ===');
       this.logger.error(`Error procesando archivo ADOL: ${error.message}`);
       this.logger.error('Stack trace completo:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'ADOL',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
+      
       throw new Error(`Error procesando archivo ADOL: ${error.message}`);
     }
   }
@@ -508,6 +646,19 @@ export class UploadService {
 
       if (!validation.isValid) {
         this.logger.warn('Datos inválidos encontrados:', validation.errors);
+        
+        // Registrar carga con errores
+        await this.logUpload(
+          file.originalname,
+          'Vacantes Inicio',
+          options.bimestreId,
+          'Con errores',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.join('; ')
+        );
+        
         return {
           success: false,
           message: 'Errores de validación encontrados',
@@ -526,6 +677,30 @@ export class UploadService {
         this.logger.log('Guardando datos en la base de datos...');
         const savedRecords = await this.saveVacantesInicioData(validation.validRecords, options.bimestreId);
         this.logger.log(`Datos guardados exitosamente: ${savedRecords.length} registros`);
+        
+        // Registrar carga exitosa
+        await this.logUpload(
+          file.originalname,
+          'Vacantes Inicio',
+          options.bimestreId,
+          'Exitoso',
+          data.length,
+          0,
+          null, // userId - se puede agregar cuando esté disponible
+          null
+        );
+      } else {
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'Vacantes Inicio (Validación)',
+          options.bimestreId,
+          'Exitoso',
+          data.length,
+          0,
+          null, // userId - se puede agregar cuando esté disponible
+          null
+        );
       }
 
       this.logger.log('=== PROCESO VACANTES INICIO COMPLETADO EXITOSAMENTE ===');
@@ -543,6 +718,19 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS VACANTES INICIO ===');
       this.logger.error('Error procesando archivo Vacantes Inicio:', error.message);
       this.logger.error('Stack trace:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'Vacantes Inicio',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
+      
       throw error;
     }
   }
@@ -706,6 +894,19 @@ export class UploadService {
 
       if (options.validateOnly) {
         this.logger.log('=== MODO VALIDACIÓN ÚNICAMENTE ===');
+        
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'Estructura Académica (Validación)',
+          options.bimestreId,
+          'Exitoso',
+          data.length,
+          data.length - validatedData.length,
+          null, // userId - se puede agregar cuando esté disponible
+          null
+        );
+        
         return {
           success: true,
           message: 'Validación completada exitosamente',
@@ -723,6 +924,18 @@ export class UploadService {
       // Save data
       const savedRecords = await this.saveEstructuraAcademicaData(validatedData, options.bimestreId);
       this.logger.log(`Registros guardados: ${savedRecords.length}`);
+      
+      // Registrar carga exitosa
+      await this.logUpload(
+        file.originalname,
+        'Estructura Académica',
+        options.bimestreId,
+        'Exitoso',
+        data.length,
+        data.length - savedRecords.length,
+        null, // userId - se puede agregar cuando esté disponible
+        null
+      );
 
       this.logger.log('=== FIN PROCESS ESTRUCTURA ACADEMICA SERVICE ===');
       return {
@@ -738,6 +951,19 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS ESTRUCTURA ACADEMICA SERVICE ===');
       this.logger.error('Error procesando Estructura Académica:', error.message);
       this.logger.error('Stack trace:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'Estructura Académica',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
+      
       throw error;
     }
   }
@@ -957,6 +1183,19 @@ export class UploadService {
       
       if (!validation.isValid) {
         this.logger.log('Retornando resultado con errores de validación');
+        
+        // Registrar carga con errores
+        await this.logUpload(
+          file.originalname,
+          'Reporte Cursables',
+          options.bimestreId,
+          'Con errores',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.join('; ')
+        );
+        
         return {
           success: false,
           message: 'Errores de validación encontrados',
@@ -978,6 +1217,18 @@ export class UploadService {
         
         this.logger.log(`Registros guardados exitosamente: ${savedRecords.length}`);
         
+        // Registrar carga exitosa
+        await this.logUpload(
+          file.originalname,
+          'Reporte Cursables',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - savedRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         const result = {
           success: true,
           message: `Reporte Cursables procesado exitosamente. ${savedRecords.length} registros guardados.`,
@@ -995,6 +1246,19 @@ export class UploadService {
         return result;
       } else {
         this.logger.log('Modo validación solamente, no guardando en BD');
+        
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'Reporte Cursables (Validación)',
+          options.bimestreId,
+          validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.length > 0 ? validation.errors.join('; ') : null
+        );
+        
         return {
           success: true,
           message: 'Validación completada exitosamente',
@@ -1010,6 +1274,19 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS REPORTE CURSABLES SERVICE ===');
       this.logger.error(`Error procesando archivo Reporte Cursables: ${error.message}`);
       this.logger.error('Stack trace completo:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'Reporte Cursables',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
+      
       throw new Error(`Error procesando archivo Reporte Cursables: ${error.message}`);
     }
   }
@@ -1180,6 +1457,19 @@ export class UploadService {
 
       if (data.length === 0) {
         this.logger.warn('El archivo no contiene datos');
+        
+        // Registrar carga con error (archivo vacío)
+        await this.logUpload(
+          file.originalname,
+          'Nómina Docentes',
+          options.bimestreId,
+          'Error',
+          0,
+          0,
+          null, // userId - se puede agregar cuando esté disponible
+          'El archivo está vacío o no tiene el formato correcto'
+        );
+        
         return {
           success: false,
           message: 'El archivo no contiene datos válidos',
@@ -1194,6 +1484,19 @@ export class UploadService {
 
       if (!validation.isValid) {
         this.logger.error('Errores de validación encontrados:', validation.errors);
+        
+        // Registrar carga con errores
+        await this.logUpload(
+          file.originalname,
+          'Nómina Docentes',
+          options.bimestreId,
+          'Con errores',
+          data.length,
+          data.length - validation.validRecords.length,
+          null, // userId - se puede agregar cuando esté disponible
+          validation.errors.join('; ')
+        );
+        
         return {
           success: false,
           message: 'Errores de validación en los datos',
@@ -1209,6 +1512,19 @@ export class UploadService {
 
       if (options.validateOnly) {
         this.logger.log('Modo validación únicamente - no se guardarán datos');
+        
+        // Registrar validación (sin guardar datos)
+        await this.logUpload(
+          file.originalname,
+          'Nómina Docentes (Validación)',
+          options.bimestreId,
+          'Exitoso',
+          data.length,
+          0,
+          null, // userId - se puede agregar cuando esté disponible
+          null
+        );
+        
         return {
           success: true,
           message: `Validación exitosa. ${validation.validRecords.length} registros válidos encontrados`,
@@ -1224,6 +1540,18 @@ export class UploadService {
       this.logger.log('Iniciando guardado de datos...');
       const savedRecords = await this.saveNominaDocentesData(validation.validRecords, options.bimestreId);
       this.logger.log(`Datos guardados exitosamente: ${savedRecords.length} registros`);
+      
+      // Registrar carga exitosa
+      await this.logUpload(
+        file.originalname,
+        'Nómina Docentes',
+        options.bimestreId,
+        'Exitoso',
+        data.length,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        null
+      );
 
       const result = {
         success: true,
@@ -1247,6 +1575,18 @@ export class UploadService {
       this.logger.error('=== ERROR EN PROCESS NOMINA DOCENTES SERVICE ===');
       this.logger.error('Error procesando Nómina Docentes:', error.message);
       this.logger.error('Stack trace:', error.stack);
+      
+      // Registrar error crítico
+      await this.logUpload(
+        file.originalname,
+        'Nómina Docentes',
+        options.bimestreId,
+        'Error',
+        0,
+        0,
+        null, // userId - se puede agregar cuando esté disponible
+        error.message
+      );
       
       return {
         success: false,
@@ -1359,5 +1699,388 @@ export class UploadService {
     }
   }
 
+  /**
+   * Obtiene los detalles de una carga específica para visualización
+   */
+  async getUploadDetails(uploadId: string): Promise<any> {
+    try {
+      this.logger.log(`=== OBTENIENDO DETALLES DE CARGA: ${uploadId} ===`);
+      
+      // Obtener información de la carga desde upload_log
+      const uploadLog = await this.uploadLogRepository.findOne({
+        where: { id: parseInt(uploadId) },
+        relations: ['bimestre']
+      });
+
+      if (!uploadLog) {
+        throw new Error(`No se encontró la carga con ID: ${uploadId}`);
+      }
+
+      this.logger.log(`Tipo de carga encontrado: ${uploadLog.uploadType}`);
+
+      // Obtener datos de la tabla staging correspondiente
+      let validRecords = [];
+      let invalidRecords = [];
+
+      switch (uploadLog.uploadType) {
+        case 'ADOL':
+          const adolData = await this.stagingAdolRepository.find();
+          validRecords = adolData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'SIGLA': record.SIGLA,
+              'DESCRIPCION': record.DESCRIPCION,
+              'ID_BIMESTRE': record.id_bimestre
+            }
+          }));
+          break;
+
+        case 'DOL':
+          const dolData = await this.stagingDolRepository.find();
+          validRecords = dolData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'PLAN': record.plan,
+              'SIGLA': record.sigla,
+              'DESCRIPCION': record.descripcion,
+              'ID_BIMESTRE': record.id_bimestre
+            }
+          }));
+          break;
+
+        case 'ESTRUCTURA_ACADEMICA':
+          const estructuraData = await this.stagingEstructuraAcademicaRepository.find();
+          validRecords = estructuraData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'PLAN': record.plan,
+              'CARRERA': record.carrera,
+              'NIVEL': record.nivel,
+              'SIGLA': record.sigla,
+              'ASIGNATURA': record.asignatura
+            }
+          }));
+          break;
+
+        case 'NOMINA_DOCENTES':
+          const nominaData = await this.stagingNominaDocentesRepository.find();
+          validRecords = nominaData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'DOCENTE': record.docente,
+              'RUT_DOCENTE': record.rut_docente,
+              'ID_BIMESTRE': record.id_bimestre
+            }
+          }));
+          break;
+
+        case 'REPORTE_CURSABLES':
+          const reporteData = await this.stagingReporteCursablesRepository.find();
+          validRecords = reporteData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'RUT': record.rut,
+              'PLAN': record.plan,
+              'NIVEL': record.nivel,
+              'SIGLA': record.sigla,
+              'ASIGNATURA': record.asignatura,
+              'ID_BIMESTRE': record.id_bimestre
+            }
+          }));
+          break;
+
+        case 'VACANTES_INICIO':
+          const vacantesData = await this.stagingVacantesInicioRepository.find();
+          validRecords = vacantesData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'CODIGO_PLAN': record.codigo_plan,
+              'CARRERA': record.carrera,
+              'SIGLA_ASIGNATURA': record.sigla_asignatura,
+              'ASIGNATURA': record.asignatura
+            }
+          }));
+          break;
+
+        default:
+          this.logger.warn(`Tipo de carga no soportado: ${uploadLog.uploadType}`);
+          break;
+      }
+
+      const details = {
+        filename: uploadLog.fileName,
+        type: this.formatUploadType(uploadLog.uploadType),
+        date: uploadLog.uploadDate.toISOString(),
+        bimestre: uploadLog.bimestre?.nombre || 'N/A',
+        validRecords,
+        invalidRecords // Por ahora vacío, se puede implementar lógica de errores más adelante
+      };
+      
+      this.logger.log(`Detalles obtenidos exitosamente. Registros válidos: ${validRecords.length}`);
+      return details;
+    } catch (error) {
+      this.logger.error('=== ERROR AL OBTENER DETALLES DE CARGA ===');
+      this.logger.error('Error:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  // Nuevos métodos para gestión de cargas
+  async getRecentUploads() {
+    try {
+      this.logger.log('=== OBTENIENDO CARGAS RECIENTES ===');
+      
+      const recentUploads = await this.uploadLogRepository
+        .createQueryBuilder('ul')
+        .leftJoinAndSelect('ul.bimestre', 'b')
+        .leftJoinAndSelect('ul.user', 'u')
+        .leftJoinAndSelect('ul.approvedBy', 'approver')
+        .select([
+          'ul.id',
+          'ul.fileName',
+          'ul.uploadType',
+          'ul.uploadDate',
+          'ul.status',
+          'ul.approvalStatus',
+          'ul.isProcessed',
+          'ul.totalRecords',
+          'ul.errorCount',
+          'ul.errorDetails',
+          'b.id',
+          'b.nombre',
+          'u.id',
+          'u.name',
+          'approver.id',
+          'approver.name'
+        ])
+        .orderBy('ul.uploadDate', 'DESC')
+        .limit(50)
+        .getMany();
+
+      // Formatear los datos para el frontend
+      const formattedUploads = recentUploads.map(upload => ({
+        id: upload.id,
+        file_name: upload.fileName,
+        upload_type: upload.uploadType,
+        upload_date: upload.uploadDate.toISOString(),
+        bimestre: upload.bimestre?.nombre || 'N/A',
+        status: upload.status,
+        approval_status: upload.approvalStatus,
+        is_processed: upload.isProcessed,
+        total_records: upload.totalRecords,
+        error_count: upload.errorCount,
+        user_name: upload.user?.name || 'Sistema',
+        approved_by_name: upload.approvedBy?.name || null,
+        approved_at: upload.approvedAt?.toISOString() || null
+      }));
+
+      this.logger.log(`Cargas recientes obtenidas: ${formattedUploads.length}`);
+      return formattedUploads;
+    } catch (error) {
+      this.logger.error('Error al obtener cargas recientes:', error.message);
+      throw error;
+    }
+  }
+
+  async getUploadHistory(page: number = 1, limit: number = 20, filters: any = {}) {
+    try {
+      this.logger.log('=== OBTENIENDO HISTORIAL COMPLETO DE CARGAS ===');
+      this.logger.log(`Página: ${page}, Límite: ${limit}, Filtros:`, filters);
+      
+      const queryBuilder = this.uploadLogRepository
+        .createQueryBuilder('ul')
+        .leftJoinAndSelect('ul.bimestre', 'b')
+        .leftJoinAndSelect('ul.user', 'u')
+        .leftJoinAndSelect('ul.approvedBy', 'approver')
+        .select([
+          'ul.id',
+          'ul.fileName',
+          'ul.uploadType',
+          'ul.uploadDate',
+          'ul.status',
+          'ul.approvalStatus',
+          'ul.isProcessed',
+          'ul.totalRecords',
+          'ul.errorCount',
+          'ul.errorDetails',
+          'ul.approvedAt',
+          'ul.processedAt',
+          'b.id',
+          'b.nombre',
+          'u.id',
+          'u.name',
+          'approver.id',
+          'approver.name'
+        ]);
+
+      // Aplicar filtros
+      if (filters.uploadType) {
+        queryBuilder.andWhere('ul.uploadType = :uploadType', { uploadType: filters.uploadType });
+      }
+      if (filters.status) {
+        queryBuilder.andWhere('ul.status = :status', { status: filters.status });
+      }
+      if (filters.approvalStatus) {
+        queryBuilder.andWhere('ul.approvalStatus = :approvalStatus', { approvalStatus: filters.approvalStatus });
+      }
+      if (filters.dateFrom) {
+        queryBuilder.andWhere('ul.uploadDate >= :dateFrom', { dateFrom: filters.dateFrom });
+      }
+      if (filters.dateTo) {
+        queryBuilder.andWhere('ul.uploadDate <= :dateTo', { dateTo: filters.dateTo });
+      }
+
+      // Obtener total de registros
+      const total = await queryBuilder.getCount();
+
+      // Aplicar paginación
+      const history = await queryBuilder
+        .orderBy('ul.uploadDate', 'DESC')
+        .skip((page - 1) * limit)
+        .take(limit)
+        .getMany();
+
+      // Formatear los datos para el frontend
+      const formattedHistory = history.map(upload => ({
+        id: upload.id,
+        file_name: upload.fileName,
+        upload_type: upload.uploadType,
+        upload_date: upload.uploadDate.toISOString(),
+        bimestre: upload.bimestre?.nombre || 'N/A',
+        status: upload.status,
+        approval_status: upload.approvalStatus,
+        is_processed: upload.isProcessed,
+        total_records: upload.totalRecords,
+        error_count: upload.errorCount,
+        user_name: upload.user?.name || 'Sistema',
+        approved_by_name: upload.approvedBy?.name || null,
+        approved_at: upload.approvedAt?.toISOString() || null,
+        processed_at: upload.processedAt?.toISOString() || null,
+        error_details: upload.errorDetails
+      }));
+
+      const result = {
+        uploads: formattedHistory,
+        total,
+        page,
+        limit
+      };
+
+      this.logger.log(`Historial obtenido: ${formattedHistory.length} de ${total} registros`);
+      return result;
+    } catch (error) {
+      this.logger.error('Error al obtener historial de cargas:', error.message);
+      throw error;
+    }
+  }
+
+  async approveUpload(uploadId: number, approvedByUserId: number) {
+    try {
+      this.logger.log(`=== APROBANDO CARGA ID: ${uploadId} ===`);
+      this.logger.log(`Usuario aprobador ID: ${approvedByUserId}`);
+      
+      const upload = await this.uploadLogRepository.findOne({
+        where: { id: uploadId },
+        relations: ['bimestre', 'user']
+      });
+
+      if (!upload) {
+        throw new BadRequestException('Carga no encontrada');
+      }
+
+      if (upload.approvalStatus === 'Aprobado') {
+        throw new BadRequestException('La carga ya está aprobada');
+      }
+
+      if (upload.isProcessed) {
+        throw new BadRequestException('La carga ya ha sido procesada');
+      }
+
+      // Actualizar el estado de aprobación
+      upload.approvalStatus = 'Aprobado';
+      upload.approvedByUserId = approvedByUserId;
+      upload.approvedAt = new Date();
+
+      await this.uploadLogRepository.save(upload);
+
+      this.logger.log('Carga aprobada exitosamente');
+      return {
+        id: upload.id,
+        fileName: upload.fileName,
+        uploadType: upload.uploadType,
+        approvalStatus: upload.approvalStatus,
+        approvedAt: upload.approvedAt
+      };
+    } catch (error) {
+      this.logger.error('Error al aprobar carga:', error.message);
+      throw error;
+    }
+  }
+
+  async rejectUpload(uploadId: number, rejectedByUserId: number, reason?: string) {
+    try {
+      this.logger.log(`=== RECHAZANDO CARGA ID: ${uploadId} ===`);
+      this.logger.log(`Usuario que rechaza ID: ${rejectedByUserId}`);
+      this.logger.log(`Razón: ${reason || 'No especificada'}`);
+      
+      const upload = await this.uploadLogRepository.findOne({
+        where: { id: uploadId },
+        relations: ['bimestre', 'user']
+      });
+
+      if (!upload) {
+        throw new BadRequestException('Carga no encontrada');
+      }
+
+      if (upload.approvalStatus === 'Rechazado') {
+        throw new BadRequestException('La carga ya está rechazada');
+      }
+
+      if (upload.isProcessed) {
+        throw new BadRequestException('La carga ya ha sido procesada');
+      }
+
+      // Actualizar el estado de aprobación
+      upload.approvalStatus = 'Rechazado';
+      upload.approvedByUserId = rejectedByUserId;
+      upload.approvedAt = new Date();
+      
+      // Agregar la razón del rechazo a los detalles de errores
+      const rejectionReason = `Rechazado por usuario ID ${rejectedByUserId}: ${reason || 'Sin razón especificada'}`;
+      upload.errorDetails = upload.errorDetails 
+        ? `${upload.errorDetails}\n\n${rejectionReason}`
+        : rejectionReason;
+
+      await this.uploadLogRepository.save(upload);
+
+      this.logger.log('Carga rechazada exitosamente');
+      return {
+        id: upload.id,
+        fileName: upload.fileName,
+        uploadType: upload.uploadType,
+        approvalStatus: upload.approvalStatus,
+        approvedAt: upload.approvedAt,
+        rejectionReason: reason
+      };
+    } catch (error) {
+      this.logger.error('Error al rechazar carga:', error.message);
+      throw error;
+    }
+  }
+
+  private formatUploadType(uploadType: string): string {
+    const typeMap = {
+      'ESTRUCTURA_ACADEMICA': 'Estructura Académica',
+      'NOMINA_DOCENTES': 'Nómina de Docentes',
+      'REPORTE_CURSABLES': 'Reporte de Cursables',
+      'ADOL': 'ADOL',
+      'DOL': 'DOL',
+      'VACANTES_INICIO': 'Vacantes de Inicio',
+      'PAYMENT_CODES': 'Códigos de Pago'
+    };
+    
+    return typeMap[uploadType] || uploadType;
+  }
 
 }

@@ -40,6 +40,62 @@ export interface SystemStats {
   course_reports: number;
 }
 
+// Types for data visualization
+export interface DataRecord {
+  rowNumber: number;
+  data: Record<string, any>;
+  errors?: string[];
+}
+
+export interface UploadDetails {
+  filename: string;
+  type: string;
+  date: string;
+  bimestre: string;
+  validRecords: DataRecord[];
+  invalidRecords: DataRecord[];
+}
+
+// Types for upload management
+export interface RecentUpload {
+  id: number;
+  file_name: string;
+  upload_type: string;
+  upload_date: string;
+  bimestre: string;
+  status: 'Exitoso' | 'Con errores' | 'Error';
+  approval_status: 'Pendiente' | 'Aprobado' | 'Rechazado';
+  is_processed: boolean;
+  total_records: number;
+  error_count: number;
+  user_name?: string;
+  approved_by_name?: string;
+  approved_at?: string;
+}
+
+export interface UploadHistoryItem {
+  id: number;
+  file_name: string;
+  upload_type: string;
+  upload_date: string;
+  bimestre: string;
+  status: 'Exitoso' | 'Con errores' | 'Error';
+  approval_status: 'Pendiente' | 'Aprobado' | 'Rechazado';
+  is_processed: boolean;
+  total_records: number;
+  error_count: number;
+  user_name?: string;
+  approved_by_name?: string;
+  approved_at?: string;
+  error_details?: string;
+}
+
+export interface ApprovalAction {
+  uploadId: number;
+  action: 'approve' | 'reject';
+  comments?: string;
+}
+
 
 
 // Upload service for API calls
@@ -132,6 +188,22 @@ export const uploadService = {
     }
   },
 
+  // Get upload details for visualization
+  async getUploadDetails(uploadId: string): Promise<UploadDetails> {
+    try {
+      const response = await apiClient.get(`/uploads/details/${uploadId}`);
+      
+      // El backend envuelve la respuesta en {success, data, message, timestamp}
+      // Los datos reales están en response.data.data
+      const result = response.data.data;
+      
+      return result;
+    } catch (error: any) {
+      console.error('Upload details error:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener detalles de la carga');
+    }
+  },
+
   // Legacy methods for backward compatibility
   async uploadAcademicStructure(file: File, options: { bimestreId: number }): Promise<UploadResult> {
     return this.uploadFile('estructura-academica', file, options);
@@ -155,5 +227,68 @@ export const uploadService = {
 
   async uploadVacantesInicio(file: File): Promise<UploadResult> {
     return this.uploadFile('vacantes-inicio', file);
+  },
+
+  // Upload management methods
+  async getRecentUploads(): Promise<RecentUpload[]> {
+    try {
+      const response = await apiClient.get('/uploads/recent');
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('Recent uploads error:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener cargas recientes');
+    }
+  },
+
+  async getUploadHistory(page: number = 1, limit: number = 20, filters?: {
+    uploadType?: string;
+    status?: string;
+    approvalStatus?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<{ uploads: UploadHistoryItem[]; total: number; page: number; limit: number }> {
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...filters
+      });
+      
+      const response = await apiClient.get(`/uploads/history?${params}`);
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error('Upload history error:', error);
+      throw new Error(error.response?.data?.message || 'Error al obtener historial de cargas');
+    }
+  },
+
+  async approveUpload(uploadId: number, comments?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.post(`/uploads/${uploadId}/approve`, {
+        comments
+      });
+      return {
+        success: response.data.success,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Approve upload error:', error);
+      throw new Error(error.response?.data?.message || 'Error al aprobar la carga');
+    }
+  },
+
+  async rejectUpload(uploadId: number, comments?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await apiClient.post(`/uploads/${uploadId}/reject`, {
+        comments
+      });
+      return {
+        success: response.data.success,
+        message: response.data.message
+      };
+    } catch (error: any) {
+      console.error('Reject upload error:', error);
+      throw new Error(error.response?.data?.message || 'Error al rechazar la carga');
+    }
   }
 };

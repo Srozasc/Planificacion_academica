@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { UploadsController } from 'src/uploads/uploads.controller';
 import { UploadService } from 'src/uploads/uploads.service';
 import { ResponseService } from 'src/common/services/response.service';
@@ -10,10 +10,16 @@ describe('UploadsController', () => {
   let responseService: ResponseService;
 
   beforeEach(async () => {
+    // Mock del Logger para suprimir logs durante las pruebas
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'debug').mockImplementation(() => {});
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UploadsController],
       providers: [
-        {
+        {  
           provide: UploadService,
           useValue: {
             processAdol: jest.fn(),
@@ -24,6 +30,11 @@ describe('UploadsController', () => {
             processNominaDocentes: jest.fn(),
             getSystemStats: jest.fn(),
             getSystemHealth: jest.fn(),
+            getRecentUploads: jest.fn(),
+            getUploadDetails: jest.fn(),
+            approveUpload: jest.fn(),
+            rejectUpload: jest.fn(),
+            getUploadHistory: jest.fn(),
         
           },
         },
@@ -40,6 +51,11 @@ describe('UploadsController', () => {
     controller = module.get<UploadsController>(UploadsController);
     uploadService = module.get<UploadService>(UploadService);
     responseService = module.get<ResponseService>(ResponseService);
+  });
+
+  afterEach(() => {
+    // Limpiar todos los mocks después de cada prueba
+    jest.restoreAllMocks();
   });
 
   it('should be defined', () => {
@@ -639,6 +655,326 @@ describe('UploadsController', () => {
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor',
          [errorMessage],
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('getRecentUploads', () => {
+     it('should return recent uploads successfully', async () => {
+       const mockUploads = [
+         {
+           id: 1,
+           fileName: 'test-adol.xlsx',
+           uploadType: 'ADOL',
+           uploadDate: new Date(),
+           status: 'Exitoso',
+           approvalStatus: 'Pendiente',
+           bimestre: { id: 1, nombre: 'Bimestre 1' },
+           user: { id: 1, username: 'testuser' }
+         }
+       ];
+
+       (uploadService.getRecentUploads as jest.Mock).mockResolvedValue(mockUploads);
+
+       const result = await controller.getRecentUploads();
+
+       expect(uploadService.getRecentUploads).toHaveBeenCalled();
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockUploads,
+         'Cargas recientes obtenidas exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when getting recent uploads', async () => {
+       const errorMessage = 'Database error';
+       (uploadService.getRecentUploads as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.getRecentUploads();
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al obtener cargas recientes',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('getUploadDetails', () => {
+     it('should return upload details successfully', async () => {
+       const uploadId = '1';
+       const mockDetails = {
+         filename: 'test-adol.xlsx',
+         type: 'ADOL',
+         validRecords: [],
+         invalidRecords: [],
+         summary: { totalRecords: 10, validRecords: 8, invalidRecords: 2 }
+       };
+
+       (uploadService.getUploadDetails as jest.Mock).mockResolvedValue(mockDetails);
+
+       const result = await controller.getUploadDetails(uploadId);
+
+       expect(uploadService.getUploadDetails).toHaveBeenCalledWith(uploadId);
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockDetails,
+         'Detalles de carga obtenidos exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when getting upload details', async () => {
+       const uploadId = '999';
+       const errorMessage = 'No se encontró la carga con ID: 999';
+       (uploadService.getUploadDetails as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.getUploadDetails(uploadId);
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al obtener detalles de la carga',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('approveUpload', () => {
+     it('should approve upload successfully', async () => {
+       const uploadId = '1';
+       const body = { userId: 2 };
+       const mockApprovedUpload = {
+         id: 1,
+         fileName: 'test.xlsx',
+         approvalStatus: 'Aprobado',
+         approvedByUserId: 2,
+         approvalDate: new Date()
+       };
+
+       (uploadService.approveUpload as jest.Mock).mockResolvedValue(mockApprovedUpload);
+
+       const result = await controller.approveUpload(uploadId, body);
+
+       expect(uploadService.approveUpload).toHaveBeenCalledWith(1, 2);
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockApprovedUpload,
+         'Carga aprobada exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when approving upload', async () => {
+       const uploadId = '1';
+       const body = { userId: 2 };
+       const errorMessage = 'Carga no encontrada';
+       (uploadService.approveUpload as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.approveUpload(uploadId, body);
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al aprobar la carga',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('rejectUpload', () => {
+     it('should reject upload successfully', async () => {
+       const uploadId = '1';
+       const body = { userId: 2, reason: 'Datos incorrectos' };
+       const mockRejectedUpload = {
+         id: 1,
+         fileName: 'test.xlsx',
+         approvalStatus: 'Rechazado',
+         rejectedByUserId: 2,
+         rejectionDate: new Date(),
+         rejectionReason: 'Datos incorrectos'
+       };
+
+       (uploadService.rejectUpload as jest.Mock).mockResolvedValue(mockRejectedUpload);
+
+       const result = await controller.rejectUpload(uploadId, body);
+
+       expect(uploadService.rejectUpload).toHaveBeenCalledWith(1, 2, 'Datos incorrectos');
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockRejectedUpload,
+         'Carga rechazada exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should reject upload without reason', async () => {
+       const uploadId = '1';
+       const body = { userId: 2 };
+       const mockRejectedUpload = {
+         id: 1,
+         fileName: 'test.xlsx',
+         approvalStatus: 'Rechazado',
+         rejectedByUserId: 2,
+         rejectionDate: new Date()
+       };
+
+       (uploadService.rejectUpload as jest.Mock).mockResolvedValue(mockRejectedUpload);
+
+       const result = await controller.rejectUpload(uploadId, body);
+
+       expect(uploadService.rejectUpload).toHaveBeenCalledWith(1, 2, undefined);
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockRejectedUpload,
+         'Carga rechazada exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when rejecting upload', async () => {
+       const uploadId = '1';
+       const body = { userId: 2, reason: 'Test reason' };
+       const errorMessage = 'Carga no encontrada';
+       (uploadService.rejectUpload as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.rejectUpload(uploadId, body);
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al rechazar la carga',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('getUploadHistory', () => {
+     it('should return paginated upload history successfully', async () => {
+       const query = { page: '1', limit: '10' };
+       const mockHistory = {
+         data: [
+           {
+             id: 1,
+             fileName: 'test1.xlsx',
+             uploadType: 'ADOL',
+             uploadDate: new Date(),
+             status: 'Exitoso',
+             approvalStatus: 'Aprobado'
+           }
+         ],
+         total: 1,
+         page: 1,
+         limit: 10
+       };
+
+       (uploadService.getUploadHistory as jest.Mock).mockResolvedValue(mockHistory);
+
+       const result = await controller.getUploadHistory(query);
+
+       expect(uploadService.getUploadHistory).toHaveBeenCalledWith(1, 10, {});
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockHistory,
+         'Historial de cargas obtenido exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should apply filters correctly', async () => {
+       const query = {
+         page: '1',
+         limit: '10',
+         uploadType: 'ADOL',
+         status: 'Exitoso',
+         approvalStatus: 'Aprobado'
+       };
+       const mockHistory = { data: [], total: 0, page: 1, limit: 10 };
+
+       (uploadService.getUploadHistory as jest.Mock).mockResolvedValue(mockHistory);
+
+       const result = await controller.getUploadHistory(query);
+
+       expect(uploadService.getUploadHistory).toHaveBeenCalledWith(1, 10, {
+         uploadType: 'ADOL',
+         status: 'Exitoso',
+         approvalStatus: 'Aprobado'
+       });
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when getting upload history', async () => {
+       const query = { page: '1', limit: '10' };
+       const errorMessage = 'Database error';
+       (uploadService.getUploadHistory as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.getUploadHistory(query);
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al obtener historial de cargas',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('getSystemStats', () => {
+     it('should return system stats successfully', async () => {
+       const mockStats = {
+         staging_adol_simple: 10,
+         staging_dol: 15,
+         staging_vacantes_inicio: 20,
+         academic_structures: 5
+       };
+
+       (uploadService.getSystemStats as jest.Mock).mockResolvedValue(mockStats);
+
+       const result = await controller.getSystemStats();
+
+       expect(uploadService.getSystemStats).toHaveBeenCalled();
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockStats,
+         'Estadísticas del sistema obtenidas exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when getting system stats', async () => {
+       const errorMessage = 'Database error';
+       (uploadService.getSystemStats as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.getSystemStats();
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al obtener estadísticas del sistema',
+         [errorMessage]
+       );
+       expect(result.success).toBe(false);
+     });
+   });
+
+   describe('getSystemHealth', () => {
+     it('should return system health successfully', async () => {
+       const mockHealth = {
+         status: 'healthy',
+         timestamp: new Date(),
+         uptime: 3600
+       };
+
+       (uploadService.getSystemHealth as jest.Mock).mockResolvedValue(mockHealth);
+
+       const result = await controller.getSystemHealth();
+
+       expect(uploadService.getSystemHealth).toHaveBeenCalled();
+       expect(responseService.success).toHaveBeenCalledWith(
+         mockHealth,
+         'Estado del sistema obtenido exitosamente'
+       );
+       expect(result.success).toBe(true);
+     });
+
+     it('should handle errors when getting system health', async () => {
+       const errorMessage = 'Health check failed';
+       (uploadService.getSystemHealth as jest.Mock).mockRejectedValue(new Error(errorMessage));
+
+       const result = await controller.getSystemHealth();
+
+       expect(responseService.error).toHaveBeenCalledWith(
+         'Error al verificar estado del sistema',
+         [errorMessage]
        );
        expect(result.success).toBe(false);
      });

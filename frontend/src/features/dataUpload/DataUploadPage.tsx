@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { uploadService, SystemStats } from './services/upload.service';
 import { useBimestreStore } from '../../store/bimestre.store';
+import DataViewModal from './components/DataViewModal';
+import RecentUploadsManager from './components/RecentUploadsManager';
+import UploadHistoryManager from './components/UploadHistoryManager';
 
 // Types
 interface FileType {
@@ -34,6 +37,7 @@ interface UploadResult {
 }
 
 interface RecentUpload {
+  id: string;
   filename: string;
   type: string;
   date: string;
@@ -52,6 +56,9 @@ const DataUploadPage: React.FC = () => {
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
   const [recentUploads, setRecentUploads] = useState<RecentUpload[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  const [isDataViewModalOpen, setIsDataViewModalOpen] = useState(false);
+  const [selectedUploadId, setSelectedUploadId] = useState<string>('');
+  const [currentView, setCurrentView] = useState<'upload' | 'recent' | 'history'>('upload');
   
   const { bimestres, bimestreSeleccionado, fetchBimestresActivos } = useBimestreStore();
 
@@ -115,7 +122,6 @@ const DataUploadPage: React.FC = () => {
   // Load initial data
   useEffect(() => {
     loadSystemStats();
-    loadRecentUploads();
     fetchBimestresActivos();
   }, [fetchBimestresActivos]);
 
@@ -140,37 +146,7 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
-  const loadRecentUploads = () => {
-    // Mock data for recent uploads - in real implementation, this would come from API
-    const mockUploads: RecentUpload[] = [
-      {
-        filename: 'estructura_academica_2025.xlsx',
-        type: 'Estructura Académica',
-        date: '2025-06-14T10:30:00',
-        bimestre: '2025-1',
-        status: 'Exitoso',
-        records: 245
-      },
-      {
-        filename: 'nomina_docentes_semestre1.xlsx',
-        type: 'Nómina de Docentes',
-        date: '2025-06-13T15:45:00',
-        bimestre: '2025-1',
-        status: 'Con errores',
-        records: 89,
-        errors: 3
-      },
-      {
-        filename: 'reporte_cursables_ing.xlsx',
-        type: 'Reporte de Cursables',
-        date: '2025-06-12T09:15:00',
-        bimestre: '2025-2',
-        status: 'Exitoso',
-        records: 156
-      }
-    ];
-    setRecentUploads(mockUploads);
-  };
+
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -260,6 +236,7 @@ const DataUploadPage: React.FC = () => {
         // Add to recent uploads
         const selectedBimestre = bimestres.find(b => b.id === selectedBimestreId);
         const newUpload: RecentUpload = {
+          id: Date.now().toString(),
           filename: file.name,
           type: fileType.name,
           date: new Date().toISOString(),
@@ -271,7 +248,7 @@ const DataUploadPage: React.FC = () => {
         
         setRecentUploads(prev => [newUpload, ...prev]);
         
-        // Reload stats
+        // Reload stats after successful upload
         loadSystemStats();
       }, 1000);
       
@@ -308,11 +285,16 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
-  // Función para visualizar datos cargados (stub)
+  // Función para visualizar datos cargados
   const handleViewData = (upload: RecentUpload) => {
-    console.log('Visualizar datos para:', upload.filename);
-    // TODO: Implementar modal o página para mostrar los datos cargados
-    alert(`Funcionalidad de visualización para ${upload.filename} será implementada próximamente`);
+    setSelectedUploadId(upload.id);
+    setIsDataViewModalOpen(true);
+  };
+
+  // Función para cerrar el modal de visualización
+  const handleCloseDataViewModal = () => {
+    setIsDataViewModalOpen(false);
+    setSelectedUploadId('');
   };
 
   // Función para aprobar datos (stub)
@@ -322,14 +304,61 @@ const DataUploadPage: React.FC = () => {
     alert(`Funcionalidad de aprobación para ${upload.filename} será implementada próximamente`);
   };
 
+  const handleRefresh = () => {
+    loadSystemStats();
+  };
+
   return (
     <div className="data-upload-page p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Carga de Datos Maestros</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">📁 Carga de Datos</h1>
         <p className="text-gray-600">
-          Importa la información base del sistema mediante archivos Excel estructurados
+          Carga y gestiona archivos Excel para alimentar el sistema de planificación académica
         </p>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="mb-6">
+        <nav className="flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setCurrentView('upload')}
+            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              currentView === 'upload'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Cargar Archivos
+          </button>
+          <button
+            onClick={() => setCurrentView('recent')}
+            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              currentView === 'recent'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Cargas Recientes
+          </button>
+          <button
+            onClick={() => setCurrentView('history')}
+            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+              currentView === 'history'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Historial Completo
+          </button>
+        </nav>
+      </div>
+
+      {/* Conditional Content Based on Current View */}
+      {currentView === 'upload' && (
+        <>
+          {/* System Stats */}
+          <div className="mb-8">
         {systemStats && (
           <div className="mt-4 flex items-center space-x-6 text-sm text-gray-600">
             <div className="flex items-center">
@@ -601,107 +630,25 @@ const DataUploadPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Recent Uploads */}
-      {recentUploads.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">📈 Cargas Recientes</h3>
-          </div>
-          <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-xs">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Archivo
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tipo
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Bimestre
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Registros
-                    </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {recentUploads.map((upload, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
-                        {upload.filename}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                        {upload.type}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                        {new Date(upload.date).toLocaleString('es-ES')}
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {upload.bimestre}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          getStatusBadge(upload.status)
-                        }`}>
-                          {upload.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                        <div className="flex items-center space-x-1">
-                          <span>{upload.records}</span>
-                          {upload.errors && upload.errors > 0 && (
-                            <span className="text-red-500">({upload.errors} errores)</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium">
-                        <div className="flex items-center space-x-1">
-                          <button
-                            onClick={() => handleViewData(upload)}
-                            className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                            title="Visualizar datos cargados"
-                          >
-                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                            Ver
-                          </button>
-                          {upload.status === 'Exitoso' && (
-                            <button
-                              onClick={() => handleApproveData(upload)}
-                              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-                              title="Aprobar datos para uso en producción"
-                            >
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                              Aprobar
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        </>
       )}
+
+      {/* Recent Uploads View */}
+      {currentView === 'recent' && (
+        <RecentUploadsManager onRefresh={handleRefresh} />
+      )}
+
+      {/* Upload History View */}
+      {currentView === 'history' && (
+        <UploadHistoryManager onRefresh={handleRefresh} />
+      )}
+      
+      {/* Modal de visualización de datos */}
+      <DataViewModal
+        isOpen={isDataViewModalOpen}
+        onClose={handleCloseDataViewModal}
+        uploadId={selectedUploadId}
+      />
     </div>
   );
 };

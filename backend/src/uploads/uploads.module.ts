@@ -9,6 +9,9 @@ import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inic
 import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
+import { UploadLog } from './entities/upload-log.entity';
+import { Bimestre } from '../common/entities/bimestre.entity';
+import { User } from '../users/entities/user.entity';
 import { DolModule } from '../dol/dol.module';
 import { ResponseService } from '../common/services/response.service';
 import { multerConfig } from './config/multer.config';
@@ -22,6 +25,9 @@ import { multerConfig } from './config/multer.config';
       StagingEstructuraAcademica,
       StagingReporteCursables,
       StagingNominaDocentes,
+      UploadLog,
+      Bimestre,
+      User,
     ]),
     MulterModule.register(multerConfig),
     DolModule,
