@@ -15,13 +15,31 @@ const dbConfig = {
     charset: 'utf8mb4'
 };
 
-// Mapeo de roles (IDs hardcodeados según el sistema existente)
-const ROLES = {
-    'Editor': 2,
-    'Editor temporal': 2,
-    'Maestro': 3,
-    'Visualizador': 4
-};
+// Cache de roles - se carga dinámicamente desde la base de datos
+let ROLES_CACHE = null;
+
+/**
+ * Cargar roles dinámicamente desde la base de datos
+ */
+async function cargarRoles(connection) {
+    if (ROLES_CACHE) {
+        return ROLES_CACHE;
+    }
+    
+    const [roles] = await connection.execute('SELECT id, name FROM roles WHERE is_active = TRUE');
+    
+    ROLES_CACHE = {};
+    for (const rol of roles) {
+        ROLES_CACHE[rol.name] = rol.id;
+        // Agregar alias para compatibilidad
+        if (rol.name === 'Editor') {
+            ROLES_CACHE['Editor temporal'] = rol.id;
+        }
+    }
+    
+    console.log('🔑 Roles cargados:', ROLES_CACHE);
+    return ROLES_CACHE;
+}
 
 /**
  * Script para resolver permisos pendientes
@@ -174,11 +192,12 @@ async function crearCaches(connection) {
         usuariosCache.set(usuario.email_institucional.toLowerCase(), usuario.id);
     }
     
-    // Cache de carreras
+    // Cache de carreras por bimestre (clave: "codigo_plan:bimestre_id")
     const carrerasCache = new Map();
-    const [carreras] = await connection.execute('SELECT id, codigo_plan FROM carreras WHERE activo = TRUE');
+    const [carreras] = await connection.execute('SELECT id, codigo_plan, bimestre_id FROM carreras WHERE activo = TRUE');
     for (const carrera of carreras) {
-        carrerasCache.set(carrera.codigo_plan, carrera.id);
+        const clave = `${carrera.codigo_plan}:${carrera.bimestre_id}`;
+        carrerasCache.set(clave, carrera.id);
     }
     
     console.log(`   👥 Usuarios en cache: ${usuariosCache.size}`);
@@ -223,8 +242,11 @@ async function procesarRegistro(connection, registro, caches, stats) {
 async function resolverUsuario(connection, userData, usuariosCache, stats) {
     const { email, nombre, cargo, tipo_rol, fecha_expiracion } = userData;
     
+    // Obtener roles dinámicamente
+    const roles = await cargarRoles(connection);
+    
     // Determinar role_id
-    const roleId = ROLES[tipo_rol] || ROLES['Visualizador'];
+    const roleId = roles[tipo_rol] || roles['Visualizador'];
     
     // Procesar fecha de expiración para roles temporales
     let roleExpiresAt = null;
@@ -283,10 +305,12 @@ async function resolverUsuario(connection, userData, usuariosCache, stats) {
  * Crear permiso por carrera
  */
 async function crearPermisoCarrera(connection, usuarioId, codigoCarrera, bimestreId, carrerasCache, stats) {
-    const carreraId = carrerasCache.get(codigoCarrera);
+    // Buscar carrera específica para el bimestre
+    const claveCarrera = `${codigoCarrera}:${bimestreId}`;
+    const carreraId = carrerasCache.get(claveCarrera);
     
     if (!carreraId) {
-        throw new Error(`Carrera no encontrada: ${codigoCarrera}`);
+        throw new Error(`Carrera no encontrada para bimestre: ${codigoCarrera} (bimestre_id: ${bimestreId})`);
     }
     
     await connection.execute(`

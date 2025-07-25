@@ -46,7 +46,7 @@ const Navbar: React.FC = () => {
           </div>
           <div className="flex items-center space-x-6">
             {/* Indicador de Bimestre Seleccionado */}
-            {bimestreSeleccionado && (
+            {bimestreSeleccionado ? (
               <div 
                 className="flex items-center space-x-2 text-sm bg-black bg-opacity-10 px-3 py-1 rounded-md"
                 data-bimestre-id={bimestreSeleccionado.id}
@@ -66,6 +66,16 @@ const Navbar: React.FC = () => {
                     const fechaFin = parseLocalDate(bimestreSeleccionado.fechaFin).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
                     return `${fechaInicio} - ${fechaFin}`;
                   })()})
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 text-sm bg-red-100 text-red-800 px-3 py-1 rounded-md border border-red-200">
+                <CalendarIcon className="h-4 w-4" />
+                <span className="font-medium">
+                  Sin bimestre seleccionado
+                </span>
+                <span className="text-xs">
+                  (Requerido para crear usuarios)
                 </span>
               </div>
             )}

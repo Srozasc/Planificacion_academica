@@ -4,7 +4,7 @@ import usersService, { CreateUserData } from '../../services/users.service';
 import { authService, Role } from '../../services/auth.service';
 import { carrerasService, Carrera } from '../../services/carreras.service';
 import { asignaturasService } from '../../services/asignaturas.service';
-import { useBimestreStore } from '../../store/bimestreStore';
+import { useBimestreStore } from '../../store/bimestre.store';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -217,7 +217,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     
     // Validar que haya un bimestre seleccionado
     if (!bimestreSeleccionado) {
-      setErrors({ general: 'Debe seleccionar un bimestre en el navbar antes de crear un usuario' });
+      setErrors({ general: 'Debe seleccionar un bimestre en el navbar antes de crear un usuario. Si no aparece ningún bimestre, contacte al administrador.' });
+      return;
+    }
+
+    // Validar que el bimestre tenga un ID válido
+    if (!bimestreSeleccionado.id || bimestreSeleccionado.id <= 0) {
+      setErrors({ general: `Error: El bimestre seleccionado no tiene un ID válido (ID: ${bimestreSeleccionado.id}). Por favor, seleccione otro bimestre.` });
       return;
     }
     
@@ -245,16 +251,26 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         })
       };
 
+      console.log('Creando usuario con bimestreId:', bimestreSeleccionado.id);
       await usersService.createUser(createUserData, bimestreSeleccionado.id);
       onUserCreated();
       handleClose();
     } catch (error: any) {
       console.error('Error creating user:', error);
+      console.error('BimestreSeleccionado al momento del error:', bimestreSeleccionado);
+      
+      let errorMessage = 'Error al crear el usuario. Por favor, intente nuevamente.';
+      
       if (error.response?.data?.message) {
-        setErrors({ general: error.response.data.message });
-      } else {
-        setErrors({ general: 'Error al crear el usuario. Por favor, intente nuevamente.' });
+        errorMessage = error.response.data.message;
+        
+        // Si el error es sobre bimestreId requerido, agregar información adicional
+        if (errorMessage.includes('bimestreId') || errorMessage.includes('requerido')) {
+          errorMessage += ` (BimestreId enviado: ${bimestreSeleccionado?.id || 'undefined'})`;
+        }
       }
+      
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }

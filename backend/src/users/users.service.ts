@@ -164,8 +164,11 @@ export class UsersService {
       relations: ['role', 'previousRole'],
     });
 
-    // Obtener bimestre activo si no se especifica
-    const bimestreActivo = bimestreId || (await this.bimestreService.findBimestreActual())?.id;
+    // Usar el bimestre especificado o lanzar error si no se proporciona
+    if (!bimestreId) {
+      throw new BadRequestException('El bimestreId es requerido para la creación de usuarios');
+    }
+    const bimestreActivo = bimestreId;
     
     // Crear registros en permisos_pendientes para emular carga masiva
     if (createUserDto.tipoPermiso === 'categoria' && createUserDto.categoria) {
