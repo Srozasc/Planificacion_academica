@@ -120,6 +120,7 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
+  const [subjectSearchTerm, setSubjectSearchTerm] = useState('');
   const [enableDateEditing, setEnableDateEditing] = useState(false);
   const [enableMultipleEvents, setEnableMultipleEvents] = useState(false);
   const [eventQuantity, setEventQuantity] = useState(1);
@@ -179,7 +180,15 @@ const EventModal: React.FC<EventModalProps> = ({
   const generateTitle = (subjectName: string, counter: number) => {
     if (!subjectName) return '';
     const paddedCounter = counter.toString().padStart(3, '0');
-    return `${subjectName} - ${paddedCounter}`;
+    
+    // Buscar la asignatura seleccionada para obtener su código/sigla
+    const selectedSubject = subjects.find(subject => subject.name === subjectName);
+    const subjectCode = selectedSubject?.code || '';
+    
+    // Incluir la sigla antes del nombre de la asignatura
+    return subjectCode 
+      ? `${subjectCode} - ${subjectName} - ${paddedCounter}`
+      : `${subjectName} - ${paddedCounter}`;
   };
 
   // Actualizar título cuando cambie la asignatura
@@ -379,6 +388,7 @@ const EventModal: React.FC<EventModalProps> = ({
     setErrors({});
     setEventCounter(1);
     setTeacherSearchTerm(''); // Limpiar búsqueda de docentes
+    setSubjectSearchTerm(''); // Limpiar búsqueda de asignaturas
     setEnableDateEditing(false); // Resetear checkbox de edición de fechas
     setEnableMultipleEvents(false); // Resetear checkbox de eventos múltiples
     setEventQuantity(1); // Resetear cantidad de eventos
@@ -494,25 +504,67 @@ const EventModal: React.FC<EventModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Asignatura *
               </label>
-              <select
-                value={formData.subject}
-                onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.subject ? 'border-red-500' : 'border-gray-300'
-                }`}
-                disabled={isLoadingDropdowns}
-              >
-                <option value="">Seleccionar asignatura...</option>
-                {subjects.map((subject) => (
-                  <option key={subject.id} value={subject.name}>
-                    {subject.code} - {subject.name}
-                  </option>
-                ))}
-              </select>
-              {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
-              {isLoadingDropdowns && (
-                <p className="text-gray-500 text-sm mt-1">Cargando asignaturas...</p>
+              
+              {/* Campo de búsqueda */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  placeholder="Buscar asignatura por nombre o código..."
+                  value={subjectSearchTerm}
+                  onChange={(e) => setSubjectSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  disabled={isLoadingDropdowns}
+                />
+              </div>
+              
+              <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                {isLoadingDropdowns ? (
+                  <p className="text-gray-500 text-sm">Cargando asignaturas...</p>
+                ) : subjects.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No hay asignaturas disponibles</p>
+                ) : (
+                  <div className="space-y-2">
+                    {subjects
+                      .filter(subject => {
+                        const searchLower = subjectSearchTerm.toLowerCase();
+                        return subject.name.toLowerCase().includes(searchLower) ||
+                               subject.code.toLowerCase().includes(searchLower);
+                      })
+                      .map((subject) => (
+                        <label key={subject.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="radio"
+                            name="subject"
+                            checked={formData.subject === subject.name}
+                            onChange={() => {
+                              setFormData(prev => ({ ...prev, subject: subject.name }));
+                            }}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {subject.code} - {subject.name}
+                          </span>
+                        </label>
+                      ))
+                    }
+                    {subjects.filter(subject => {
+                      const searchLower = subjectSearchTerm.toLowerCase();
+                      return subject.name.toLowerCase().includes(searchLower) ||
+                             subject.code.toLowerCase().includes(searchLower);
+                    }).length === 0 && subjectSearchTerm && (
+                      <p className="text-gray-500 text-sm italic">No se encontraron asignaturas que coincidan con la búsqueda</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              {formData.subject && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600">
+                    Asignatura seleccionada: <span className="font-medium">{formData.subject}</span>
+                  </p>
+                </div>
               )}
+              {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
             </div>
 
             <div>

@@ -53,6 +53,13 @@ describe('UploadsController', () => {
     responseService = module.get<ResponseService>(ResponseService);
   });
 
+  // Mock user object para tests
+  const mockUser = {
+    userId: 1,
+    username: 'testuser',
+    role: 'Maestro'
+  };
+
   afterEach(() => {
     // Limpiar todos los mocks después de cada prueba
     jest.restoreAllMocks();
@@ -81,7 +88,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 10, validRecords: 10, invalidRecords: 0 } };
       (uploadService.processAdol as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadAdol(mockFile, mockBody);
+      const result = await controller.uploadAdol(mockFile, mockBody, mockUser);
 
       expect(uploadService.processAdol).toHaveBeenCalledWith(
         mockFile,
@@ -99,7 +106,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 10, validRecords: 10, invalidRecords: 0 } };
       (uploadService.processAdol as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadAdol(mockFile, mockBody);
+      const result = await controller.uploadAdol(mockFile, mockBody, mockUser);
 
       expect(uploadService.processAdol).toHaveBeenCalledWith(
         mockFile,
@@ -115,7 +122,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if no file is provided', async () => {
       const mockBody = { bimestreId: '1' };
 
-      const result = await controller.uploadAdol(null, mockBody);
+      const result = await controller.uploadAdol(null, mockBody, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar ADOL - Cargos docentes',
@@ -127,7 +134,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is missing', async () => {
       const mockBody = { mode: 'UPSERT' };
 
-      const result = await controller.uploadAdol(mockFile, mockBody as any);
+      const result = await controller.uploadAdol(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar ADOL - Cargos docentes',
@@ -139,7 +146,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is invalid', async () => {
       const mockBody = { bimestreId: 'abc' };
 
-      const result = await controller.uploadAdol(mockFile, mockBody as any);
+      const result = await controller.uploadAdol(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar ADOL - Cargos docentes',
@@ -153,7 +160,7 @@ describe('UploadsController', () => {
       const errorMessage = 'Database connection error';
       (uploadService.processAdol as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-      const result = await controller.uploadAdol(mockFile, mockBody);
+      const result = await controller.uploadAdol(mockFile, mockBody, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar ADOL - Cargos docentes',
@@ -182,7 +189,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 15, validRecords: 15, invalidRecords: 0 } };
       (uploadService.processDol as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadDol(mockFile, mockBody);
+      const result = await controller.uploadDol(mockFile, mockBody, mockUser);
 
       expect(uploadService.processDol).toHaveBeenCalledWith(
         mockFile,
@@ -200,7 +207,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 15, validRecords: 15, invalidRecords: 0 } };
       (uploadService.processDol as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadDol(mockFile, mockBody);
+      const result = await controller.uploadDol(mockFile, mockBody, mockUser);
 
       expect(uploadService.processDol).toHaveBeenCalledWith(
         mockFile,
@@ -216,7 +223,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if no file is provided', async () => {
       const mockBody = { bimestreId: '1' };
 
-      const result = await controller.uploadDol(null, mockBody);
+      const result = await controller.uploadDol(null, mockBody, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar DOL - Cargos docentes',
@@ -228,7 +235,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is missing', async () => {
       const mockBody = { mode: 'UPSERT' };
 
-      const result = await controller.uploadDol(mockFile, mockBody as any);
+      const result = await controller.uploadDol(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar DOL - Cargos docentes',
@@ -240,7 +247,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is invalid', async () => {
       const mockBody = { bimestreId: 'abc' };
 
-      const result = await controller.uploadDol(mockFile, mockBody as any);
+      const result = await controller.uploadDol(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar DOL - Cargos docentes',
@@ -254,7 +261,7 @@ describe('UploadsController', () => {
       const errorMessage = 'Database connection error';
       (uploadService.processDol as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-      const result = await controller.uploadDol(mockFile, mockBody);
+      const result = await controller.uploadDol(mockFile, mockBody, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar DOL - Cargos docentes',
@@ -283,7 +290,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 20, validRecords: 20, invalidRecords: 0 } };
       (uploadService.processVacantesInicio as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadVacantesInicio(mockFile, mockBody);
+      const result = await controller.uploadVacantesInicio(mockFile, mockBody, mockUser);
 
       expect(uploadService.processVacantesInicio).toHaveBeenCalledWith(
         mockFile,
@@ -301,7 +308,7 @@ describe('UploadsController', () => {
       const mockResult = { summary: { totalRecords: 20, validRecords: 20, invalidRecords: 0 } };
       (uploadService.processVacantesInicio as jest.Mock).mockResolvedValue(mockResult);
 
-      const result = await controller.uploadVacantesInicio(mockFile, mockBody);
+      const result = await controller.uploadVacantesInicio(mockFile, mockBody, mockUser);
 
       expect(uploadService.processVacantesInicio).toHaveBeenCalledWith(
         mockFile,
@@ -317,7 +324,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if no file is provided', async () => {
       const mockBody = { bimestreId: '1' };
 
-      const result = await controller.uploadVacantesInicio(null, mockBody);
+      const result = await controller.uploadVacantesInicio(null, mockBody, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar Vacantes Inicio',
@@ -329,7 +336,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is missing', async () => {
       const mockBody = { mode: 'UPSERT' };
 
-      const result = await controller.uploadVacantesInicio(mockFile, mockBody as any);
+      const result = await controller.uploadVacantesInicio(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar Vacantes Inicio',
@@ -341,7 +348,7 @@ describe('UploadsController', () => {
     it('should throw BadRequestException if bimestreId is invalid', async () => {
       const mockBody = { bimestreId: 'abc' };
 
-      const result = await controller.uploadVacantesInicio(mockFile, mockBody as any);
+      const result = await controller.uploadVacantesInicio(mockFile, mockBody as any, mockUser);
 
       expect(responseService.error).toHaveBeenCalledWith(
         'Error al procesar Vacantes Inicio',
@@ -355,7 +362,7 @@ describe('UploadsController', () => {
        const errorMessage = 'Database connection error';
        (uploadService.processVacantesInicio as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.uploadVacantesInicio(mockFile, mockBody);
+       const result = await controller.uploadVacantesInicio(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al procesar Vacantes Inicio',
@@ -384,7 +391,7 @@ describe('UploadsController', () => {
        const mockResult = { summary: { totalRecords: 25, validRecords: 25, invalidRecords: 0 } };
        (uploadService.processEstructuraAcademica as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody);
+       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody, mockUser);
 
        expect(uploadService.processEstructuraAcademica).toHaveBeenCalledWith(
          mockFile,
@@ -402,7 +409,7 @@ describe('UploadsController', () => {
        const mockResult = { summary: { totalRecords: 25, validRecords: 25, invalidRecords: 0 } };
        (uploadService.processEstructuraAcademica as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody);
+       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody, mockUser);
 
        expect(uploadService.processEstructuraAcademica).toHaveBeenCalledWith(
          mockFile,
@@ -418,7 +425,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if no file is provided', async () => {
        const mockBody = { bimestreId: '1' };
 
-       const result = await controller.uploadEstructuraAcademica(null, mockBody);
+       const result = await controller.uploadEstructuraAcademica(null, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al procesar Estructura Académica',
@@ -430,7 +437,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is missing', async () => {
        const mockBody = { mode: 'UPSERT' };
 
-       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody as any);
+       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al procesar Estructura Académica',
@@ -442,7 +449,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is invalid', async () => {
        const mockBody = { bimestreId: 'abc' };
 
-       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody as any);
+       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al procesar Estructura Académica',
@@ -456,7 +463,7 @@ describe('UploadsController', () => {
        const errorMessage = 'Database connection error';
        (uploadService.processEstructuraAcademica as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody);
+       const result = await controller.uploadEstructuraAcademica(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al procesar Estructura Académica',
@@ -485,7 +492,7 @@ describe('UploadsController', () => {
        const mockResult = { success: true, message: 'Reporte Cursables procesado exitosamente', summary: { totalRecords: 30, validRecords: 30, invalidRecords: 0 } };
        (uploadService.processReporteCursables as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadReporteCursables(mockFile, mockBody);
+       const result = await controller.uploadReporteCursables(mockFile, mockBody, mockUser);
 
        expect(uploadService.processReporteCursables).toHaveBeenCalledWith(
          mockFile,
@@ -501,7 +508,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if no file is provided', async () => {
        const mockBody = { bimestreId: '1' };
 
-       const result = await controller.uploadReporteCursables(null, mockBody);
+       const result = await controller.uploadReporteCursables(null, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor al procesar Reporte Cursables',
@@ -513,7 +520,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is missing', async () => {
        const mockBody = { mode: 'full' };
 
-       const result = await controller.uploadReporteCursables(mockFile, mockBody as any);
+       const result = await controller.uploadReporteCursables(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor al procesar Reporte Cursables',
@@ -525,7 +532,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is invalid', async () => {
        const mockBody = { bimestreId: 'abc' };
 
-       const result = await controller.uploadReporteCursables(mockFile, mockBody as any);
+       const result = await controller.uploadReporteCursables(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor al procesar Reporte Cursables',
@@ -539,7 +546,7 @@ describe('UploadsController', () => {
        const mockResult = { success: false, message: 'Error procesando Reporte Cursables', errors: ['Validation error'] };
        (uploadService.processReporteCursables as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadReporteCursables(mockFile, mockBody);
+       const result = await controller.uploadReporteCursables(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error procesando Reporte Cursables',
@@ -553,7 +560,7 @@ describe('UploadsController', () => {
        const errorMessage = 'Database connection error';
        (uploadService.processReporteCursables as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.uploadReporteCursables(mockFile, mockBody);
+       const result = await controller.uploadReporteCursables(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor al procesar Reporte Cursables',
@@ -582,7 +589,7 @@ describe('UploadsController', () => {
        const mockResult = { success: true, message: 'Nómina Docentes procesada exitosamente', summary: { totalRecords: 35, validRecords: 35, invalidRecords: 0 } };
        (uploadService.processNominaDocentes as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadNominaDocentes(mockFile, mockBody);
+       const result = await controller.uploadNominaDocentes(mockFile, mockBody, mockUser);
 
        expect(uploadService.processNominaDocentes).toHaveBeenCalledWith(
          mockFile,
@@ -598,7 +605,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if no file is provided', async () => {
        const mockBody = { bimestreId: '1' };
 
-       const result = await controller.uploadNominaDocentes(null, mockBody);
+       const result = await controller.uploadNominaDocentes(null, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor',
@@ -610,7 +617,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is missing', async () => {
        const mockBody = { mode: 'full' };
 
-       const result = await controller.uploadNominaDocentes(mockFile, mockBody as any);
+       const result = await controller.uploadNominaDocentes(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor',
@@ -622,7 +629,7 @@ describe('UploadsController', () => {
      it('should throw BadRequestException if bimestreId is invalid', async () => {
        const mockBody = { bimestreId: 'abc' };
 
-       const result = await controller.uploadNominaDocentes(mockFile, mockBody as any);
+       const result = await controller.uploadNominaDocentes(mockFile, mockBody as any, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor',
@@ -636,7 +643,7 @@ describe('UploadsController', () => {
        const mockResult = { success: false, message: 'Error procesando Nómina Docentes', errors: ['Validation error'] };
        (uploadService.processNominaDocentes as jest.Mock).mockResolvedValue(mockResult);
 
-       const result = await controller.uploadNominaDocentes(mockFile, mockBody);
+       const result = await controller.uploadNominaDocentes(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error procesando Nómina Docentes',
@@ -650,7 +657,7 @@ describe('UploadsController', () => {
        const errorMessage = 'Database connection error';
        (uploadService.processNominaDocentes as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.uploadNominaDocentes(mockFile, mockBody);
+       const result = await controller.uploadNominaDocentes(mockFile, mockBody, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error interno del servidor',
@@ -742,7 +749,7 @@ describe('UploadsController', () => {
    describe('approveUpload', () => {
      it('should approve upload successfully', async () => {
        const uploadId = '1';
-       const body = { userId: 2 };
+       const body = { reason: 'Test reason' };
        const mockApprovedUpload = {
          id: 1,
          fileName: 'test.xlsx',
@@ -753,7 +760,7 @@ describe('UploadsController', () => {
 
        (uploadService.approveUpload as jest.Mock).mockResolvedValue(mockApprovedUpload);
 
-       const result = await controller.approveUpload(uploadId, body);
+       const result = await controller.approveUpload(uploadId, mockUser);
 
        expect(uploadService.approveUpload).toHaveBeenCalledWith(1, 2);
        expect(responseService.success).toHaveBeenCalledWith(
@@ -765,11 +772,10 @@ describe('UploadsController', () => {
 
      it('should handle errors when approving upload', async () => {
        const uploadId = '1';
-       const body = { userId: 2 };
        const errorMessage = 'Carga no encontrada';
        (uploadService.approveUpload as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.approveUpload(uploadId, body);
+       const result = await controller.approveUpload(uploadId, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al aprobar la carga',
@@ -794,7 +800,7 @@ describe('UploadsController', () => {
 
        (uploadService.rejectUpload as jest.Mock).mockResolvedValue(mockRejectedUpload);
 
-       const result = await controller.rejectUpload(uploadId, body);
+       const result = await controller.rejectUpload(uploadId, body, mockUser);
 
        expect(uploadService.rejectUpload).toHaveBeenCalledWith(1, 2, 'Datos incorrectos');
        expect(responseService.success).toHaveBeenCalledWith(
@@ -806,7 +812,7 @@ describe('UploadsController', () => {
 
      it('should reject upload without reason', async () => {
        const uploadId = '1';
-       const body = { userId: 2 };
+       const body = { reason: 'Test reason' };
        const mockRejectedUpload = {
          id: 1,
          fileName: 'test.xlsx',
@@ -817,7 +823,7 @@ describe('UploadsController', () => {
 
        (uploadService.rejectUpload as jest.Mock).mockResolvedValue(mockRejectedUpload);
 
-       const result = await controller.rejectUpload(uploadId, body);
+       const result = await controller.rejectUpload(uploadId, body, mockUser);
 
        expect(uploadService.rejectUpload).toHaveBeenCalledWith(1, 2, undefined);
        expect(responseService.success).toHaveBeenCalledWith(
@@ -833,7 +839,7 @@ describe('UploadsController', () => {
        const errorMessage = 'Carga no encontrada';
        (uploadService.rejectUpload as jest.Mock).mockRejectedValue(new Error(errorMessage));
 
-       const result = await controller.rejectUpload(uploadId, body);
+       const result = await controller.rejectUpload(uploadId, body, mockUser);
 
        expect(responseService.error).toHaveBeenCalledWith(
          'Error al rechazar la carga',

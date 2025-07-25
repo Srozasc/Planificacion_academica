@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uploadService, UploadHistoryItem } from '../services/upload.service';
+import { BimestreService, Bimestre } from '../../../services/bimestre.service';
 import { useToast } from '../../../hooks/useToast';
 
 interface UploadHistoryManagerProps {
@@ -15,20 +16,30 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
   const [filters, setFilters] = useState({
     uploadType: '',
     status: '',
-    approvalStatus: '',
-    dateFrom: '',
-    dateTo: ''
+    bimestreId: ''
   });
   const [showFilters, setShowFilters] = useState(false);
   const [selectedUpload, setSelectedUpload] = useState<UploadHistoryItem | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [bimestres, setBimestres] = useState<Bimestre[]>([]);
   const { showToast } = useToast();
+  const bimestreService = new BimestreService();
 
   const itemsPerPage = 20;
 
   useEffect(() => {
+    loadBimestres();
     loadUploadHistory();
   }, [currentPage, filters]);
+
+  const loadBimestres = async () => {
+    try {
+      const bimestresData = await bimestreService.findAll();
+      setBimestres(bimestresData);
+    } catch (error: any) {
+      console.error('Error al cargar bimestres:', error);
+    }
+  };
 
   const loadUploadHistory = async () => {
     try {
@@ -57,9 +68,7 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
     setFilters({
       uploadType: '',
       status: '',
-      approvalStatus: '',
-      dateFrom: '',
-      dateTo: ''
+      bimestreId: ''
     });
     setCurrentPage(1);
   };
@@ -185,7 +194,7 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
           </div>
           
           {showFilters && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
@@ -216,37 +225,21 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aprobación</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bimestre</label>
                 <select
-                  value={filters.approvalStatus}
-                  onChange={(e) => handleFilterChange('approvalStatus', e.target.value)}
+                  value={filters.bimestreId}
+                  onChange={(e) => handleFilterChange('bimestreId', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Todos</option>
-                  <option value="Pendiente">Pendiente</option>
-                  <option value="Aprobado">Aprobado</option>
-                  <option value="Rechazado">Rechazado</option>
+                  {bimestres.map((bimestre) => (
+                    <option key={bimestre.id} value={bimestre.id}>
+                      {bimestre.nombre}
+                    </option>
+                  ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-                <input
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-                <input
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="md:col-span-3 lg:col-span-5">
+              <div className="md:col-span-3">
                 <button
                   onClick={clearFilters}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"

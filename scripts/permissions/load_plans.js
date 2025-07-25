@@ -1,0 +1,208 @@
+const mysql = require('mysql2/promise');
+const path = require('path');
+
+// Cargar variables de entorno desde el backend
+require('dotenv').config({ path: path.join(__dirname, '../../backend/.env') });
+
+// Configuración de la base de datos
+const dbConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USERNAME || process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'planificacion_academica',
+    charset: 'utf8mb4'
+};
+
+/**
+ * Script para cargar planes de estudio desde staging_estructura_academica
+ * Sincroniza carreras y asignaturas desde la tabla staging hacia las tablas finales
+ */
+async function loadPlans() {
+    let connection;
+    
+    try {
+        console.log('🚀 Iniciando carga de planes de estudio desde staging_estructura_academica...');
+        
+        // Conectar a la base de datos
+        connection = await mysql.createConnection(dbConfig);
+        console.log('✅ Conexión a base de datos establecida');
+        
+        // Obtener datos desde staging_estructura_academica
+        const [data] = await connection.execute(`
+            SELECT DISTINCT 
+                plan as codigo_plan,
+                carrera as nombre_carrera,
+                sigla,
+                asignatura as nombre,
+                creditos,
+                categoria
+            FROM staging_estructura_academica 
+            WHERE plan IS NOT NULL 
+            AND sigla IS NOT NULL
+            ORDER BY plan, sigla
+        `);
+        
+        console.log(`📊 Registros encontrados en staging: ${data.length}`);
+        
+        if (data.length === 0) {
+            console.log('ℹ️  No hay datos en staging_estructura_academica para procesar');
+            return;
+        }
+
+        
+        // Paso 1: Sincronizar Carreras
+        console.log('\n📚 Paso 1: Sincronizando carreras...');
+        await syncCarreras(connection, data);
+        
+        // Paso 2: Sincronizar Asignaturas
+        console.log('\n📖 Paso 2: Sincronizando asignaturas...');
+        await syncAsignaturas(connection, data);
+        
+        console.log('\n✅ Carga de planes completada exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error en carga de planes:', error.message);
+        throw error;
+    } finally {
+        if (connection) {
+            await connection.end();
+            console.log('🔌 Conexión a base de datos cerrada');
+        }
+    }
+}
+
+/**
+ * Sincronizar carreras únicas del archivo con la base de datos
+ */
+async function syncCarreras(connection, data) {
+    // Extraer carreras únicas
+    const carrerasUnicas = new Map();
+    
+    for (const fila of data) {
+        const key = fila.codigo_plan;
+        if (key && !carrerasUnicas.has(key)) {
+            carrerasUnicas.set(key, {
+                codigo_plan: fila.codigo_plan,
+                nombre_carrera: fila.nombre_carrera || `Carrera ${fila.codigo_plan}`
+            });
+        }
+    }
+    
+    console.log(`   📋 Carreras únicas encontradas: ${carrerasUnicas.size}`);
+    
+    let carrerasCreadas = 0;
+    let carrerasActualizadas = 0;
+    
+    // Sincronizar cada carrera
+    for (const [codigo, carrera] of carrerasUnicas) {
+        try {
+            const [result] = await connection.execute(`
+                INSERT INTO carreras (codigo_plan, nombre_carrera) 
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE 
+                    nombre_carrera = VALUES(nombre_carrera),
+                    activo = TRUE
+            `, [carrera.codigo_plan, carrera.nombre_carrera]);
+            
+            if (result.insertId > 0) {
+                carrerasCreadas++;
+            } else {
+                carrerasActualizadas++;
+            }
+            
+        } catch (error) {
+            console.error(`   ⚠️  Error procesando carrera ${codigo}:`, error.message);
+        }
+    }
+    
+    console.log(`   ✅ Carreras creadas: ${carrerasCreadas}`);
+    console.log(`   🔄 Carreras actualizadas: ${carrerasActualizadas}`);
+}
+
+/**
+ * Sincronizar asignaturas del archivo con la base de datos
+ */
+async function syncAsignaturas(connection, data) {
+    // Obtener mapa de carreras existentes
+    const [carrerasRows] = await connection.execute('SELECT id, codigo_plan FROM carreras WHERE activo = TRUE');
+    const carrerasMap = new Map();
+    
+    for (const row of carrerasRows) {
+        carrerasMap.set(row.codigo_plan, row.id);
+    }
+    
+    console.log(`   🗂️  Carreras disponibles: ${carrerasMap.size}`);
+    
+    let asignaturasCreadas = 0;
+    let asignaturasActualizadas = 0;
+    let asignaturasError = 0;
+    
+    // Procesar cada asignatura
+    for (const fila of data) {
+        try {
+            const carreraId = carrerasMap.get(fila.codigo_plan);
+            
+            if (!carreraId) {
+                console.error(`   ⚠️  Carrera no encontrada: ${fila.codigo_plan}`);
+                asignaturasError++;
+                continue;
+            }
+            
+            if (!fila.sigla) {
+                console.error(`   ⚠️  Sigla faltante en fila:`, fila);
+                asignaturasError++;
+                continue;
+            }
+            
+            const [result] = await connection.execute(`
+                INSERT INTO asignaturas 
+                (carrera_id, sigla, nombre, creditos, categoria_asignatura) 
+                VALUES (?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE 
+                    nombre = VALUES(nombre),
+                    creditos = VALUES(creditos),
+                    categoria_asignatura = VALUES(categoria_asignatura),
+                    activo = TRUE
+            `, [
+                carreraId,
+                fila.sigla,
+                fila.nombre || fila.sigla,
+                fila.creditos || null,
+                fila.categoria || fila.categoria_asignatura || null
+            ]);
+            
+            if (result.insertId > 0) {
+                asignaturasCreadas++;
+            } else {
+                asignaturasActualizadas++;
+            }
+            
+        } catch (error) {
+            console.error(`   ⚠️  Error procesando asignatura ${fila.sigla}:`, error.message);
+            asignaturasError++;
+        }
+    }
+    
+    console.log(`   ✅ Asignaturas creadas: ${asignaturasCreadas}`);
+    console.log(`   🔄 Asignaturas actualizadas: ${asignaturasActualizadas}`);
+    console.log(`   ❌ Asignaturas con error: ${asignaturasError}`);
+}
+
+// NOTA: La función ejecutarResolucionPermisos() fue removida para separar responsabilidades.
+// Para resolver permisos, ejecutar directamente: node resolve_permissions.js
+// o usar el backend que maneja ambos procesos de forma independiente.
+
+// Ejecutar si se llama directamente
+if (require.main === module) {
+    loadPlans()
+        .then(() => {
+            console.log('🎉 Proceso completado exitosamente');
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('💥 Error fatal:', error.message);
+            process.exit(1);
+        });
+}
+
+module.exports = { loadPlans };

@@ -5,6 +5,7 @@ import usersService, { User, UsersListResponse } from '../services/users.service
 import EditUserModal from '../components/users/EditUserModal';
 import CreateUserModal from '../components/users/CreateUserModal';
 import DeleteUserModal from '../components/users/DeleteUserModal';
+import UserImportModal from '../features/userManagement/components/UserImportModal';
 import { authService, Role } from '../services/auth.service';
 
 const UsersPage: React.FC = () => {
@@ -20,6 +21,7 @@ const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const limit = 10;
@@ -201,6 +203,19 @@ const UsersPage: React.FC = () => {
     loadUsers(); // Recargar la lista de usuarios
   };
 
+  // Funciones para manejar la importación de usuarios
+  const handleOpenImportModal = () => {
+    setIsImportModalOpen(true);
+  };
+
+  const handleCloseImportModal = () => {
+    setIsImportModalOpen(false);
+  };
+
+  const handleUsersImported = () => {
+    loadUsers(); // Recargar la lista de usuarios
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -296,7 +311,10 @@ const UsersPage: React.FC = () => {
                 <ArrowDownTrayIcon className="h-4 w-4" />
                 Exportar
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors">
+              <button 
+                onClick={handleOpenImportModal}
+                className="flex items-center gap-2 px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors"
+              >
                 <ArrowUpTrayIcon className="h-4 w-4" />
                 Importar
               </button>
@@ -555,6 +573,13 @@ const UsersPage: React.FC = () => {
         onClose={handleCloseDeleteModal}
         user={userToDelete}
         onUserDeleted={handleUserDeleted}
+      />
+
+      {/* Modal de importación de usuarios */}
+      <UserImportModal
+        isOpen={isImportModalOpen}
+        onClose={handleCloseImportModal}
+        onUsersImported={handleUsersImported}
       />
     </div>
   );

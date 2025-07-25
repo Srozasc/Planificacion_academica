@@ -230,9 +230,10 @@ export const uploadService = {
   },
 
   // Upload management methods
-  async getRecentUploads(): Promise<RecentUpload[]> {
+  async getRecentUploads(bimestreId?: number): Promise<RecentUpload[]> {
     try {
-      const response = await apiClient.get('/uploads/recent');
+      const url = bimestreId ? `/uploads/recent?bimestreId=${bimestreId}` : '/uploads/recent';
+      const response = await apiClient.get(url);
       return response.data.data || response.data;
     } catch (error: any) {
       console.error('Recent uploads error:', error);

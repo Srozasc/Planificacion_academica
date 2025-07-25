@@ -38,6 +38,27 @@ export interface CreateUserData {
   roleId: number;
   roleExpiresAt?: string;
   previousRoleId?: number;
+  tipoPermiso?: 'categoria' | 'carrera';
+  categoria?: string;
+  carreras?: number[];
+}
+
+export interface AdminChangePasswordData {
+  userId: number;
+  newPassword: string;
+  adminPassword: string;
+}
+
+export interface ImportResult {
+  success: boolean;
+  message: string;
+  details?: {
+    processed: number;
+    created: number;
+    updated: number;
+    errors: number;
+    errorDetails?: string[];
+  };
 }
 
 class UsersService {
@@ -83,9 +104,10 @@ class UsersService {
     }
   }
 
-  async createUser(userData: CreateUserData): Promise<User> {
+  async createUser(userData: CreateUserData, bimestreId?: number): Promise<User> {
     try {
-      const response = await apiClient.post<User>(this.baseUrl, userData);
+      const url = bimestreId ? `${this.baseUrl}?bimestreId=${bimestreId}` : this.baseUrl;
+      const response = await apiClient.post<User>(url, userData);
       return response.data;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -100,6 +122,34 @@ class UsersService {
     } catch (error) {
       console.error('Error deleting user:', error);
       throw error;
+    }
+  }
+
+  async adminChangePassword(passwordData: AdminChangePasswordData): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/admin-change-password`, passwordData);
+      return response.data;
+    } catch (error) {
+      console.error('Error changing user password:', error);
+      throw error;
+    }
+  }
+
+  async importUsers(formData: FormData): Promise<ImportResult> {
+    try {
+      const response = await apiClient.post<ImportResult>(`${this.baseUrl}/import`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error importing users:', error);
+      // Si el error tiene una respuesta del servidor, usar esa información
+      if (error.response?.data) {
+        throw new Error(error.response.data.message || 'Error al importar usuarios');
+      }
+      throw new Error('Error al importar usuarios');
     }
   }
 }

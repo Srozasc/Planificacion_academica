@@ -11,6 +11,8 @@ import { AdolModule } from './adol/adol.module';
 import { DolModule } from './dol/dol.module';
 import { VacantesInicioModule } from './vacantes-inicio/vacantes-inicio.module';
 import { NominaDocentesModule } from './nomina-docentes/nomina-docentes.module';
+import { CarrerasModule } from './carreras/carreras.module';
+import { AsignaturasModule } from './asignaturas/asignaturas.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({  imports: [
@@ -27,6 +29,8 @@ import { ConfigModule } from '@nestjs/config';
     DolModule,        // DOL positions management
     VacantesInicioModule, // Vacantes Inicio management
     NominaDocentesModule, // Nomina Docentes management
+    CarrerasModule,       // Carreras management
+    AsignaturasModule,    // Asignaturas management
   ],
   controllers: [AppController],
   providers: [AppService],

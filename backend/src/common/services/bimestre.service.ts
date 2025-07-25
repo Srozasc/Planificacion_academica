@@ -7,6 +7,8 @@ export interface CreateBimestreDto {
   nombre: string;
   fechaInicio: string; // Cambiado a string para manejar conversión manual
   fechaFin: string;    // Cambiado a string para manejar conversión manual
+  fechaPago1?: string;
+  fechaPago2?: string;
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
@@ -16,6 +18,8 @@ export interface UpdateBimestreDto {
   nombre?: string;
   fechaInicio?: string; // Cambiado a string para manejar conversión manual
   fechaFin?: string;    // Cambiado a string para manejar conversión manual
+  fechaPago1?: string;
+  fechaPago2?: string;
   descripcion?: string;
 }
 
@@ -138,6 +142,8 @@ export class BimestreService {
       // Parsear fechas manteniendo la zona horaria local
       const fechaInicio = this.parseLocalDate(createBimestreDto.fechaInicio);
       const fechaFin = this.parseLocalDate(createBimestreDto.fechaFin);
+      const fechaPago1 = createBimestreDto.fechaPago1 ? this.parseLocalDate(createBimestreDto.fechaPago1) : undefined;
+      const fechaPago2 = createBimestreDto.fechaPago2 ? this.parseLocalDate(createBimestreDto.fechaPago2) : undefined;
       
       // 🔍 DEBUG: Fechas parseadas
       this.logger.log('fechaInicio (Date parseada):', fechaInicio);
@@ -173,7 +179,9 @@ export class BimestreService {
       const bimestre = this.bimestreRepository.create({
         ...createBimestreDto,
         fechaInicio,
-        fechaFin
+        fechaFin,
+        fechaPago1,
+        fechaPago2
       });
       
       // 🔍 DEBUG: Objeto antes de guardar
@@ -216,6 +224,12 @@ export class BimestreService {
       }
       if (updateBimestreDto.fechaFin) {
         updateData.fechaFin = this.parseLocalDate(updateBimestreDto.fechaFin);
+      }
+      if (updateBimestreDto.fechaPago1) {
+        updateData.fechaPago1 = this.parseLocalDate(updateBimestreDto.fechaPago1);
+      }
+      if (updateBimestreDto.fechaPago2) {
+        updateData.fechaPago2 = this.parseLocalDate(updateBimestreDto.fechaPago2);
       }
 
       // Validar fechas si se proporcionan ambas

@@ -1,0 +1,31 @@
+{
+  "name": "permissions-scripts",
+  "version": "1.0.0",
+  "description": "Scripts para gestión de permisos de usuarios en el sistema de planificación académica",
+  "main": "resolve_permissions.js",
+  "scripts": {
+    "load-users": "node load_users.js",
+    "load-plans": "node load_plans.js",
+    "resolve-permissions": "node resolve_permissions.js",
+    "check-staging": "node check_staging.js",
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.3.1",
+    "mysql2": "^3.6.5",
+    "xlsx": "^0.18.5"
+  },
+  "keywords": [
+    "permissions",
+    "users",
+    "academic",
+    "planning",
+    "mysql"
+  ],
+  "author": "Sistema de Planificación Académica",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

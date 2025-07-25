@@ -1,21 +1,41 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import * as XLSX from 'xlsx';
+import * as fs from 'fs';
+import * as path from 'path';
+import { spawn } from 'child_process';
 import { User } from './entities/user.entity';
+import { Role } from '../common/entities/role.entity';
+import { UsuarioPermisoCarrera } from './entities/usuario-permiso-carrera.entity';
+import { UsuarioPermisoCategoria } from './entities/usuario-permiso-categoria.entity';
+import { PermisosPendientes } from './entities/permisos-pendientes.entity';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto, UsersListResponseDto } from './dto/user-response.dto';
+import { AdminChangePasswordDto } from './dto/admin-change-password.dto';
+import { BimestreService } from '../common/services/bimestre.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+    @InjectRepository(UsuarioPermisoCarrera)
+    private readonly usuarioPermisoCarreraRepository: Repository<UsuarioPermisoCarrera>,
+    @InjectRepository(UsuarioPermisoCategoria)
+    private usuarioPermisoCategoriaRepository: Repository<UsuarioPermisoCategoria>,
+    @InjectRepository(PermisosPendientes)
+    private permisosPendientesRepository: Repository<PermisosPendientes>,
+    private readonly dataSource: DataSource,
+    private readonly bimestreService: BimestreService,
   ) {}
 
-  async findAll(queryDto: QueryUsersDto): Promise<UsersListResponseDto> {
+  async findAll(queryDto: QueryUsersDto, bimestreId?: number): Promise<UsersListResponseDto> {
     const { page = 1, limit = 10, search, roleId, isActive } = queryDto;
     const skip = (page - 1) * limit;
 
@@ -74,7 +94,7 @@ export class UsersService {
     };
   }
 
-  async findOne(id: number): Promise<UserResponseDto | null> {
+  async findOne(id: number, bimestreId?: number): Promise<UserResponseDto | null> {
     const user = await this.userRepository.findOne({
       where: { id, deletedAt: null },
       relations: ['role'],
@@ -98,7 +118,7 @@ export class UsersService {
     };
   }
 
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(createUserDto: CreateUserDto, bimestreId?: number): Promise<UserResponseDto> {
     // Verificar si el email ya existe
     const existingUserByEmail = await this.userRepository.findOne({
       where: { emailInstitucional: createUserDto.emailInstitucional, deletedAt: null },
@@ -143,6 +163,59 @@ export class UsersService {
       where: { id: savedUser.id },
       relations: ['role', 'previousRole'],
     });
+
+    // Obtener bimestre activo si no se especifica
+    const bimestreActivo = bimestreId || (await this.bimestreService.findBimestreActual())?.id;
+    
+    // Crear registros en permisos_pendientes para emular carga masiva
+    if (createUserDto.tipoPermiso === 'categoria' && createUserDto.categoria) {
+      const permisosPendientes = this.permisosPendientesRepository.create({
+        usuarioMail: createUserDto.emailInstitucional,
+        usuarioNombre: createUserDto.name,
+        cargo: 'Usuario Manual', // Valor por defecto para usuarios creados manualmente
+        permisoCarreraCodigo: null,
+        tipoRol: userWithRole.role?.name || 'Visualizador',
+        permisoCategoria: createUserDto.categoria,
+        fechaExpiracion: createUserDto.roleExpiresAt ? new Date(createUserDto.roleExpiresAt) : null,
+        estado: 'PENDIENTE',
+        bimestre_id: bimestreActivo
+      });
+      await this.permisosPendientesRepository.save(permisosPendientes);
+    } else if (createUserDto.tipoPermiso === 'carrera' && createUserDto.carreras && createUserDto.carreras.length > 0) {
+      // Obtener códigos de carrera
+      const carreras = await this.dataSource.query(
+        'SELECT id, codigo_plan FROM carreras WHERE id IN (?)',
+        [createUserDto.carreras]
+      );
+      
+      // Crear un registro por cada carrera
+      for (const carrera of carreras) {
+        const permisosPendientes = this.permisosPendientesRepository.create({
+          usuarioMail: createUserDto.emailInstitucional,
+          usuarioNombre: createUserDto.name,
+          cargo: 'Usuario Manual',
+          permisoCarreraCodigo: carrera.codigo_plan,
+          tipoRol: userWithRole.role?.name || 'Visualizador',
+          permisoCategoria: null,
+          fechaExpiracion: createUserDto.roleExpiresAt ? new Date(createUserDto.roleExpiresAt) : null,
+          estado: 'PENDIENTE',
+          bimestre_id: bimestreActivo
+        });
+        await this.permisosPendientesRepository.save(permisosPendientes);
+      }
+    }
+
+    // Ejecutar scripts de permisos si se crearon permisos
+    if (createUserDto.tipoPermiso && (createUserDto.categoria || (createUserDto.carreras && createUserDto.carreras.length > 0))) {
+      try {
+        console.log('🔄 Ejecutando scripts de permisos para usuario:', createUserDto.emailInstitucional);
+        await this.executePermissionScriptsForUser();
+        console.log('✅ Scripts de permisos ejecutados exitosamente');
+      } catch (error) {
+        console.error('❌ Error ejecutando scripts de permisos:', error);
+        // No fallar la creación del usuario, solo loggear el error
+      }
+    }
 
     return {
       id: userWithRole.id,
@@ -241,5 +314,435 @@ export class UsersService {
     return {
       message: `Usuario ${user.name} eliminado exitosamente`,
     };
+  }
+
+  async adminChangePassword(adminChangePasswordDto: AdminChangePasswordDto, adminUserId: number): Promise<{message: string}> {
+    const { userId, newPassword, adminPassword } = adminChangePasswordDto;
+
+    // Verificar que el usuario a cambiar existe
+    const targetUser = await this.userRepository.findOne({
+      where: { id: userId, deletedAt: null },
+    });
+
+    if (!targetUser) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    // Verificar que el admin existe y obtener su contraseña
+    const adminUser = await this.userRepository.findOne({
+      where: { id: adminUserId, deletedAt: null },
+    });
+
+    if (!adminUser) {
+      throw new UnauthorizedException('Usuario administrador no encontrado');
+    }
+
+    // Verificar la contraseña del administrador
+    const isAdminPasswordValid = await bcrypt.compare(adminPassword, adminUser.passwordHash);
+    
+    if (!isAdminPasswordValid) {
+      throw new UnauthorizedException('La contraseña del administrador es incorrecta');
+    }
+
+    // Hashear la nueva contraseña
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Actualizar la contraseña del usuario objetivo
+    await this.userRepository.update(userId, {
+      passwordHash: hashedNewPassword,
+    });
+
+    return {
+      message: `Contraseña del usuario ${targetUser.name} actualizada exitosamente`,
+    };
+  }
+
+  async importUsers(file: Express.Multer.File, bimestreId?: number) {
+    try {
+      // Validar el archivo
+      if (!file) {
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      const allowedMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-excel', // .xls
+        'text/csv' // .csv
+      ];
+
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        throw new BadRequestException('Formato de archivo no válido. Solo se permiten archivos Excel (.xlsx, .xls) o CSV (.csv)');
+      }
+
+      // Leer el archivo
+      let data: any[];
+      
+      if (file.mimetype === 'text/csv') {
+        // Procesar CSV
+        const csvData = file.buffer.toString('utf-8');
+        const workbook = XLSX.read(csvData, { type: 'string' });
+        const sheetName = workbook.SheetNames[0];
+        data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      } else {
+        // Procesar Excel
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+      }
+
+      if (!data || data.length === 0) {
+        throw new BadRequestException('El archivo está vacío o no contiene datos válidos');
+      }
+
+      // Validar estructura del archivo
+      const requiredColumns = ['Usuario', 'Mail', 'Nombre', 'Tipo de Rol'];
+      const firstRow = data[0];
+      const missingColumns = requiredColumns.filter(col => !(col in firstRow));
+      
+      if (missingColumns.length > 0) {
+        throw new BadRequestException(`Faltan las siguientes columnas requeridas: ${missingColumns.join(', ')}`);
+      }
+
+      // Obtener todos los roles para validación
+      const roles = await this.roleRepository.find();
+      const roleMap = new Map(roles.map(role => [role.name.toLowerCase(), role]));
+
+      // Procesar cada fila
+      const results = {
+        processed: 0,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        errorDetails: [] as string[]
+      };
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        results.processed++;
+
+        try {
+          // Validar datos requeridos
+          if (!row.Mail || !row.Nombre || !row['Tipo de Rol']) {
+            throw new Error(`Fila ${i + 2}: Faltan datos requeridos (Mail, Nombre, Tipo de Rol)`);
+          }
+
+          // Validar email
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(row.Mail)) {
+            throw new Error(`Fila ${i + 2}: Email inválido: ${row.Mail}`);
+          }
+
+          // Validar rol
+          const role = roleMap.get(row['Tipo de Rol'].toLowerCase());
+          if (!role) {
+            throw new Error(`Fila ${i + 2}: Rol no encontrado: ${row['Tipo de Rol']}`);
+          }
+
+          // Procesar fecha de expiración si existe
+          let expirationDate = null;
+          if (row.Expiracion !== undefined && row.Expiracion !== null && row.Expiracion !== '') {
+            try {
+              let dateStr = '';
+              
+              // Manejar diferentes tipos de datos para la fecha
+              if (typeof row.Expiracion === 'string') {
+                dateStr = row.Expiracion.trim();
+              } else if (typeof row.Expiracion === 'number') {
+                // Podría ser un número de serie de Excel
+                const excelDate = new Date((row.Expiracion - 25569) * 86400 * 1000);
+                if (!isNaN(excelDate.getTime())) {
+                  expirationDate = excelDate;
+                } else {
+                  dateStr = row.Expiracion.toString();
+                }
+              } else if (row.Expiracion instanceof Date) {
+                expirationDate = row.Expiracion;
+              } else {
+                dateStr = row.Expiracion.toString().trim();
+              }
+              
+              // Si no se pudo convertir directamente, intentar parsear como string
+              if (!expirationDate && dateStr) {
+                // Convertir formato DD-MM-YYYY a Date
+                const dateParts = dateStr.split('-');
+                if (dateParts.length === 3) {
+                  const day = parseInt(dateParts[0], 10);
+                  const month = parseInt(dateParts[1], 10);
+                  const year = parseInt(dateParts[2], 10);
+                  
+                  // Validar que los valores sean números válidos
+                  if (!isNaN(day) && !isNaN(month) && !isNaN(year) && 
+                      day >= 1 && day <= 31 && month >= 1 && month <= 12 && year >= 2024) {
+                    expirationDate = new Date(year, month - 1, day); // month es 0-indexed en Date
+                    
+                    // Verificar que la fecha sea válida
+                    if (isNaN(expirationDate.getTime())) {
+                      throw new Error(`Fecha inválida: ${dateStr}`);
+                    }
+                  } else {
+                    throw new Error(`Formato de fecha inválido: ${dateStr}`);
+                  }
+                } else {
+                  throw new Error(`Formato de fecha debe ser DD-MM-YYYY: ${dateStr}`);
+                }
+              }
+            } catch (dateError) {
+              console.error(`Error procesando fecha en fila ${i + 2}:`, {
+                valorOriginal: row.Expiracion,
+                tipoValor: typeof row.Expiracion,
+                error: dateError.message
+              });
+              throw new Error(`Fila ${i + 2}: Error en fecha de expiración - ${dateError.message}`);
+            }
+          }
+
+          // Verificar si el usuario ya existe
+          const existingUser = await this.userRepository.findOne({
+            where: { emailInstitucional: row.Mail, deletedAt: null }
+          });
+
+          // Obtener el ID del rol Visualizador si hay fecha de expiración
+          let previousRoleId = null;
+          if (expirationDate) {
+            const visualizadorRole = await this.roleRepository.findOne({
+              where: { name: 'Visualizador' }
+            });
+            previousRoleId = visualizadorRole ? visualizadorRole.id : null;
+          }
+
+          if (existingUser) {
+            // Actualizar usuario existente
+            await this.userRepository.update(existingUser.id, {
+              name: row.Nombre,
+              roleId: role.id,
+              roleExpiresAt: expirationDate,
+              previousRoleId: previousRoleId,
+            });
+            results.updated++;
+          } else {
+            // Crear nuevo usuario - usar campo Usuario como contraseña
+            const userPassword = row.Usuario || 'temporal123'; // Usar campo Usuario o fallback
+            const hashedPassword = await bcrypt.hash(userPassword, 10);
+
+            await this.userRepository.save({
+              emailInstitucional: row.Mail,
+              passwordHash: hashedPassword,
+              name: row.Nombre,
+              roleId: role.id,
+              roleExpiresAt: expirationDate,
+              previousRoleId: previousRoleId,
+              isActive: true,
+            });
+            results.created++;
+          }
+        } catch (error) {
+          results.errors++;
+          results.errorDetails.push(error.message);
+        }
+      }
+
+      const response = {
+        success: results.errors === 0,
+        message: results.errors === 0 
+          ? `Importación completada exitosamente. ${results.created} usuarios creados, ${results.updated} usuarios actualizados.`
+          : `Importación completada con errores. ${results.created} usuarios creados, ${results.updated} usuarios actualizados, ${results.errors} errores.`,
+        details: results
+      };
+
+      // Si la importación fue exitosa, ejecutar scripts de permisos
+      if (results.errors === 0 && (results.created > 0 || results.updated > 0)) {
+        try {
+          // Guardar archivo temporalmente para procesarlo con load_users.js
+          const tempFilePath = await this.saveTemporaryFile(file);
+          
+          // Ejecutar scripts de permisos de forma asíncrona
+          this.executePermissionScripts(tempFilePath, bimestreId).catch(error => {
+            console.error('Error ejecutando scripts de permisos:', error);
+          });
+          
+          response.message += ' Los permisos se están procesando en segundo plano.';
+        } catch (error) {
+          console.error('Error preparando ejecución de scripts de permisos:', error);
+        }
+      }
+
+      return response;
+
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException(`Error al procesar el archivo: ${error.message}`);
+    }
+  }
+
+  /**
+   * Guarda el archivo temporalmente para procesarlo con los scripts de permisos
+   */
+  private async saveTemporaryFile(file: Express.Multer.File): Promise<string> {
+    const tempDir = path.join(process.cwd(), 'temp');
+    
+    // Crear directorio temporal si no existe
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    
+    // Generar nombre único para el archivo temporal
+    const timestamp = Date.now();
+    const tempFileName = `users_import_${timestamp}.xlsx`;
+    const tempFilePath = path.join(tempDir, tempFileName);
+    
+    // Escribir el archivo
+    fs.writeFileSync(tempFilePath, file.buffer);
+    
+    return tempFilePath;
+  }
+
+  /**
+   * Ejecuta los scripts de permisos para un usuario individual
+   * Solo ejecuta resolve_permissions.js para procesar permisos pendientes
+   * La estructura académica debe cargarse por separado
+   */
+  private async executePermissionScriptsForUser(): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      const scriptsDir = path.join(process.cwd(), '..', 'scripts', 'permissions');
+      const resolvePermissionsScript = path.join(scriptsDir, 'resolve_permissions.js');
+      
+      // Verificar que el script existe
+      if (!fs.existsSync(resolvePermissionsScript)) {
+        console.error('Script resolve_permissions.js no encontrado en:', resolvePermissionsScript);
+        reject(new Error('Script resolve_permissions.js no encontrado'));
+        return;
+      }
+      
+      console.log('🚀 Ejecutando resolución de permisos para usuario individual...');
+      console.log('📂 Directorio de scripts:', scriptsDir);
+      
+      try {
+        // Ejecutar resolve_permissions.js para procesar permisos pendientes
+        console.log('🔄 Resolviendo permisos pendientes...');
+        await this.executeScript(resolvePermissionsScript, [], scriptsDir);
+        console.log('✅ Permisos resueltos');
+        
+        console.log('✅ Resolución de permisos ejecutada exitosamente');
+        resolve();
+        
+      } catch (error) {
+        console.error('❌ Error ejecutando resolución de permisos:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Ejecuta los scripts de permisos de forma asíncrona
+   * Ejecuta load_users.js para procesar usuarios y permisos
+   * Luego ejecuta resolve_permissions.js para resolver permisos pendientes
+   * La estructura académica debe cargarse por separado
+   */
+  private async executePermissionScripts(tempFilePath: string, bimestreId?: number): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      const scriptsDir = path.join(process.cwd(), '..', 'scripts', 'permissions');
+      const loadUsersScript = path.join(scriptsDir, 'load_users.js');
+      const resolvePermissionsScript = path.join(scriptsDir, 'resolve_permissions.js');
+      
+      // Verificar que los scripts existen
+      if (!fs.existsSync(loadUsersScript)) {
+        console.error('Script load_users.js no encontrado en:', loadUsersScript);
+        reject(new Error('Script load_users.js no encontrado'));
+        return;
+      }
+      
+      if (!fs.existsSync(resolvePermissionsScript)) {
+        console.error('Script resolve_permissions.js no encontrado en:', resolvePermissionsScript);
+        reject(new Error('Script resolve_permissions.js no encontrado'));
+        return;
+      }
+      
+      console.log('🚀 Ejecutando scripts de carga de usuarios...');
+      console.log('📁 Archivo temporal:', tempFilePath);
+      console.log('📂 Directorio de scripts:', scriptsDir);
+      
+      try {
+        // Paso 1: Ejecutar load_users.js para procesar usuarios y permisos
+        console.log('👥 Paso 1: Procesando usuarios y permisos...');
+        const loadUsersArgs = [tempFilePath];
+        if (bimestreId) {
+          loadUsersArgs.push('--bimestre-id', bimestreId.toString());
+          console.log(`📅 Usando bimestre ID: ${bimestreId}`);
+        }
+        await this.executeScript(loadUsersScript, loadUsersArgs, scriptsDir);
+        console.log('✅ Usuarios y permisos procesados');
+        
+        // Paso 2: Ejecutar resolve_permissions.js para resolver permisos pendientes
+        console.log('🔄 Paso 2: Resolviendo permisos pendientes...');
+        await this.executeScript(resolvePermissionsScript, [], scriptsDir);
+        console.log('✅ Permisos resueltos');
+        
+        // Limpiar archivo temporal
+        try {
+          fs.unlinkSync(tempFilePath);
+          console.log('🗑️ Archivo temporal eliminado:', tempFilePath);
+        } catch (cleanupError) {
+          console.error('Error eliminando archivo temporal:', cleanupError);
+        }
+        
+        console.log('✅ Scripts de permisos ejecutados exitosamente');
+        resolve();
+        
+      } catch (error) {
+        console.error('❌ Error ejecutando scripts de permisos:', error);
+        // Limpiar archivo temporal en caso de error
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          console.error('Error eliminando archivo temporal:', cleanupError);
+        }
+        reject(error);
+      }
+    });
+  }
+  
+  /**
+   * Ejecuta un script individual y retorna una promesa
+   */
+  private executeScript(scriptPath: string, args: string[], cwd: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const proceso = spawn('node', [scriptPath, ...args], {
+        cwd: cwd,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+      
+      let output = '';
+      let errorOutput = '';
+      
+      proceso.stdout.on('data', (data) => {
+        const message = data.toString();
+        output += message;
+        console.log('📊 Script output:', message.trim());
+      });
+      
+      proceso.stderr.on('data', (data) => {
+        const message = data.toString();
+        errorOutput += message;
+        console.error('❌ Script error:', message.trim());
+      });
+      
+      proceso.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          console.error(`❌ Script terminó con código ${code}`);
+          console.error('Output:', output);
+          console.error('Error output:', errorOutput);
+          reject(new Error(`Script terminó con código ${code}`));
+        }
+      });
+      
+      proceso.on('error', (error) => {
+        console.error('❌ Error ejecutando script:', error);
+        reject(error);
+      });
+    });
   }
 }

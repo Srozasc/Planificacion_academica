@@ -84,6 +84,15 @@ export class UploadService {
     errorDetails: string = null
   ): Promise<void> {
     try {
+      // Eliminar registros pendientes anteriores del mismo tipo y bimestre para todos los tipos de archivo
+      this.logger.log(`Eliminando registros ${uploadType} pendientes anteriores para bimestre ${bimestreId}...`);
+      const deletedCount = await this.uploadLogRepository.delete({
+        uploadType: uploadType,
+        bimestreId: bimestreId,
+        approvalStatus: 'Pendiente'
+      });
+      this.logger.log(`Registros ${uploadType} pendientes eliminados: ${deletedCount.affected || 0}`);
+
       const uploadLog = this.uploadLogRepository.create({
         fileName,
         uploadType,
@@ -105,7 +114,7 @@ export class UploadService {
     }
   }
 
-  async processDol(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processDol(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS DOL SERVICE ===');
       this.logger.log(`Procesando archivo DOL: ${file.originalname}`);
@@ -150,7 +159,7 @@ export class UploadService {
           'Con errores',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.join('; ')
         );
         
@@ -183,7 +192,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - savedRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -249,7 +258,7 @@ export class UploadService {
     }
   }
 
-  async processAdol(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processAdol(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS ADOL SERVICE ===');
       this.logger.log(`Procesando archivo ADOL: ${file.originalname}`);
@@ -294,7 +303,7 @@ export class UploadService {
           'Con errores',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.join('; ')
         );
         
@@ -327,7 +336,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - savedRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -619,7 +628,7 @@ export class UploadService {
     }
   }
 
-  async processVacantesInicio(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processVacantesInicio(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS VACANTES INICIO SERVICE ===');
       this.logger.log(`Procesando archivo Vacantes Inicio: ${file.originalname}`);
@@ -655,7 +664,7 @@ export class UploadService {
           'Con errores',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.join('; ')
         );
         
@@ -686,7 +695,7 @@ export class UploadService {
           'Exitoso',
           data.length,
           0,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           null
         );
       } else {
@@ -698,7 +707,7 @@ export class UploadService {
           'Exitoso',
           data.length,
           0,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           null
         );
       }
@@ -863,7 +872,7 @@ export class UploadService {
     }
   }
 
-  async processEstructuraAcademica(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processEstructuraAcademica(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS ESTRUCTURA ACADEMICA SERVICE ===');
       this.logger.log(`Procesando archivo Estructura Académica: ${file.originalname}`);
@@ -903,7 +912,7 @@ export class UploadService {
           'Exitoso',
           data.length,
           data.length - validatedData.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           null
         );
         
@@ -933,7 +942,7 @@ export class UploadService {
         'Exitoso',
         data.length,
         data.length - savedRecords.length,
-        null, // userId - se puede agregar cuando esté disponible
+        userId,
         null
       );
 
@@ -1147,7 +1156,7 @@ export class UploadService {
     };
   }
 
-  async processReporteCursables(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processReporteCursables(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS REPORTE CURSABLES SERVICE ===');
       this.logger.log(`Procesando archivo Reporte Cursables: ${file.originalname}`);
@@ -1192,7 +1201,7 @@ export class UploadService {
           'Con errores',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.join('; ')
         );
         
@@ -1225,7 +1234,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - savedRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -1434,7 +1443,7 @@ export class UploadService {
     }
   }
 
-  async processNominaDocentes(file: Express.Multer.File, options: ProcessOptions): Promise<UploadResult> {
+  async processNominaDocentes(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     try {
       this.logger.log('=== INICIO PROCESS NOMINA DOCENTES SERVICE ===');
       this.logger.log(`Procesando archivo Nómina Docentes: ${file.originalname}`);
@@ -1466,7 +1475,7 @@ export class UploadService {
           'Error',
           0,
           0,
-          null, // userId - se puede agregar cuando esté disponible
+          userId,
           'El archivo está vacío o no tiene el formato correcto'
         );
         
@@ -1584,7 +1593,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId,
         error.message
       );
       
@@ -1748,7 +1757,7 @@ export class UploadService {
           }));
           break;
 
-        case 'ESTRUCTURA_ACADEMICA':
+        case 'Estructura Académica':
           const estructuraData = await this.stagingEstructuraAcademicaRepository.find();
           validRecords = estructuraData.map((record, index) => ({
             rowNumber: index + 1,
@@ -1762,7 +1771,7 @@ export class UploadService {
           }));
           break;
 
-        case 'NOMINA_DOCENTES':
+        case 'Nómina Docentes':
           const nominaData = await this.stagingNominaDocentesRepository.find();
           validRecords = nominaData.map((record, index) => ({
             rowNumber: index + 1,
@@ -1774,7 +1783,7 @@ export class UploadService {
           }));
           break;
 
-        case 'REPORTE_CURSABLES':
+        case 'Reporte Cursables':
           const reporteData = await this.stagingReporteCursablesRepository.find();
           validRecords = reporteData.map((record, index) => ({
             rowNumber: index + 1,
@@ -1789,17 +1798,28 @@ export class UploadService {
           }));
           break;
 
-        case 'VACANTES_INICIO':
-          const vacantesData = await this.stagingVacantesInicioRepository.find();
+        case 'Vacantes Inicio':
+          this.logger.log('=== PROCESANDO VACANTES_INICIO ===');
+          this.logger.log(`Buscando datos para bimestre: ${uploadLog.bimestreId}`);
+          const vacantesData = await this.stagingVacantesInicioRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
+          this.logger.log(`Registros encontrados en BD: ${vacantesData.length}`);
+          if (vacantesData.length > 0) {
+            this.logger.log('Primer registro:', JSON.stringify(vacantesData[0], null, 2));
+          }
           validRecords = vacantesData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
               'CODIGO_PLAN': record.codigo_plan,
               'CARRERA': record.carrera,
               'SIGLA_ASIGNATURA': record.sigla_asignatura,
-              'ASIGNATURA': record.asignatura
+              'NIVEL': record.nivel,
+              'CREDITOS': record.creditos,
+              'VACANTES': record.vacantes
             }
           }));
+          this.logger.log(`Registros válidos mapeados: ${validRecords.length}`);
           break;
 
         default:
@@ -1827,11 +1847,14 @@ export class UploadService {
   }
 
   // Nuevos métodos para gestión de cargas
-  async getRecentUploads() {
+  async getRecentUploads(bimestreId?: number) {
     try {
       this.logger.log('=== OBTENIENDO CARGAS RECIENTES ===');
+      if (bimestreId) {
+        this.logger.log(`Filtrando por bimestre ID: ${bimestreId}`);
+      }
       
-      const recentUploads = await this.uploadLogRepository
+      const queryBuilder = this.uploadLogRepository
         .createQueryBuilder('ul')
         .leftJoinAndSelect('ul.bimestre', 'b')
         .leftJoinAndSelect('ul.user', 'u')
@@ -1853,7 +1876,14 @@ export class UploadService {
           'u.name',
           'approver.id',
           'approver.name'
-        ])
+        ]);
+
+      // Agregar filtro por bimestre si se proporciona
+      if (bimestreId) {
+        queryBuilder.where('ul.bimestreId = :bimestreId', { bimestreId });
+      }
+
+      const recentUploads = await queryBuilder
         .orderBy('ul.uploadDate', 'DESC')
         .limit(50)
         .getMany();
@@ -1914,15 +1944,18 @@ export class UploadService {
           'approver.name'
         ]);
 
-      // Aplicar filtros
+      // Filtro fijo: solo mostrar registros aprobados
+      queryBuilder.where('ul.approvalStatus = :approvalStatus', { approvalStatus: 'Aprobado' });
+
+      // Aplicar filtros adicionales
       if (filters.uploadType) {
         queryBuilder.andWhere('ul.uploadType = :uploadType', { uploadType: filters.uploadType });
       }
       if (filters.status) {
         queryBuilder.andWhere('ul.status = :status', { status: filters.status });
       }
-      if (filters.approvalStatus) {
-        queryBuilder.andWhere('ul.approvalStatus = :approvalStatus', { approvalStatus: filters.approvalStatus });
+      if (filters.bimestreId) {
+        queryBuilder.andWhere('ul.bimestre_id = :bimestreId', { bimestreId: filters.bimestreId });
       }
       if (filters.dateFrom) {
         queryBuilder.andWhere('ul.uploadDate >= :dateFrom', { dateFrom: filters.dateFrom });

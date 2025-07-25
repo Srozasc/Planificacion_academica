@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import usersService, { CreateUserData } from '../../services/users.service';
 import { authService, Role } from '../../services/auth.service';
+import { carrerasService, Carrera } from '../../services/carreras.service';
+import { asignaturasService } from '../../services/asignaturas.service';
+import { useBimestreStore } from '../../store/bimestreStore';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -17,6 +20,9 @@ interface FormData {
   roleId: number;
   roleExpiresAt?: string;
   previousRoleId?: number;
+  tipoPermiso?: 'categoria' | 'carrera';
+  categoria?: string;
+  carreras?: number[];
 }
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({
@@ -24,6 +30,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   onClose,
   onUserCreated
 }) => {
+  const { bimestreSeleccionado } = useBimestreStore();
   const [formData, setFormData] = useState<FormData>({
     name: '',
     emailInstitucional: '',
@@ -37,6 +44,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [carrerasLoading, setCarrerasLoading] = useState(true);
+  const [categoriasLoading, setCategoriasLoading] = useState(true);
 
   // Obtener el ID del rol "Editor" dinámicamente
   const getEditorRoleId = (): number => {
@@ -58,22 +69,12 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         const rolesData = await authService.getRoles();
         setRoles(rolesData);
         
-        // Obtener el ID del rol "Visualizador" para inicializar previousRoleId
-        const visualizadorRole = rolesData.find(role => role.name === 'Visualizador');
-        const visualizadorId = visualizadorRole?.id || 1;
-        
         // Si no hay roleId seleccionado y hay roles disponibles, seleccionar el primero
         if (!formData.roleId && rolesData.length > 0) {
           setFormData(prev => ({ 
             ...prev, 
-            roleId: rolesData[0].id,
-            previousRoleId: visualizadorId
-          }));
-        } else {
-          // Asegurar que previousRoleId esté inicializado
-          setFormData(prev => ({ 
-            ...prev, 
-            previousRoleId: prev.previousRoleId || visualizadorId
+            roleId: rolesData[0].id
+            // No establecer previousRoleId para usuarios nuevos
           }));
         }
       } catch (error) {
@@ -86,6 +87,34 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 
     if (isOpen) {
       loadRoles();
+    }
+  }, [isOpen]);
+
+  // Cargar carreras y categorías
+  useEffect(() => {
+    const loadCarrerasYCategorias = async () => {
+      try {
+        setCarrerasLoading(true);
+        setCategoriasLoading(true);
+        
+        const [carrerasData, categoriasData] = await Promise.all([
+          carrerasService.getCarreras(),
+          asignaturasService.getCategorias()
+        ]);
+        
+        setCarreras(carrerasData);
+        setCategorias(categoriasData);
+      } catch (error) {
+        console.error('Error loading carreras y categorias:', error);
+        setErrors(prev => ({ ...prev, carreras: 'Error al cargar carreras y categorías' }));
+      } finally {
+        setCarrerasLoading(false);
+        setCategoriasLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadCarrerasYCategorias();
     }
   }, [isOpen]);
 
@@ -107,6 +136,13 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         
         return updatedData;
       });
+    } else if (name === 'tipoPermiso') {
+      setFormData(prev => ({
+        ...prev,
+        tipoPermiso: value as 'categoria' | 'carrera',
+        categoria: '',
+        carreras: []
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -118,6 +154,20 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleCarreraToggle = (carreraId: number) => {
+    setFormData(prev => {
+      const currentCarreras = prev.carreras || [];
+      const isSelected = currentCarreras.includes(carreraId);
+      
+      return {
+        ...prev,
+        carreras: isSelected 
+          ? currentCarreras.filter(id => id !== carreraId)
+          : [...currentCarreras, carreraId]
+      };
+    });
   };
 
   const validateForm = (): boolean => {
@@ -149,12 +199,27 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       newErrors.roleId = 'Seleccione un rol';
     }
 
+    // Validaciones de permisos
+    if (formData.tipoPermiso === 'categoria' && !formData.categoria?.trim()) {
+      newErrors.categoria = 'Seleccione una categoría';
+    }
+
+    if (formData.tipoPermiso === 'carrera' && (!formData.carreras || formData.carreras.length === 0)) {
+      newErrors.carreras = 'Seleccione al menos una carrera';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar que haya un bimestre seleccionado
+    if (!bimestreSeleccionado) {
+      setErrors({ general: 'Debe seleccionar un bimestre en el navbar antes de crear un usuario' });
+      return;
+    }
     
     if (!validateForm()) return;
 
@@ -165,13 +230,22 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         emailInstitucional: formData.emailInstitucional,
         password: formData.password,
         roleId: formData.roleId,
-        previousRoleId: formData.previousRoleId,
+        ...(formData.previousRoleId && { previousRoleId: formData.previousRoleId }),
         ...(formData.roleExpiresAt && formData.roleId === getEditorRoleId() && {
           roleExpiresAt: `${formData.roleExpiresAt}T23:59:59`
+        }),
+        ...(formData.tipoPermiso && {
+          tipoPermiso: formData.tipoPermiso,
+          ...(formData.tipoPermiso === 'categoria' && formData.categoria && {
+            categoria: formData.categoria
+          }),
+          ...(formData.tipoPermiso === 'carrera' && formData.carreras && {
+            carreras: formData.carreras
+          })
         })
       };
 
-      await usersService.createUser(createUserData);
+      await usersService.createUser(createUserData, bimestreSeleccionado.id);
       onUserCreated();
       handleClose();
     } catch (error: any) {
@@ -194,7 +268,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       confirmPassword: '',
       roleId: 1,
       roleExpiresAt: '',
-      previousRoleId: undefined
+      previousRoleId: undefined,
+      tipoPermiso: undefined,
+      categoria: '',
+      carreras: []
     });
     setErrors({});
     onClose();
@@ -334,6 +411,97 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </p>
           </div>
         )}
+
+        {/* Sección de Permisos */}
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Permisos de Acceso</h3>
+          
+          <div>
+            <label htmlFor="tipoPermiso" className="block text-sm font-medium text-gray-700 mb-1">
+              Tipo de Permiso
+            </label>
+            <select
+              id="tipoPermiso"
+              name="tipoPermiso"
+              value={formData.tipoPermiso || ''}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sin permisos específicos</option>
+              <option value="categoria">Por Categoría de Asignatura</option>
+              <option value="carrera">Por Carrera</option>
+            </select>
+          </div>
+
+          {/* Campo de Categoría */}
+          {formData.tipoPermiso === 'categoria' && (
+            <div className="mt-4">
+              <label htmlFor="categoria" className="block text-sm font-medium text-gray-700 mb-1">
+                Categoría *
+              </label>
+              <select
+                id="categoria"
+                name="categoria"
+                value={formData.categoria || ''}
+                onChange={handleInputChange}
+                disabled={categoriasLoading}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.categoria ? 'border-red-500' : 'border-gray-300'
+                } ${categoriasLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <option value="">Seleccione una categoría</option>
+                {categoriasLoading ? (
+                  <option value="">Cargando categorías...</option>
+                ) : (
+                  categorias.map(categoria => (
+                    <option key={categoria} value={categoria}>
+                      {categoria}
+                    </option>
+                  ))
+                )}
+              </select>
+              {errors.categoria && <p className="text-red-500 text-sm mt-1">{errors.categoria}</p>}
+            </div>
+          )}
+
+          {/* Campo de Carreras */}
+          {formData.tipoPermiso === 'carrera' && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Carreras * (seleccione una o más)
+              </label>
+              <div className={`border rounded-md p-3 max-h-40 overflow-y-auto ${
+                errors.carreras ? 'border-red-500' : 'border-gray-300'
+              }`}>
+                {carrerasLoading ? (
+                  <p className="text-gray-500">Cargando carreras...</p>
+                ) : carreras.length === 0 ? (
+                  <p className="text-gray-500">No hay carreras disponibles</p>
+                ) : (
+                  carreras.map(carrera => (
+                    <label key={carrera.id} className="flex items-center space-x-2 py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.carreras?.includes(carrera.id) || false}
+                        onChange={() => handleCarreraToggle(carrera.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {carrera.codigo_plan} - {carrera.nombre_carrera}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              {errors.carreras && <p className="text-red-500 text-sm mt-1">{errors.carreras}</p>}
+              {formData.carreras && formData.carreras.length > 0 && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {formData.carreras.length} carrera(s) seleccionada(s)
+                </p>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <button

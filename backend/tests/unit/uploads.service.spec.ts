@@ -80,6 +80,12 @@ describe('UploadService', () => {
   let uploadLogRepository: Repository<UploadLog>;
   let responseService: ResponseService;
 
+  const mockUser = {
+    userId: 1,
+    username: 'testuser',
+    role: 'admin'
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -197,7 +203,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      const result = await service.processAdol(mockFile, mockOptions);
+      const result = await service.processAdol(mockFile, mockOptions, mockUser.userId);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('ADOL procesado exitosamente');
@@ -225,7 +231,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      await service.processAdol(mockFile, mockOptions);
+      await service.processAdol(mockFile, mockOptions, mockUser.userId);
 
       // Verificar que clear() se llama antes que save()
       const clearCall = (stagingAdolRepository.clear as jest.Mock).mock.invocationCallOrder[0];
@@ -325,7 +331,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      const result = await service.processDol(mockFile, mockOptions);
+      const result = await service.processDol(mockFile, mockOptions, mockUser.userId);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('DOL procesado exitosamente');
@@ -377,7 +383,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      await service.processVacantesInicio(mockFile, mockOptions);
+      await service.processVacantesInicio(mockFile, mockOptions, mockUser.userId);
 
       expect(stagingVacantesInicioRepository.clear).toHaveBeenCalledTimes(1);
       const clearCall = (stagingVacantesInicioRepository.clear as jest.Mock).mock.invocationCallOrder[0];
@@ -429,7 +435,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      await service.processEstructuraAcademica(mockFile, mockOptions);
+      await service.processEstructuraAcademica(mockFile, mockOptions, mockUser.userId);
 
       expect(stagingEstructuraAcademicaRepository.clear).toHaveBeenCalledTimes(1);
     });
@@ -478,7 +484,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      await service.processNominaDocentes(mockFile, mockOptions);
+      await service.processNominaDocentes(mockFile, mockOptions, mockUser.userId);
 
       expect(stagingNominaDocentesRepository.clear).toHaveBeenCalledTimes(1);
       const clearCall = (stagingNominaDocentesRepository.clear as jest.Mock).mock.invocationCallOrder[0];
@@ -528,7 +534,7 @@ describe('UploadService', () => {
         errors: [],
       });
 
-      await expect(service.processAdol(mockFile, mockOptions)).rejects.toThrow('Database connection failed');
+      await expect(service.processAdol(mockFile, mockOptions, mockUser.userId)).rejects.toThrow('Database connection failed');
     });
 
     it('should handle XLSX reading errors', async () => {
@@ -537,7 +543,7 @@ describe('UploadService', () => {
         throw new Error('Invalid Excel file');
       });
 
-      await expect(service.processAdol(mockFile, mockOptions)).rejects.toThrow('Invalid Excel file');
+      await expect(service.processAdol(mockFile, mockOptions, mockUser.userId)).rejects.toThrow('Invalid Excel file');
     });
   });
 

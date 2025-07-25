@@ -14,6 +14,12 @@ export class Bimestre {
   @Column({ type: 'date' })
   fechaFin: Date;
 
+  @Column({ type: 'date', nullable: true })
+  fechaPago1?: Date;
+
+  @Column({ type: 'date', nullable: true })
+  fechaPago2?: Date;
+
   @Column({ type: 'int' })
   anoAcademico: number;
 

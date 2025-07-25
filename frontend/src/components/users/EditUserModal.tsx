@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { User } from '../../services/users.service';
-import usersService from '../../services/users.service';
+import usersService, { AdminChangePasswordData } from '../../services/users.service';
 import { authService, Role } from '../../services/auth.service';
 
 interface EditUserModalProps {
@@ -34,10 +34,18 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     previousRoleId: 1, // Por defecto será Visualizador (nuevo ID)
     isActive: true
   });
+
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: '',
+    adminPassword: '',
+    changePassword: false,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Obtener el ID del rol "Visualizador" dinámicamente
   const getVisualizadorRoleId = (): number => {
@@ -125,6 +133,21 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     }
   };
 
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    
+    // Limpiar errores de contraseña cuando el usuario empiece a escribir
+    if (passwordError) {
+      setPasswordError(null);
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -150,27 +173,89 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     if (!validateForm() || !user) return;
 
     setIsLoading(true);
+    setPasswordError(null);
+    
     try {
       // Preparar datos para envío, filtrando valores vacíos
-      const updateData = {
+      const updateData: any = {
         ...formData,
-        roleExpiresAt: formData.roleExpiresAt ? `${formData.roleExpiresAt}T23:59:59` : undefined,
+        roleExpiresAt: formData.roleExpiresAt && formData.roleExpiresAt.trim() !== '' ? `${formData.roleExpiresAt}T23:59:59` : undefined,
         previousRoleId: formData.previousRoleId || undefined
       };
       
+      // Filtrar campos undefined para no enviarlos al backend
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined || updateData[key] === '') {
+          delete updateData[key];
+        }
+      });
+      
+      // Actualizar datos del usuario
       await usersService.updateUser(user.id, updateData);
+      
+      // Si se solicita cambio de contraseña, procesarlo
+      if (passwordData.changePassword) {
+        // Validaciones de contraseña
+        if (!passwordData.newPassword) {
+          setPasswordError('La nueva contraseña es requerida');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (passwordData.newPassword.length < 6) {
+          setPasswordError('La nueva contraseña debe tener al menos 6 caracteres');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          setPasswordError('Las contraseñas no coinciden');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!passwordData.adminPassword) {
+          setPasswordError('Debe ingresar su contraseña para validar el cambio');
+          setIsLoading(false);
+          return;
+        }
+
+        const changePasswordData: AdminChangePasswordData = {
+          userId: user.id,
+          newPassword: passwordData.newPassword,
+          adminPassword: passwordData.adminPassword,
+        };
+
+        await usersService.adminChangePassword(changePasswordData);
+      }
+      
       onUserUpdated();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user:', error);
-      setErrors({ general: 'Error al actualizar el usuario. Por favor, intente nuevamente.' });
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes('contraseña')) {
+          setPasswordError(error.response.data.message);
+        } else {
+          setErrors({ general: error.response.data.message });
+        }
+      } else {
+        setErrors({ general: 'Error al actualizar el usuario. Por favor, intente nuevamente.' });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleClose = () => {
+    setPasswordData({
+      newPassword: '',
+      confirmPassword: '',
+      adminPassword: '',
+      changePassword: false,
+    });
     setErrors({});
+    setPasswordError(null);
     onClose();
   };
 
@@ -300,6 +385,78 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
           <p className="mt-1 text-xs text-gray-500">
             Rol al que se revertirá cuando expire el rol temporal
           </p>
+        </div>
+
+        {/* Sección de cambio de contraseña */}
+        <div className="border-t pt-4">
+          <div className="flex items-center mb-4">
+            <input
+              type="checkbox"
+              id="changePassword"
+              name="changePassword"
+              checked={passwordData.changePassword}
+              onChange={handlePasswordChange}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <label htmlFor="changePassword" className="ml-2 block text-sm font-medium text-gray-700">
+              Cambiar contraseña del usuario
+            </label>
+          </div>
+
+          {passwordData.changePassword && (
+            <div className="space-y-4 ml-6">
+              <div>
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nueva contraseña *
+                </label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  name="newPassword"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirmar nueva contraseña *
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Repita la nueva contraseña"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Su contraseña (para validar) *
+                </label>
+                <input
+                  type="password"
+                  id="adminPassword"
+                  name="adminPassword"
+                  value={passwordData.adminPassword}
+                  onChange={handlePasswordChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Ingrese su contraseña actual"
+                />
+              </div>
+
+              {passwordError && (
+                <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                  {passwordError}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center">

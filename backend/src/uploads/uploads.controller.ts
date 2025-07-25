@@ -16,6 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { User } from '../auth/decorators/user.decorator';
 import { ResponseService } from '../common/services/response.service';
 import { UploadService } from './uploads.service';
 import { multerConfig } from './config/multer.config';
@@ -38,6 +39,7 @@ export class UploadsController {
   async uploadAdol(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO ADOL ===');
@@ -72,6 +74,7 @@ export class UploadsController {
       const result = await this.uploadService.processAdol(
         file,
         { mode, validateOnly, bimestreId: bimestreIdNum },
+        user.userId,
       );
 
       this.logger.log('=== RESULTADO PROCESO ADOL ===');
@@ -103,6 +106,7 @@ export class UploadsController {
   async uploadDol(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO DOL ===');
@@ -137,6 +141,7 @@ export class UploadsController {
       const result = await this.uploadService.processDol(
         file,
         { mode, validateOnly, bimestreId: bimestreIdNum },
+        user.userId,
       );
 
       this.logger.log('=== RESULTADO PROCESO DOL ===');
@@ -168,6 +173,7 @@ export class UploadsController {
   async uploadVacantesInicio(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO VACANTES INICIO ===');
@@ -202,6 +208,7 @@ export class UploadsController {
       const result = await this.uploadService.processVacantesInicio(
         file,
         { mode, validateOnly, bimestreId: bimestreIdNum },
+        user.userId,
       );
 
       this.logger.log('=== RESULTADO PROCESO VACANTES INICIO ===');
@@ -233,6 +240,7 @@ export class UploadsController {
   async uploadEstructuraAcademica(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO ESTRUCTURA ACADEMICA ===');
@@ -267,6 +275,7 @@ export class UploadsController {
       const result = await this.uploadService.processEstructuraAcademica(
         file,
         { mode, validateOnly, bimestreId: bimestreIdNum },
+        user.userId,
       );
 
       this.logger.log('=== RESULTADO PROCESO ESTRUCTURA ACADEMICA ===');
@@ -298,6 +307,7 @@ export class UploadsController {
   async uploadReporteCursables(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO REPORTE CURSABLES ===');
@@ -332,7 +342,7 @@ export class UploadsController {
 
       this.logger.log(`Opciones finales para el servicio:`, JSON.stringify(options));
 
-      const result = await this.uploadService.processReporteCursables(file, options);
+      const result = await this.uploadService.processReporteCursables(file, options, user.userId);
       
       this.logger.log('=== RESULTADO FINAL CONTROLLER REPORTE CURSABLES ===');
       this.logger.log(JSON.stringify(result, null, 2));
@@ -401,6 +411,7 @@ export class UploadsController {
   async uploadNominaDocentes(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log('=== INICIO PROCESO NOMINA DOCENTES ===');
@@ -436,7 +447,7 @@ export class UploadsController {
       this.logger.log(`Opciones finales para el servicio:`, JSON.stringify(options));
       this.logger.log('Llamando al servicio processNominaDocentes...');
       
-      const result = await this.uploadService.processNominaDocentes(file, options);
+      const result = await this.uploadService.processNominaDocentes(file, options, user.userId);
       
       this.logger.log('=== RESULTADO DEL SERVICIO ===');
       this.logger.log('Resultado recibido del servicio:', JSON.stringify(result, null, 2));
@@ -495,11 +506,12 @@ export class UploadsController {
   // Nuevos endpoints para gestión de cargas
   @Get('recent')
   @Roles('Maestro', 'Editor')
-  async getRecentUploads() {
+  async getRecentUploads(@Query('bimestreId') bimestreId?: string) {
     try {
       this.logger.log('=== OBTENIENDO CARGAS RECIENTES ===');
       
-      const recentUploads = await this.uploadService.getRecentUploads();
+      const bimestreIdNumber = bimestreId ? parseInt(bimestreId, 10) : undefined;
+      const recentUploads = await this.uploadService.getRecentUploads(bimestreIdNumber);
       
       this.logger.log('Cargas recientes obtenidas exitosamente');
       return this.responseService.success(
@@ -529,7 +541,7 @@ export class UploadsController {
       const filters = {
         uploadType: query.uploadType,
         status: query.status,
-        approvalStatus: query.approvalStatus,
+        bimestreId: query.bimestreId,
         dateFrom: query.dateFrom,
         dateTo: query.dateTo
       };
@@ -564,15 +576,15 @@ export class UploadsController {
   @Roles('Maestro')
   async approveUpload(
     @Param('uploadId') uploadId: string,
-    @Body() body: { userId: number },
+    @User() user: any,
   ) {
     try {
       this.logger.log(`=== APROBANDO CARGA: ${uploadId} ===`);
-      this.logger.log(`Usuario aprobador: ${body.userId}`);
+      this.logger.log(`Usuario aprobador: ${user.userId}`);
       
       const result = await this.uploadService.approveUpload(
         parseInt(uploadId),
-        body.userId,
+        user.userId,
       );
       
       this.logger.log('Carga aprobada exitosamente');
@@ -596,16 +608,17 @@ export class UploadsController {
   @Roles('Maestro')
   async rejectUpload(
     @Param('uploadId') uploadId: string,
-    @Body() body: { userId: number; reason?: string },
+    @Body() body: { reason?: string },
+    @User() user: any,
   ) {
     try {
       this.logger.log(`=== RECHAZANDO CARGA: ${uploadId} ===`);
-      this.logger.log(`Usuario que rechaza: ${body.userId}`);
+      this.logger.log(`Usuario que rechaza: ${user.userId}`);
       this.logger.log(`Razón: ${body.reason || 'No especificada'}`);
       
       const result = await this.uploadService.rejectUpload(
         parseInt(uploadId),
-        body.userId,
+        user.userId,
         body.reason,
       );
       

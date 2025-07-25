@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uploadService, RecentUpload, UploadDetails, DataRecord } from '../services/upload.service';
+import { BimestreService, Bimestre } from '../../../services/bimestre.service';
 import { useToast } from '../../../hooks/useToast';
 
 interface RecentUploadsManagerProps {
@@ -19,11 +20,19 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
   const [comments, setComments] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(20);
+  const [bimestres, setBimestres] = useState<Bimestre[]>([]);
+  const [selectedBimestreId, setSelectedBimestreId] = useState<number | undefined>(undefined);
   const { showToast } = useToast();
+  const bimestreService = new BimestreService();
+
+  useEffect(() => {
+    loadBimestres();
+    loadRecentUploads();
+  }, []);
 
   useEffect(() => {
     loadRecentUploads();
-  }, []);
+  }, [selectedBimestreId]);
 
   const handleFilterChange = (newFilter: 'all' | 'valid' | 'errors') => {
     setDataFilter(newFilter);
@@ -34,10 +43,19 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
     setCurrentPage(page);
   };
 
+  const loadBimestres = async () => {
+    try {
+      const data = await bimestreService.findActivos();
+      setBimestres(data);
+    } catch (error: any) {
+      console.error('Error al cargar bimestres:', error);
+    }
+  };
+
   const loadRecentUploads = async () => {
     try {
       setLoading(true);
-      const data = await uploadService.getRecentUploads();
+      const data = await uploadService.getRecentUploads(selectedBimestreId);
       setUploads(data);
     } catch (error: any) {
       showToast(error.message || 'Error al cargar las cargas recientes', 'error');
@@ -150,7 +168,7 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
     <>
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Cargas Recientes</h3>
             <button
               onClick={loadRecentUploads}
@@ -158,6 +176,26 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
             >
               Actualizar
             </button>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <label htmlFor="bimestre-filter" className="text-sm font-medium text-gray-700">
+                Filtrar por bimestre:
+              </label>
+              <select
+                id="bimestre-filter"
+                value={selectedBimestreId || ''}
+                onChange={(e) => setSelectedBimestreId(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                className="block w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value="">Todos los bimestres</option>
+                {bimestres.map((bimestre) => (
+                  <option key={bimestre.id} value={bimestre.id}>
+                    {bimestre.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         
@@ -232,7 +270,12 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
                         onClick={() => handleViewData(upload)}
-                        className="text-blue-600 hover:text-blue-900"
+                        disabled={upload.approval_status === 'Aprobado'}
+                        className={`${
+                          upload.approval_status === 'Aprobado'
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-blue-600 hover:text-blue-900'
+                        }`}
                       >
                         Ver
                       </button>

@@ -30,6 +30,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     nombre: '',
     fechaInicio: '',
     fechaFin: '',
+    fechaPago1: '',
+    fechaPago2: '',
     anoAcademico: new Date().getFullYear(),
     numeroBimestre: 1,
     descripcion: ''
@@ -131,6 +133,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
         nombre: '',
         fechaInicio: '',
         fechaFin: '',
+        fechaPago1: '',
+        fechaPago2: '',
         anoAcademico: new Date().getFullYear(),
         numeroBimestre: 1,
         descripcion: ''
@@ -164,6 +168,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       nombre: bimestre.nombre,
       fechaInicio: formatDateForInput(bimestre.fechaInicio),
       fechaFin: formatDateForInput(bimestre.fechaFin),
+      fechaPago1: bimestre.fechaPago1 ? formatDateForInput(bimestre.fechaPago1) : '',
+      fechaPago2: bimestre.fechaPago2 ? formatDateForInput(bimestre.fechaPago2) : '',
       anoAcademico: bimestre.anoAcademico,
       numeroBimestre: bimestre.numeroBimestre,
       descripcion: bimestre.descripcion || ''
@@ -176,6 +182,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       nombre: '',
       fechaInicio: '',
       fechaFin: '',
+      fechaPago1: '',
+      fechaPago2: '',
       anoAcademico: new Date().getFullYear(),
       numeroBimestre: 1,
       descripcion: ''
@@ -308,6 +316,33 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de Pago 1
+                  </label>
+                  <input
+                    type="date"
+                    name="fechaPago1"
+                    value={formData.fechaPago1}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fecha de Pago 2
+                  </label>
+                  <input
+                    type="date"
+                    name="fechaPago2"
+                    value={formData.fechaPago2}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>              <div>

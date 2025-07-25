@@ -5,6 +5,8 @@ export interface Bimestre {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
+  fechaPago1?: string;
+  fechaPago2?: string;
   anoAcademico: number;
   numeroBimestre: number;
   activo: boolean;
@@ -17,6 +19,8 @@ export interface CreateBimestreDto {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
+  fechaPago1?: string;
+  fechaPago2?: string;
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
