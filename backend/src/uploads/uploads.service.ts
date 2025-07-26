@@ -11,6 +11,10 @@ import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docent
 import { UploadLog } from './entities/upload-log.entity';
 import { ResponseService } from '../common/services/response.service';
 import { unlinkSync } from 'fs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 interface ProcessOptions {
   mode: string;
@@ -2036,6 +2040,63 @@ export class UploadService {
       upload.approvedAt = new Date();
 
       await this.uploadLogRepository.save(upload);
+
+      // Si es una carga de Estructura Académica, ejecutar load_plans.js y luego resolve_permissions.js
+      if (upload.uploadType === 'Estructura Académica') {
+        this.logger.log('=== EJECUTANDO LOAD_PLANS PARA ESTRUCTURA ACADÉMICA ===');
+        try {
+          const { stdout, stderr } = await execAsync('node scripts/permissions/load_plans.js', {
+            cwd: process.cwd().replace('backend', '')
+          });
+          
+          if (stderr) {
+            this.logger.warn('Load plans stderr:', stderr);
+          }
+          
+          this.logger.log('Load plans stdout:', stdout);
+          this.logger.log('Load plans ejecutado exitosamente después de aprobar Estructura Académica');
+          
+          // Ejecutar resolve_permissions.js después de load_plans.js
+          this.logger.log('=== EJECUTANDO RESOLVE_PERMISSIONS DESPUÉS DE LOAD_PLANS ===');
+          try {
+            const { stdout: resolveStdout, stderr: resolveStderr } = await execAsync('node scripts/permissions/resolve_permissions.js', {
+              cwd: process.cwd().replace('backend', '')
+            });
+            
+            if (resolveStderr) {
+              this.logger.warn('Resolve permissions stderr:', resolveStderr);
+            }
+            
+            this.logger.log('Resolve permissions stdout:', resolveStdout);
+            this.logger.log('Resolve permissions ejecutado exitosamente después de load_plans');
+          } catch (resolvePermissionsError) {
+            this.logger.error('Error ejecutando resolve_permissions:', resolvePermissionsError.message);
+            if (resolvePermissionsError.stdout) {
+              this.logger.error('Resolve permissions stdout:', resolvePermissionsError.stdout);
+            }
+            if (resolvePermissionsError.stderr) {
+              this.logger.error('Resolve permissions stderr:', resolvePermissionsError.stderr);
+            }
+            // No lanzamos el error para no interrumpir la aprobación
+            // pero registramos el problema
+          }
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (loadPlansError) {
+          this.logger.error('Error ejecutando load_plans:', loadPlansError.message);
+          if (loadPlansError.stdout) {
+            this.logger.error('Load plans stdout:', loadPlansError.stdout);
+          }
+          if (loadPlansError.stderr) {
+            this.logger.error('Load plans stderr:', loadPlansError.stderr);
+          }
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
 
       this.logger.log('Carga aprobada exitosamente');
       return {

@@ -35,10 +35,12 @@ async function loadPlans() {
                 sigla,
                 asignatura as nombre,
                 creditos,
-                categoria
+                categoria,
+                id_bimestre
             FROM staging_estructura_academica 
             WHERE plan IS NOT NULL 
             AND sigla IS NOT NULL
+            AND id_bimestre IS NOT NULL
             ORDER BY plan, sigla
         `);
         
@@ -75,15 +77,16 @@ async function loadPlans() {
  * Sincronizar carreras únicas del archivo con la base de datos
  */
 async function syncCarreras(connection, data) {
-    // Extraer carreras únicas
+    // Extraer carreras únicas (incluyendo bimestre)
     const carrerasUnicas = new Map();
     
     for (const fila of data) {
-        const key = fila.codigo_plan;
-        if (key && !carrerasUnicas.has(key)) {
+        const key = `${fila.codigo_plan}_${fila.id_bimestre}`;
+        if (fila.codigo_plan && fila.id_bimestre && !carrerasUnicas.has(key)) {
             carrerasUnicas.set(key, {
                 codigo_plan: fila.codigo_plan,
-                nombre_carrera: fila.nombre_carrera || `Carrera ${fila.codigo_plan}`
+                nombre_carrera: fila.nombre_carrera || `Carrera ${fila.codigo_plan}`,
+                bimestre_id: fila.id_bimestre
             });
         }
     }
@@ -97,12 +100,12 @@ async function syncCarreras(connection, data) {
     for (const [codigo, carrera] of carrerasUnicas) {
         try {
             const [result] = await connection.execute(`
-                INSERT INTO carreras (codigo_plan, nombre_carrera) 
-                VALUES (?, ?)
+                INSERT INTO carreras (codigo_plan, nombre_carrera, bimestre_id) 
+                VALUES (?, ?, ?)
                 ON DUPLICATE KEY UPDATE 
                     nombre_carrera = VALUES(nombre_carrera),
                     activo = TRUE
-            `, [carrera.codigo_plan, carrera.nombre_carrera]);
+            `, [carrera.codigo_plan, carrera.nombre_carrera, carrera.bimestre_id]);
             
             if (result.insertId > 0) {
                 carrerasCreadas++;
@@ -123,12 +126,13 @@ async function syncCarreras(connection, data) {
  * Sincronizar asignaturas del archivo con la base de datos
  */
 async function syncAsignaturas(connection, data) {
-    // Obtener mapa de carreras existentes
-    const [carrerasRows] = await connection.execute('SELECT id, codigo_plan FROM carreras WHERE activo = TRUE');
+    // Obtener mapa de carreras existentes (incluyendo bimestre)
+    const [carrerasRows] = await connection.execute('SELECT id, codigo_plan, bimestre_id FROM carreras WHERE activo = TRUE');
     const carrerasMap = new Map();
     
     for (const row of carrerasRows) {
-        carrerasMap.set(row.codigo_plan, row.id);
+        const key = `${row.codigo_plan}_${row.bimestre_id}`;
+        carrerasMap.set(key, row.id);
     }
     
     console.log(`   🗂️  Carreras disponibles: ${carrerasMap.size}`);
@@ -140,10 +144,11 @@ async function syncAsignaturas(connection, data) {
     // Procesar cada asignatura
     for (const fila of data) {
         try {
-            const carreraId = carrerasMap.get(fila.codigo_plan);
+            const carreraKey = `${fila.codigo_plan}_${fila.id_bimestre}`;
+            const carreraId = carrerasMap.get(carreraKey);
             
             if (!carreraId) {
-                console.error(`   ⚠️  Carrera no encontrada: ${fila.codigo_plan}`);
+                console.error(`   ⚠️  Carrera no encontrada: ${fila.codigo_plan} (bimestre: ${fila.id_bimestre})`);
                 asignaturasError++;
                 continue;
             }
@@ -156,8 +161,8 @@ async function syncAsignaturas(connection, data) {
             
             const [result] = await connection.execute(`
                 INSERT INTO asignaturas 
-                (carrera_id, sigla, nombre, creditos, categoria_asignatura) 
-                VALUES (?, ?, ?, ?, ?)
+                (carrera_id, sigla, nombre, creditos, categoria_asignatura, bimestre_id) 
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE 
                     nombre = VALUES(nombre),
                     creditos = VALUES(creditos),
@@ -168,7 +173,8 @@ async function syncAsignaturas(connection, data) {
                 fila.sigla,
                 fila.nombre || fila.sigla,
                 fila.creditos || null,
-                fila.categoria || fila.categoria_asignatura || null
+                fila.categoria || fila.categoria_asignatura || null,
+                fila.id_bimestre
             ]);
             
             if (result.insertId > 0) {

@@ -61,6 +61,18 @@ export interface ImportResult {
   };
 }
 
+export interface UserPermissions {
+  tipoPermiso?: 'categoria' | 'carrera';
+  categoria?: string;
+  carreras?: number[];
+}
+
+export interface UpdateUserPermissionsData {
+  tipoPermiso?: 'categoria' | 'carrera';
+  categoria?: string;
+  carreras?: number[];
+}
+
 class UsersService {
   private baseUrl = '/users';
 
@@ -150,6 +162,32 @@ class UsersService {
         throw new Error(error.response.data.message || 'Error al importar usuarios');
       }
       throw new Error('Error al importar usuarios');
+    }
+  }
+
+  async getUserPermissions(userId: number, bimestreId?: number): Promise<UserPermissions> {
+    try {
+      const url = bimestreId 
+        ? `${this.baseUrl}/${userId}/permissions?bimestreId=${bimestreId}` 
+        : `${this.baseUrl}/${userId}/permissions`;
+      const response = await apiClient.get<UserPermissions>(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user permissions:', error);
+      throw error;
+    }
+  }
+
+  async updateUserPermissions(userId: number, permissionsData: UpdateUserPermissionsData, bimestreId?: number): Promise<{ message: string }> {
+    try {
+      const url = bimestreId 
+        ? `${this.baseUrl}/${userId}/permissions?bimestreId=${bimestreId}` 
+        : `${this.baseUrl}/${userId}/permissions`;
+      const response = await apiClient.put<{ message: string }>(url, permissionsData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating user permissions:', error);
+      throw error;
     }
   }
 }

@@ -265,7 +265,7 @@ export const uploadService = {
 
   async approveUpload(uploadId: number, comments?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiClient.post(`/uploads/${uploadId}/approve`, {
+      const response = await apiClient.post(`/uploads/approve/${uploadId}`, {
         comments
       });
       return {
@@ -280,7 +280,7 @@ export const uploadService = {
 
   async rejectUpload(uploadId: number, comments?: string): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiClient.post(`/uploads/${uploadId}/reject`, {
+      const response = await apiClient.post(`/uploads/reject/${uploadId}`, {
         comments
       });
       return {

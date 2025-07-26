@@ -251,33 +251,112 @@ export class UsersService {
       updateUserDto.roleExpiresAt = new Date(updateUserDto.roleExpiresAt) as any;
     }
 
-    // Aplicar los cambios directamente a la entidad
-    Object.assign(user, updateUserDto);
-    
-    // Guardar los cambios usando save() para que TypeORM maneje correctamente las relaciones
-    const savedUser = await this.userRepository.save(user);
-    
-    // Recargar la entidad con las relaciones para obtener el nombre del rol
-    const userWithRole = await this.userRepository.findOne({
-      where: { id: savedUser.id },
-      relations: ['role', 'previousRole'],
-    });
+    // Si se está cambiando el rol, verificar si deja de ser Editor
+    if (updateUserDto.roleId !== undefined) {
+      // Buscar el rol Editor para comparar
+      const editorRole = await this.roleRepository.findOne({ where: { name: 'Editor' } });
+      
+      // Si el usuario tenía rol Editor y ahora cambia a otro rol, limpiar campos temporales
+      if (editorRole && user.roleId === editorRole.id && updateUserDto.roleId !== editorRole.id) {
+        updateUserDto.roleExpiresAt = null as any;
+        updateUserDto.previousRoleId = null;
+      }
+    }
 
-    return {
-      id: userWithRole.id,
-      emailInstitucional: userWithRole.emailInstitucional,
-      name: userWithRole.name,
-      telefono: userWithRole.telefono,
-      roleId: userWithRole.roleId,
-      roleName: userWithRole.role?.name,
-      isActive: userWithRole.isActive,
-      createdAt: userWithRole.createdAt,
-      updatedAt: userWithRole.updatedAt,
-      roleExpiresAt: userWithRole.roleExpiresAt,
-      previousRoleId: userWithRole.previousRoleId,
-      previousRoleName: userWithRole.previousRole?.name,
-    };
+    // Aplicar los cambios directamente a la entidad (excluyendo los campos de permisos)
+    const { careerPermissionIds, categoryPermissionIds, ...userUpdateData } = updateUserDto;
+    Object.assign(user, userUpdateData);
+    
+    // Usar transacción para garantizar consistencia
+    return await this.dataSource.transaction(async manager => {
+      // Guardar los cambios del usuario
+      const savedUser = await manager.save(user);
+      
+      // Sincronizar permisos si se proporcionaron
+      if (careerPermissionIds !== undefined) {
+        await this.syncCareerPermissions(manager, savedUser.id, careerPermissionIds);
+      }
+      
+      if (categoryPermissionIds !== undefined) {
+        await this.syncCategoryPermissions(manager, savedUser.id, categoryPermissionIds);
+      }
+      
+      // Recargar la entidad con las relaciones para obtener el nombre del rol
+      const userWithRole = await manager.findOne(User, {
+        where: { id: savedUser.id },
+        relations: ['role', 'previousRole'],
+      });
+      
+      return {
+        id: userWithRole.id,
+        emailInstitucional: userWithRole.emailInstitucional,
+        name: userWithRole.name,
+        telefono: userWithRole.telefono,
+        roleId: userWithRole.roleId,
+        roleName: userWithRole.role?.name,
+        isActive: userWithRole.isActive,
+        createdAt: userWithRole.createdAt,
+        updatedAt: userWithRole.updatedAt,
+        roleExpiresAt: userWithRole.roleExpiresAt,
+        previousRoleId: userWithRole.previousRoleId,
+        previousRoleName: userWithRole.previousRole?.name,
+      };
+    });
   }
+
+  private async syncCareerPermissions(manager: any, userId: number, careerPermissionIds: number[]): Promise<void> {
+     // Obtener el bimestre activo
+     const bimestreActivo = await this.bimestreService.findBimestreActual();
+     if (!bimestreActivo) {
+       throw new BadRequestException('No hay un bimestre activo configurado');
+     }
+     
+     // Eliminar permisos de carrera existentes para el bimestre actual
+     await manager.delete(UsuarioPermisoCarrera, { 
+       usuario_id: userId, 
+       bimestre_id: bimestreActivo.id 
+     });
+     
+     // Crear nuevos permisos de carrera
+     if (careerPermissionIds.length > 0) {
+       const permisosCarrera = careerPermissionIds.map(carreraId => 
+         manager.create(UsuarioPermisoCarrera, {
+           usuario_id: userId,
+           carrera_id: carreraId,
+           bimestre_id: bimestreActivo.id,
+           activo: true
+         })
+       );
+       await manager.save(permisosCarrera);
+     }
+   }
+ 
+   private async syncCategoryPermissions(manager: any, userId: number, categoryPermissionIds: string[]): Promise<void> {
+     // Obtener el bimestre activo
+     const bimestreActivo = await this.bimestreService.findBimestreActual();
+     if (!bimestreActivo) {
+       throw new BadRequestException('No hay un bimestre activo configurado');
+     }
+     
+     // Eliminar permisos de categoría existentes para el bimestre actual
+     await manager.delete(UsuarioPermisoCategoria, { 
+       usuario_id: userId, 
+       bimestre_id: bimestreActivo.id 
+     });
+     
+     // Crear nuevos permisos de categoría
+     if (categoryPermissionIds.length > 0) {
+       const permisosCategoria = categoryPermissionIds.map(categoria => 
+         manager.create(UsuarioPermisoCategoria, {
+           usuario_id: userId,
+           categoria: categoria,
+           bimestre_id: bimestreActivo.id,
+           activo: true
+         })
+       );
+       await manager.save(permisosCategoria);
+     }
+   }
 
   async checkAndRevertExpiredRole(userId: number): Promise<boolean> {
     const user = await this.userRepository.findOne({
@@ -747,5 +826,110 @@ export class UsersService {
         reject(error);
       });
     });
+  }
+
+  async getUserPermissions(userId: number, bimestreId?: number): Promise<any> {
+    try {
+      // Verificar que el usuario existe
+      const user = await this.userRepository.findOne({
+        where: { id: userId, deletedAt: null }
+      });
+      
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      // Buscar permisos por categoría
+      const permisoCategoria = await this.usuarioPermisoCategoriaRepository.findOne({
+        where: { 
+          usuario_id: userId,
+          ...(bimestreId && { bimestre_id: bimestreId })
+        }
+      });
+
+      if (permisoCategoria) {
+        return {
+          tipoPermiso: 'categoria',
+          categoria: permisoCategoria.categoria,
+          carreras: []
+        };
+      }
+
+      // Buscar permisos por carrera
+      const permisosCarrera = await this.usuarioPermisoCarreraRepository.find({
+        where: { 
+          usuario_id: userId,
+          ...(bimestreId && { bimestre_id: bimestreId })
+        }
+      });
+
+      if (permisosCarrera.length > 0) {
+        return {
+          tipoPermiso: 'carrera',
+          categoria: '',
+          carreras: permisosCarrera.map(p => p.carrera_id)
+        };
+      }
+
+      // Sin permisos específicos
+      return {
+        tipoPermiso: '',
+        categoria: '',
+        carreras: []
+      };
+    } catch (error) {
+      console.error('Error obteniendo permisos del usuario:', error);
+      throw error;
+    }
+  }
+
+  async updateUserPermissions(userId: number, permissionsData: any, bimestreId?: number): Promise<{ message: string }> {
+    try {
+      // Verificar que el usuario existe
+      const user = await this.userRepository.findOne({
+        where: { id: userId, deletedAt: null }
+      });
+      
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      // Usar transacción para asegurar consistencia
+      await this.dataSource.transaction(async manager => {
+        // Eliminar permisos existentes
+        await manager.delete(UsuarioPermisoCategoria, { 
+          usuario_id: userId,
+          ...(bimestreId && { bimestre_id: bimestreId })
+        });
+        await manager.delete(UsuarioPermisoCarrera, { 
+          usuario_id: userId,
+          ...(bimestreId && { bimestre_id: bimestreId })
+        });
+
+        // Crear nuevos permisos según el tipo
+        if (permissionsData.tipoPermiso === 'categoria' && permissionsData.categoria) {
+          const permisoCategoria = manager.create(UsuarioPermisoCategoria, {
+            usuario_id: userId,
+            categoria: permissionsData.categoria,
+            bimestre_id: bimestreId || null
+          });
+          await manager.save(permisoCategoria);
+        } else if (permissionsData.tipoPermiso === 'carrera' && permissionsData.carreras?.length > 0) {
+          const permisosCarrera = permissionsData.carreras.map((carreraId: number) => 
+            manager.create(UsuarioPermisoCarrera, {
+              usuario_id: userId,
+              carrera_id: carreraId,
+              bimestre_id: bimestreId || null
+            })
+          );
+          await manager.save(permisosCarrera);
+        }
+      });
+
+      return { message: 'Permisos actualizados exitosamente' };
+    } catch (error) {
+      console.error('Error actualizando permisos del usuario:', error);
+      throw error;
+    }
   }
 }

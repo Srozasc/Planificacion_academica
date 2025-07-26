@@ -20,8 +20,8 @@ export class UsuarioPermisoCarrera {
   @Column({ type: 'boolean', default: true })
   activo: boolean;
 
-  @CreateDateColumn()
-  fecha_creacion: Date;
+  @CreateDateColumn({ name: 'fecha_asignacion' })
+  fecha_asignacion: Date;
 
   @ManyToOne(() => User, user => user.permisosCarrera)
   @JoinColumn({ name: 'usuario_id' })

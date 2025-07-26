@@ -79,4 +79,25 @@ export class UsersController {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
     return this.usersService.importUsers(file, bimestreIdNum);
   }
+
+  @Get(':id/permissions')
+  @UseGuards(JwtAuthGuard)
+  async getUserPermissions(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('bimestreId') bimestreId?: string
+  ) {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.usersService.getUserPermissions(id, bimestreIdNum);
+  }
+
+  @Put(':id/permissions')
+  @UseGuards(JwtAuthGuard)
+  async updateUserPermissions(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() permissionsData: any,
+    @Query('bimestreId') bimestreId?: string
+  ) {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.usersService.updateUserPermissions(id, permissionsData, bimestreIdNum);
+  }
 }

@@ -224,7 +224,26 @@ async function procesarRegistro(connection, registro, caches, stats) {
     
     // 2. Crear permisos por carrera
     if (permiso_carrera_codigo) {
-        await crearPermisoCarrera(connection, usuarioId, permiso_carrera_codigo, bimestre_id, caches.carrerasCache, stats);
+        try {
+            await crearPermisoCarrera(connection, usuarioId, permiso_carrera_codigo, bimestre_id, caches.carrerasCache, stats);
+        } catch (error) {
+            if (error.message.includes('Carrera no encontrada')) {
+                const [currentRecord] = await connection.execute(
+                    `SELECT intentos_procesamiento FROM permisos_pendientes WHERE id = ?`,
+                    [registroId]
+                );
+                const intentos = currentRecord[0] ? currentRecord[0].intentos_procesamiento : 0;
+
+                if (intentos >= 10) {
+                    await marcarError(connection, registroId, error.message, 'ERROR');
+                } else {
+                    await marcarError(connection, registroId, error.message, 'PENDIENTE');
+                }
+                return; // Salir de la función procesarRegistro para este registro
+            } else {
+                throw error; // Re-lanzar otros errores
+            }
+        }
     }
     
     // 3. Crear permisos por categoría
@@ -350,14 +369,14 @@ async function marcarProcesado(connection, registroId) {
 /**
  * Marcar registro con error
  */
-async function marcarError(connection, registroId, mensajeError) {
+async function marcarError(connection, registroId, mensajeError, estado = 'ERROR') {
     await connection.execute(`
         UPDATE permisos_pendientes 
-        SET estado = 'ERROR', 
+        SET estado = ?,
             mensaje_error = ?,
             intentos_procesamiento = intentos_procesamiento + 1
         WHERE id = ?
-    `, [mensajeError, registroId]);
+    `, [estado, mensajeError, registroId]);
 }
 
 // Ejecutar si se llama directamente

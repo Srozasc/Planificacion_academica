@@ -235,7 +235,7 @@ describe('uploadService', () => {
 
       const result = await uploadService.approveUpload(uploadId, comments);
 
-      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/${uploadId}/approve`, {
+      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/approve/${uploadId}`, {
         comments
       });
       expect(result.success).toBe(true);
@@ -255,7 +255,7 @@ describe('uploadService', () => {
 
       const result = await uploadService.approveUpload(uploadId);
 
-      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/${uploadId}/approve`, {
+      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/approve/${uploadId}`, {
         comments: undefined
       });
       expect(result.success).toBe(true);
@@ -291,7 +291,7 @@ describe('uploadService', () => {
 
       const result = await uploadService.rejectUpload(uploadId, comments);
 
-      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/${uploadId}/reject`, {
+      expect(apiClient.post).toHaveBeenCalledWith(`/uploads/reject/${uploadId}`, {
         comments
       });
       expect(result.success).toBe(true);

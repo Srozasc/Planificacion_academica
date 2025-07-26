@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { User } from '../../services/users.service';
-import usersService, { AdminChangePasswordData } from '../../services/users.service';
+import usersService, { AdminChangePasswordData, UserPermissions, UpdateUserPermissionsData } from '../../services/users.service';
 import { authService, Role } from '../../services/auth.service';
+import { carrerasService, Carrera } from '../../services/carreras.service';
+import { asignaturasService } from '../../services/asignaturas.service';
+import { useBimestreStore } from '../../store/bimestre.store';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -15,9 +18,12 @@ interface FormData {
   name: string;
   emailInstitucional: string;
   roleId: number;
-  roleExpiresAt: string;
+  roleExpiresAt?: string;
   previousRoleId?: number;
   isActive: boolean;
+  tipoPermiso?: 'categoria' | 'carrera';
+  categoria?: string;
+  carreras?: number[];
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({
@@ -26,13 +32,17 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   user,
   onUserUpdated
 }) => {
-  const [formData, setFormData] = useState({
+  const { bimestreSeleccionado } = useBimestreStore();
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     emailInstitucional: '',
     roleId: 1, // Nuevo ID de Visualizador
     roleExpiresAt: '',
     previousRoleId: 1, // Por defecto será Visualizador (nuevo ID)
-    isActive: true
+    isActive: true,
+    tipoPermiso: undefined,
+    categoria: '',
+    carreras: []
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -45,6 +55,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [carreras, setCarreras] = useState<Carrera[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [carrerasLoading, setCarrerasLoading] = useState(true);
+  const [categoriasLoading, setCategoriasLoading] = useState(true);
+  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(true);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Obtener el ID del rol "Visualizador" dinámicamente
@@ -80,6 +96,66 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     };
     loadRoles();
   }, []);
+
+  // Cargar carreras y categorías
+  useEffect(() => {
+    const loadCarrerasYCategorias = async () => {
+      try {
+        setCarrerasLoading(true);
+        setCategoriasLoading(true);
+        
+        const [carrerasData, categoriasData] = await Promise.all([
+          carrerasService.getCarreras(),
+          asignaturasService.getCategorias()
+        ]);
+        
+        setCarreras(carrerasData);
+        setCategorias(categoriasData);
+      } catch (error) {
+        console.error('Error loading carreras y categorias:', error);
+        setErrors(prev => ({ ...prev, carreras: 'Error al cargar carreras y categorías' }));
+      } finally {
+        setCarrerasLoading(false);
+        setCategoriasLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadCarrerasYCategorias();
+    }
+  }, [isOpen]);
+
+  // Cargar permisos del usuario
+  useEffect(() => {
+    const loadUserPermissions = async () => {
+      if (!user || !bimestreSeleccionado) return;
+      
+      try {
+        setPermissionsLoading(true);
+        const permissions = await usersService.getUserPermissions(user.id, bimestreSeleccionado.id);
+        setUserPermissions(permissions);
+        
+        // Actualizar formData con los permisos existentes
+         if (permissions) {
+           setFormData(prev => ({
+             ...prev,
+             tipoPermiso: permissions.tipoPermiso,
+             categoria: permissions.categoria || '',
+             carreras: permissions.carreras || []
+           }));
+         }
+      } catch (error) {
+        console.error('Error loading user permissions:', error);
+        setUserPermissions(null);
+      } finally {
+        setPermissionsLoading(false);
+      }
+    };
+
+    if (isOpen && user && bimestreSeleccionado) {
+      loadUserPermissions();
+    }
+  }, [isOpen, user, bimestreSeleccionado]);
 
   useEffect(() => {
     if (user && roles.length > 0) {
@@ -124,6 +200,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         updated.roleExpiresAt = '';
       }
       
+      // Si se cambia el tipo de permiso, limpiar los valores relacionados
+      if (name === 'tipoPermiso') {
+        updated.categoria = '';
+        updated.carreras = [];
+      }
+      
       return updated;
     });
     
@@ -131,6 +213,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };
+
+  const handleCarreraToggle = (carreraId: number) => {
+    setFormData(prev => {
+      const currentCarreras = prev.carreras || [];
+      const isSelected = currentCarreras.includes(carreraId);
+      
+      return {
+        ...prev,
+        carreras: isSelected 
+          ? currentCarreras.filter(id => id !== carreraId)
+          : [...currentCarreras, carreraId]
+      };
+    });
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,18 +266,50 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validar que haya un bimestre seleccionado
+    if (!bimestreSeleccionado) {
+      setErrors({ general: 'Debe seleccionar un bimestre en el navbar antes de editar un usuario. Si no aparece ningún bimestre, contacte al administrador.' });
+      return;
+    }
+
+    // Validar que el bimestre tenga un ID válido
+    if (!bimestreSeleccionado.id || bimestreSeleccionado.id <= 0) {
+      setErrors({ general: `Error: El bimestre seleccionado no tiene un ID válido (ID: ${bimestreSeleccionado.id}). Por favor, seleccione otro bimestre.` });
+      return;
+    }
+    
     if (!validateForm() || !user) return;
 
     setIsLoading(true);
     setPasswordError(null);
     
     try {
-      // Preparar datos para envío, filtrando valores vacíos
+      // Preparar datos para envío, incluyendo sincronización completa de permisos
+      const { tipoPermiso, categoria, carreras, ...userUpdateData } = formData;
       const updateData: any = {
-        ...formData,
-        roleExpiresAt: formData.roleExpiresAt && formData.roleExpiresAt.trim() !== '' ? `${formData.roleExpiresAt}T23:59:59` : undefined,
+        ...userUpdateData,
         previousRoleId: formData.previousRoleId || undefined
       };
+      
+      // Solo agregar roleExpiresAt si tiene un valor válido
+      if (formData.roleExpiresAt && formData.roleExpiresAt.trim() !== '') {
+        updateData.roleExpiresAt = `${formData.roleExpiresAt}T23:59:59`;
+      }
+      
+      // Agregar sincronización completa de permisos
+      if (formData.tipoPermiso === 'carrera') {
+        // Enviar lista completa de IDs de carreras seleccionadas
+        updateData.careerPermissionIds = formData.carreras || [];
+        updateData.categoryPermissionIds = []; // Limpiar permisos de categoría
+      } else if (formData.tipoPermiso === 'categoria' && formData.categoria) {
+         // Enviar categoría como string
+         updateData.categoryPermissionIds = [formData.categoria];
+         updateData.careerPermissionIds = []; // Limpiar permisos de carrera
+      } else {
+        // Si no hay tipo de permiso seleccionado, limpiar todos los permisos
+        updateData.careerPermissionIds = [];
+        updateData.categoryPermissionIds = [];
+      }
       
       // Filtrar campos undefined para no enviarlos al backend
       Object.keys(updateData).forEach(key => {
@@ -190,7 +318,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         }
       });
       
-      // Actualizar datos del usuario
+      // Actualizar datos del usuario con sincronización completa de permisos
       await usersService.updateUser(user.id, updateData);
       
       // Si se solicita cambio de contraseña, procesarlo
@@ -456,6 +584,89 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
                 </div>
               )}
             </div>
+          )}
+        </div>
+
+        {/* Sección de Permisos de Acceso */}
+        <div className="border-t pt-4">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Permisos de Acceso</h3>
+          
+          {permissionsLoading ? (
+            <div className="text-sm text-gray-500">Cargando permisos...</div>
+          ) : (
+            <>
+              {/* Tipo de Permiso */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Permiso
+                </label>
+                <select
+                  name="tipoPermiso"
+                  value={formData.tipoPermiso || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Sin permisos específicos</option>
+                  <option value="categoria">Por Categoría</option>
+                  <option value="carrera">Por Carrera</option>
+                </select>
+              </div>
+
+              {/* Permisos por Categoría */}
+              {formData.tipoPermiso === 'categoria' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoría *
+                  </label>
+                  {categoriasLoading ? (
+                    <div className="text-sm text-gray-500">Cargando categorías...</div>
+                  ) : (
+                    <select
+                      name="categoria"
+                      value={formData.categoria || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar categoría</option>
+                      {categorias.map((categoria) => (
+                        <option key={categoria} value={categoria}>
+                          {categoria}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* Permisos por Carrera */}
+              {formData.tipoPermiso === 'carrera' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Carreras *
+                  </label>
+                  {carrerasLoading ? (
+                    <div className="text-sm text-gray-500">Cargando carreras...</div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                      {carreras.map((carrera) => (
+                        <label key={carrera.id} className="flex items-center mb-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.carreras?.includes(carrera.id) || false}
+                            onChange={() => handleCarreraToggle(carrera.id)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">
+                            {carrera.codigo_plan} - {carrera.nombre_carrera}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </div>
 
