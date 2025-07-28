@@ -13,7 +13,8 @@ export interface Subject {
   id: number;
   code: string;
   name: string;
-  type: string;
+  category: string;
+  acronym: string;
 }
 
 export interface Room {
@@ -42,9 +43,9 @@ export class DropdownService {
 
   async getSubjects(): Promise<Subject[]> {
     const query = `
-      SELECT id, code, name, type
+      SELECT id, code, name, category, acronym
       FROM academic_structures
-      WHERE is_active = 1 AND type = 'subject'
+      WHERE is_active = 1
       ORDER BY name ASC
     `;
     

@@ -183,7 +183,7 @@ const EventModal: React.FC<EventModalProps> = ({
     
     // Buscar la asignatura seleccionada para obtener su código/sigla
     const selectedSubject = subjects.find(subject => subject.name === subjectName);
-    const subjectCode = selectedSubject?.code || '';
+    const subjectCode = selectedSubject?.acronym || '';
     
     // Incluir la sigla antes del nombre de la asignatura
     return subjectCode 
@@ -528,7 +528,7 @@ const EventModal: React.FC<EventModalProps> = ({
                       .filter(subject => {
                         const searchLower = subjectSearchTerm.toLowerCase();
                         return subject.name.toLowerCase().includes(searchLower) ||
-                               subject.code.toLowerCase().includes(searchLower);
+                               subject.acronym.toLowerCase().includes(searchLower);
                       })
                       .map((subject) => (
                         <label key={subject.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
@@ -542,7 +542,7 @@ const EventModal: React.FC<EventModalProps> = ({
                             className="text-blue-600 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700">
-                            {subject.code} - {subject.name}
+                            {subject.acronym} - {subject.name}
                           </span>
                         </label>
                       ))
@@ -550,7 +550,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     {subjects.filter(subject => {
                       const searchLower = subjectSearchTerm.toLowerCase();
                       return subject.name.toLowerCase().includes(searchLower) ||
-                             subject.code.toLowerCase().includes(searchLower);
+                             subject.acronym.toLowerCase().includes(searchLower);
                     }).length === 0 && subjectSearchTerm && (
                       <p className="text-gray-500 text-sm italic">No se encontraron asignaturas que coincidan con la búsqueda</p>
                     )}

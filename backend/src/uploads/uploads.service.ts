@@ -1,11 +1,12 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import { StagingAdolSimple } from '../adol/entities/adol-position.entity';
 import { StagingDol } from '../dol/entities/dol-position.entity';
 import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inicio.entity';
 import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
+import { AcademicStructure } from '../academic/entities/academic-structure.entity';
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
 import { UploadLog } from './entities/upload-log.entity';
@@ -65,14 +66,16 @@ export class UploadService {
     private stagingVacantesInicioRepository: Repository<StagingVacantesInicio>,
     @InjectRepository(StagingEstructuraAcademica)
     private stagingEstructuraAcademicaRepository: Repository<StagingEstructuraAcademica>,
+    @InjectRepository(AcademicStructure)
+    private academicStructureRepository: Repository<AcademicStructure>,
     @InjectRepository(StagingReporteCursables)
     private stagingReporteCursablesRepository: Repository<StagingReporteCursables>,
     @InjectRepository(StagingNominaDocentes)
     private stagingNominaDocentesRepository: Repository<StagingNominaDocentes>,
     @InjectRepository(UploadLog)
-    private uploadLogRepository: Repository<UploadLog>,
-    private responseService: ResponseService,
-  ) {}
+    private readonly uploadLogRepository: Repository<UploadLog>,
+    private readonly responseService: ResponseService,
+    private dataSource: DataSource, ) {}
 
   /**
    * Registra una operación de carga en la tabla upload_logs
@@ -2069,6 +2072,16 @@ export class UploadService {
             
             this.logger.log('Resolve permissions stdout:', resolveStdout);
             this.logger.log('Resolve permissions ejecutado exitosamente después de load_plans');
+            
+            // Migrar datos de staging_estructura_academica a academic_structures
+            try {
+              this.logger.log('Iniciando migración de datos de staging_estructura_academica a academic_structures...');
+              await this.migrateAcademicStructures();
+              this.logger.log('Migración de datos completada exitosamente');
+            } catch (migrationError) {
+              this.logger.error('Error durante la migración de datos:', migrationError.message);
+              // No lanzamos el error para no interrumpir la aprobación
+            }
           } catch (resolvePermissionsError) {
             this.logger.error('Error ejecutando resolve_permissions:', resolvePermissionsError.message);
             if (resolvePermissionsError.stdout) {
@@ -2159,6 +2172,44 @@ export class UploadService {
       };
     } catch (error) {
       this.logger.error('Error al rechazar carga:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Migra datos de staging_estructura_academica a academic_structures
+   */
+  private async migrateAcademicStructures(): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE ACADEMIC STRUCTURES CON SP ===');
+      
+      // Verificar conteo actual en staging_estructura_academica
+      const stagingCount = await this.stagingEstructuraAcademicaRepository.count();
+      this.logger.log(`Registros en staging_estructura_academica: ${stagingCount}`);
+      
+      if (stagingCount === 0) {
+        this.logger.log('No hay registros en staging_estructura_academica para migrar');
+        return;
+      }
+
+      // Verificar conteo actual en academic_structures antes de la migración
+      const currentCount = await this.academicStructureRepository.count();
+      this.logger.log(`Registros actuales en academic_structures antes de migración: ${currentCount}`);
+
+      // Ejecutar el procedimiento almacenado sp_MigrateStagingToAcademicStructures
+      this.logger.log('Ejecutando procedimiento almacenado sp_MigrateStagingToAcademicStructures...');
+      await this.dataSource.query('CALL sp_MigrateStagingToAcademicStructures()');
+      this.logger.log('Procedimiento almacenado ejecutado exitosamente');
+      
+      // Verificar conteo final
+      const finalCount = await this.academicStructureRepository.count();
+      this.logger.log(`Conteo final en academic_structures: ${finalCount}`);
+      
+      const migratedRecords = finalCount - currentCount;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${migratedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de academic structures:', error.message);
+      this.logger.error('Stack trace:', error.stack);
       throw error;
     }
   }

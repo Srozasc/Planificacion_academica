@@ -12,6 +12,7 @@ export interface Subject {
   code: string;
   name: string;
   type: string;
+  acronym: string;
 }
 
 export interface Room {

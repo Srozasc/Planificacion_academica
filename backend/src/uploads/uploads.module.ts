@@ -10,6 +10,7 @@ import { StagingEstructuraAcademica } from '../estructura-academica/entities/est
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
 import { UploadLog } from './entities/upload-log.entity';
+import { AcademicStructure } from '../academic/entities/academic-structure.entity';
 import { Bimestre } from '../common/entities/bimestre.entity';
 import { User } from '../users/entities/user.entity';
 import { DolModule } from '../dol/dol.module';
@@ -28,6 +29,7 @@ import { multerConfig } from './config/multer.config';
       UploadLog,
       Bimestre,
       User,
+      AcademicStructure,
     ]),
     MulterModule.register(multerConfig),
     DolModule,

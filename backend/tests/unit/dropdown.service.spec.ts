@@ -54,13 +54,13 @@ describe('DropdownService', () => {
   describe('getSubjects', () => {
     it('debería retornar una lista de asignaturas', async () => {
       const mockSubjects = [
-        { id: 1, code: 'MATH', name: 'Matemáticas', type: 'subject' },
-        { id: 2, code: 'PHYS', name: 'Física', type: 'subject' },
+        { id: 1, code: 'MATH', name: 'Matemáticas', category: 'subject' },
+        { id: 2, code: 'PHYS', name: 'Física', category: 'subject' },
       ];
       const expectedQuery = `
-      SELECT id, code, name, type
+      SELECT id, code, name, category
       FROM academic_structures
-      WHERE is_active = 1 AND type = 'subject'
+      WHERE is_active = 1
       ORDER BY name ASC
     `;
       mockEntityManager.query.mockResolvedValue(mockSubjects);
