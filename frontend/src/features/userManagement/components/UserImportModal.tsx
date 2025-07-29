@@ -255,7 +255,7 @@ const UserImportModal: React.FC<UserImportModalProps> = ({ isOpen, onClose, onUs
                         <p className="font-medium text-red-800">Detalles de errores:</p>
                         <ul className="list-disc list-inside mt-1 text-red-700">
                           {importResult.details.errorDetails.slice(0, 5).map((error, index) => (
-                            <li key={index} className="text-xs">{error}</li>
+                            <li key={`error-${index}-${error.substring(0, 20)}`} className="text-xs">{error}</li>
                           ))}
                           {importResult.details.errorDetails.length > 5 && (
                             <li className="text-xs">... y {importResult.details.errorDetails.length - 5} errores más</li>

@@ -467,7 +467,7 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {currentRecords.map((record, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
+                          <tr key={`record-${record.rowNumber || index}`} className="hover:bg-gray-50">
                             <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                               {record.rowNumber}
                             </td>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dropdownService, Teacher, Subject } from '../../services/dropdownService';
+import { dropdownService, Teacher, Subject, Plan, Level } from '../../services/dropdownService';
 import { eventService } from '../../services/event.service';
 import { useBimestreStore } from '../../store/bimestre.store';
 
@@ -117,10 +117,21 @@ const EventModal: React.FC<EventModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [allSubjects, setAllSubjects] = useState<Subject[]>([]); // Todas las asignaturas sin filtrar
+  const [plans, setPlans] = useState<{value: string, label: string}[]>([]);
+  const [levels, setLevels] = useState<{value: string, label: string}[]>([]);
 
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
   const [teacherSearchTerm, setTeacherSearchTerm] = useState('');
   const [subjectSearchTerm, setSubjectSearchTerm] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
+  const [planSearchTerm, setPlanSearchTerm] = useState('');
+  const [levelSearchTerm, setLevelSearchTerm] = useState('');
+  const [showPlanDropdown, setShowPlanDropdown] = useState(false);
+  const [showLevelDropdown, setShowLevelDropdown] = useState(false);
+  const [filteredPlans, setFilteredPlans] = useState<{value: string, label: string}[]>([]);
+  const [filteredLevels, setFilteredLevels] = useState<{value: string, label: string}[]>([]);
   const [enableDateEditing, setEnableDateEditing] = useState(false);
   const [enableMultipleEvents, setEnableMultipleEvents] = useState(false);
   const [eventQuantity, setEventQuantity] = useState(1);
@@ -162,13 +173,47 @@ const EventModal: React.FC<EventModalProps> = ({
 
   const loadDropdownData = async () => {
     setIsLoadingDropdowns(true);
+    console.log('Iniciando carga de datos de dropdown...');
     try {
-      const [teachersData, subjectsData] = await Promise.all([
-        dropdownService.getTeachers(),
-        dropdownService.getSubjects()
+      console.log('Llamando a las APIs...');
+      
+      // Test directo sin interceptores
+      const baseURL = 'http://localhost:3001/api';
+      
+      const [teachersResponse, subjectsResponse, plansResponse, levelsResponse] = await Promise.all([
+        fetch(`${baseURL}/dropdown/teachers`),
+        fetch(`${baseURL}/dropdown/subjects`),
+        fetch(`${baseURL}/dropdown/plans`),
+        fetch(`${baseURL}/dropdown/levels`)
       ]);
+      
+      console.log('Status codes:', {
+        teachers: teachersResponse.status,
+        subjects: subjectsResponse.status,
+        plans: plansResponse.status,
+        levels: levelsResponse.status
+      });
+      
+      const [teachersData, subjectsData, plansData, levelsData] = await Promise.all([
+        teachersResponse.json(),
+        subjectsResponse.json(),
+        plansResponse.json(),
+        levelsResponse.json()
+      ]);
+      
+      console.log('Datos recibidos:', {
+        teachers: teachersData,
+        subjects: subjectsData,
+        plans: plansData,
+        levels: levelsData
+      });
       setTeachers(teachersData);
-      setSubjects(subjectsData);
+      setAllSubjects(subjectsData); // Guardar todas las asignaturas
+      setSubjects(subjectsData); // Inicialmente mostrar todas
+      setPlans(plansData);
+      setLevels(levelsData);
+      setFilteredPlans(plansData);
+      setFilteredLevels(levelsData);
     } catch (error) {
       console.error('Error loading dropdown data:', error);
     } finally {
@@ -177,18 +222,15 @@ const EventModal: React.FC<EventModalProps> = ({
   };
 
   // Función para generar el título automáticamente
-  const generateTitle = (subjectName: string, counter: number) => {
-    if (!subjectName) return '';
+  const generateTitle = (subjectAcronym: string, counter: number) => {
+    if (!subjectAcronym) return '';
+    
+    // Buscar la asignatura completa por acronym
+    const subject = subjects.find(s => s.acronym === subjectAcronym);
+    const subjectDisplay = subject ? `${subject.acronym} - ${subject.course}` : subjectAcronym;
+    
     const paddedCounter = counter.toString().padStart(3, '0');
-    
-    // Buscar la asignatura seleccionada para obtener su código/sigla
-    const selectedSubject = subjects.find(subject => subject.name === subjectName);
-    const subjectCode = selectedSubject?.acronym || '';
-    
-    // Incluir la sigla antes del nombre de la asignatura
-    return subjectCode 
-      ? `${subjectCode} - ${subjectName} - ${paddedCounter}`
-      : `${subjectName} - ${paddedCounter}`;
+    return `${subjectDisplay} - ${paddedCounter}`;
   };
 
   // Actualizar título cuando cambie la asignatura
@@ -212,6 +254,57 @@ const EventModal: React.FC<EventModalProps> = ({
     
     updateTitle();
   }, [formData.subject]);
+
+  // Efecto para filtrar asignaturas por plan y nivel
+  useEffect(() => {
+    let filteredSubjects = allSubjects;
+
+    // Filtrar por plan si está seleccionado
+    if (selectedPlan) {
+      filteredSubjects = filteredSubjects.filter(subject => 
+        subject.plan_code === selectedPlan
+      );
+    }
+
+    // Filtrar por nivel si está seleccionado
+    if (selectedLevel) {
+      const levelToCompare = parseInt(selectedLevel);
+      filteredSubjects = filteredSubjects.filter(subject => 
+        subject.level === levelToCompare
+      );
+    }
+
+    setSubjects(filteredSubjects);
+    
+    // Si la asignatura seleccionada ya no está en la lista filtrada, limpiarla
+    if (formData.subject && !filteredSubjects.find(s => s.acronym === formData.subject)) {
+      setFormData(prev => ({ ...prev, subject: '', title: '' }));
+    }
+  }, [selectedPlan, selectedLevel, allSubjects, formData.subject]);
+
+  // Efecto para filtrar planes basándose en el término de búsqueda
+  useEffect(() => {
+    if (!planSearchTerm || planSearchTerm.toString().trim() === '') {
+      setFilteredPlans(plans);
+    } else {
+      const filtered = plans.filter(plan => 
+        plan.label.toString().toLowerCase().includes(planSearchTerm.toString().toLowerCase())
+      );
+      setFilteredPlans(filtered);
+    }
+  }, [planSearchTerm, plans]);
+
+  // Efecto para filtrar niveles basándose en el término de búsqueda
+  useEffect(() => {
+    if (!levelSearchTerm || levelSearchTerm.toString().trim() === '') {
+      setFilteredLevels(levels);
+    } else {
+      const filtered = levels.filter(level => 
+        level.label.toString().toLowerCase().includes(levelSearchTerm.toString().toLowerCase())
+      );
+      setFilteredLevels(filtered);
+    }
+  }, [levelSearchTerm, levels]);
 
   useEffect(() => {
     if (isOpen) {
@@ -500,6 +593,82 @@ const EventModal: React.FC<EventModalProps> = ({
 
           {/* Detalles adicionales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Plan */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Plan
+              </label>
+              <input
+                type="text"
+                value={planSearchTerm}
+                onChange={(e) => {
+                  setPlanSearchTerm(e.target.value);
+                  setShowPlanDropdown(true);
+                }}
+                onFocus={() => setShowPlanDropdown(true)}
+                onBlur={() => setTimeout(() => setShowPlanDropdown(false), 200)}
+                placeholder="Buscar plan..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoadingDropdowns}
+              />
+              {showPlanDropdown && filteredPlans.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredPlans.map((plan) => (
+                    <div
+                      key={plan.value}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setSelectedPlan(plan.value);
+                        setPlanSearchTerm(plan.label);
+                        setShowPlanDropdown(false);
+                      }}
+                    >
+                      {plan.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Nivel */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nivel
+              </label>
+              <input
+                type="text"
+                value={levelSearchTerm}
+                onChange={(e) => {
+                  setLevelSearchTerm(e.target.value);
+                  setShowLevelDropdown(true);
+                }}
+                onFocus={() => setShowLevelDropdown(true)}
+                onBlur={() => setTimeout(() => setShowLevelDropdown(false), 200)}
+                placeholder="Buscar nivel..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isLoadingDropdowns}
+              />
+              {showLevelDropdown && filteredLevels.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredLevels.map((level) => (
+                    <div
+                      key={level.value}
+                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => {
+                        setSelectedLevel(level.value);
+                        setLevelSearchTerm(level.label);
+                        setShowLevelDropdown(false);
+                      }}
+                    >
+                      {level.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Asignatura *
@@ -528,21 +697,22 @@ const EventModal: React.FC<EventModalProps> = ({
                       .filter(subject => {
                         const searchLower = subjectSearchTerm.toLowerCase();
                         return subject.name.toLowerCase().includes(searchLower) ||
-                               subject.acronym.toLowerCase().includes(searchLower);
+                               subject.acronym.toLowerCase().includes(searchLower) ||
+                               subject.course.toLowerCase().includes(searchLower);
                       })
                       .map((subject) => (
                         <label key={subject.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
                           <input
                             type="radio"
                             name="subject"
-                            checked={formData.subject === subject.name}
+                            checked={formData.subject === subject.acronym}
                             onChange={() => {
-                              setFormData(prev => ({ ...prev, subject: subject.name }));
+                              setFormData(prev => ({ ...prev, subject: subject.acronym }));
                             }}
                             className="text-blue-600 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700">
-                            {subject.acronym} - {subject.name}
+                            {subject.acronym} - {subject.course}
                           </span>
                         </label>
                       ))
@@ -550,7 +720,8 @@ const EventModal: React.FC<EventModalProps> = ({
                     {subjects.filter(subject => {
                       const searchLower = subjectSearchTerm.toLowerCase();
                       return subject.name.toLowerCase().includes(searchLower) ||
-                             subject.acronym.toLowerCase().includes(searchLower);
+                             subject.acronym.toLowerCase().includes(searchLower) ||
+                             subject.course.toLowerCase().includes(searchLower);
                     }).length === 0 && subjectSearchTerm && (
                       <p className="text-gray-500 text-sm italic">No se encontraron asignaturas que coincidan con la búsqueda</p>
                     )}
@@ -560,7 +731,12 @@ const EventModal: React.FC<EventModalProps> = ({
               {formData.subject && (
                 <div className="mt-2">
                   <p className="text-sm text-gray-600">
-                    Asignatura seleccionada: <span className="font-medium">{formData.subject}</span>
+                    Asignatura seleccionada: <span className="font-medium">
+                      {(() => {
+                        const subject = subjects.find(s => s.acronym === formData.subject);
+                        return subject ? `${subject.acronym} - ${subject.course}` : formData.subject;
+                      })()}
+                    </span>
                   </p>
                 </div>
               )}

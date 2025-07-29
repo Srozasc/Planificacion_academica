@@ -241,7 +241,7 @@ const DataViewModal: React.FC<DataViewModalProps> = ({ isOpen, onClose, uploadId
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {getFilteredRecords().map((record, index) => (
-                        <tr key={index} className={record.errors && record.errors.length > 0 ? 'bg-red-50' : ''}>
+                        <tr key={`record-${record.rowNumber || index}`} className={record.errors && record.errors.length > 0 ? 'bg-red-50' : ''}>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                             {record.rowNumber}
                           </td>

@@ -561,7 +561,7 @@ const DataUploadPage: React.FC = () => {
                       <div className="bg-red-50 p-3 rounded max-h-32 overflow-y-auto">
                         <ul className="text-sm text-red-700 space-y-1">
                           {uploadResult.summary.errors.map((error, index) => (
-                            <li key={index}>
+                            <li key={`error-${index}-${typeof error === 'string' ? error.slice(0, 20) : error.row}`}>
                               • {typeof error === 'string' 
                                 ? error 
                                 : `Fila ${error.row}: ${error.message} (Campo: ${error.field})`

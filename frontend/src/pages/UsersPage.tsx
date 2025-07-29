@@ -307,10 +307,10 @@ const UsersPage: React.FC = () => {
 
             {/* Botones de acción */}
             <div className="flex gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors">
+              {/* <button className="flex items-center gap-2 px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors">
                 <ArrowDownTrayIcon className="h-4 w-4" />
                 Exportar
-              </button>
+              </button> */}
               <button 
                 onClick={handleOpenImportModal}
                 className="flex items-center gap-2 px-4 py-2 text-uc-blue border border-uc-blue rounded-lg hover:bg-blue-50 transition-colors"

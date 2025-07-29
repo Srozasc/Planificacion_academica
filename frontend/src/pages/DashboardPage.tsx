@@ -104,6 +104,7 @@ const DashboardPage: React.FC = () => {
       setIsEventModalOpen(false);
       setEditingEvent(null);
       setSelectedDate(undefined);
+      await loadEvents();
     } catch (error) {
       console.error('Error saving event:', error);
       // NO cerrar el modal para que el usuario pueda ver el error y corregir
@@ -195,6 +196,11 @@ const DashboardPage: React.FC = () => {
     loadEvents();
   }, [bimestreSeleccionado]);
 
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
 
 
 
@@ -278,31 +284,44 @@ const DashboardPage: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Eventos Programados ({events.length})</h3>
               {events.length > 0 ? (
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {events.map(event => (
-                    <div key={event.id} className="bg-white p-3 rounded border flex justify-between items-center">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
-                        <p className="text-sm text-gray-600">
-                          {new Date(event.start).toLocaleDateString('es-ES')} - {new Date(event.start).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                           onClick={() => handleEditEventClick(event)}
-                           className="text-blue-600 hover:text-blue-800 text-sm"
-                         >
-                           Editar
-                         </button>
-                        <button
-                          onClick={() => handleEventDelete(event.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                <div className="max-h-60 overflow-y-auto">
+                  <table className="min-w-full bg-white rounded border">
+                    <thead className="bg-gray-100">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evento</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Docente</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidad</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {events.map(event => (
+                        <tr key={event.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.plan_code || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-900">{event.title}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.teacher_names || event.extendedProps?.teacher || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.students || '-'}</td>
+                          <td className="px-3 py-2 text-sm">
+                            <div className="flex space-x-2">
+                              <button
+                                 onClick={() => handleEditEventClick(event)}
+                                 className="text-blue-600 hover:text-blue-800 text-sm"
+                               >
+                                 Editar
+                               </button>
+                              <button
+                                onClick={() => handleEventDelete(event.id)}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <p className="text-gray-500 text-center py-4">No hay eventos programados</p>

@@ -270,7 +270,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                     if (!day) {
                       return (
                         <div
-                          key={index}
+                          key={`empty-${monthInfo.year}-${monthInfo.month}-${index}`}
                           className="min-h-[100px] p-1 bg-gray-50"
                         />
                       );
@@ -282,7 +282,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                                   monthInfo.year === today.getFullYear();
                     const isInBimestre = isDayInBimestre(monthInfo.year, monthInfo.month, day);                    return (
                       <div
-                        key={index}
+                        key={`day-${monthInfo.year}-${monthInfo.month}-${day}`}
                         className={`min-h-[100px] p-1 border border-gray-200 relative group ${
                           isInBimestre ? 'bg-white hover:bg-gray-50 cursor-pointer' : 'bg-gray-100'
                         } ${isToday ? 'bg-blue-50 border-blue-300' : ''}`}

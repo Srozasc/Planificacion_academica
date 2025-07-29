@@ -31,10 +31,7 @@ const Navbar: React.FC = () => {
     { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
     { path: '/usuarios', label: 'Usuarios', icon: '👥' },
     { path: '/carga-datos', label: 'Carga de Datos', icon: '📁' },
-    { path: '/programacion', label: 'Programación', icon: '📅' },
-
     { path: '/reportes', label: 'Reportes', icon: '📊' },
-
   ];return (
     <>
       {/* Header superior amarillo */}

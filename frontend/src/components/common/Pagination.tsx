@@ -58,7 +58,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
       {/* Page numbers */}
       {pages.map((page, index) => (
-        <React.Fragment key={index}>
+        <React.Fragment key={`page-${index}-${page}`}>
           {page === '...' ? (
             <span className="px-3 py-2 text-sm font-medium text-gray-500">...</span>
           ) : (

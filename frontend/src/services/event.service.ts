@@ -12,8 +12,12 @@ export interface Event {
     teacher?: string;
     teachers?: Array<{ id: number; name: string; rut: string; email: string }>;
     teacher_ids?: number[];
+    teacher_names?: string;
     students?: number;
     subject?: string;
+    course_name?: string;
+    section?: string;
+    plan_code?: string;
   };
 }
 
