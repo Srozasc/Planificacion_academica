@@ -12,38 +12,14 @@ export class Teacher {
   @Column({ type: 'varchar', length: 255, comment: 'Nombre completo del docente' })
   name: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true, comment: 'Email institucional del docente' })
+  @Column({ type: 'varchar', length: 255, nullable: false, comment: 'Email institucional del docente' })
   email: string;
-
-  @Column({ type: 'varchar', length: 20, nullable: true, comment: 'Teléfono de contacto' })
-  phone?: string;
-
-  @Column({ type: 'text', nullable: true, comment: 'Dirección de residencia' })
-  address?: string;
-
-  @Column({ type: 'varchar', length: 100, nullable: true, comment: 'Título académico (Ej: Magíster, Doctor)' })
-  academic_degree?: string;
-
-  @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Área de especialización' })
-  specialization?: string;
-
-  @Column({ type: 'varchar', length: 255, nullable: true, comment: 'Universidad de origen del título' })
-  university?: string;
 
   @Column({ type: 'int', nullable: true, comment: 'ID de categoría docente' })
   category_id?: number;
 
   @Column({ type: 'int', nullable: true, comment: 'ID tipo de contrato' })
   contract_type_id?: number;
-
-  @Column({ type: 'date', nullable: true, comment: 'Fecha de contratación' })
-  hire_date?: Date;
-
-  @Column({ type: 'int', nullable: true, comment: 'Horas contractuales por semana' })
-  contract_hours?: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true, comment: 'Salario base mensual' })
-  salary_base?: number;
 
   @Column({ type: 'boolean', default: true, comment: 'Si el docente está activo' })
   is_active: boolean;
@@ -62,6 +38,12 @@ export class Teacher {
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
+
+  @Column({ type: 'varchar', length: 50, nullable: true, comment: 'ID externo del docente' })
+  id_docente?: string;
+
+  @Column({ type: 'int', nullable: true, comment: 'ID del bimestre' })
+  id_bimestre?: number;
 
   // Relación con eventos a través de la tabla intermedia
   @OneToMany(() => EventTeacher, eventTeacher => eventTeacher.teacher)

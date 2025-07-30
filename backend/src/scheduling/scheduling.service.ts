@@ -53,6 +53,8 @@ export class SchedulingService {
           .leftJoinAndSelect('event.bimestre', 'bimestre')
           .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
           .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+          .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
           .where('(event.start_date <= :endFilter AND event.end_date >= :startFilter)', {
             startFilter,
             endFilter
@@ -70,8 +72,19 @@ export class SchedulingService {
           .skip((page - 1) * limit)
           .take(limit);
 
-        const [events, total] = await queryBuilder.getManyAndCount();
-        const eventDtos = events.map(event => ScheduleEventDto.fromEntity(event));
+        const result = await queryBuilder.getRawAndEntities();
+        const events = result.entities;
+        const raw = result.raw;
+        const eventDtos = events.map(event => {
+          const academicData = raw.find(r => r.event_id === event.id);
+          if (academicData) {
+            (event as any).academic_name = academicData.academic_name;
+            (event as any).academic_school_prog = academicData.academic_school_prog;
+            (event as any).academic_code = academicData.academic_code;
+          }
+          return ScheduleEventDto.fromEntity(event);
+        });
+        const total = await queryBuilder.getCount();
         
         this.logger.log(`Se encontraron ${events.length} eventos de ${total} totales con filtro de fechas`);
         return { data: eventDtos, total };
@@ -84,18 +97,37 @@ export class SchedulingService {
       // Primero obtener el conteo total sin relaciones para evitar problemas con LEFT JOIN
       const total = await this.eventRepository.count({ where });
       
-      // Luego obtener los eventos con todas las relaciones
-      const options: FindManyOptions<ScheduleEvent> = {
-        relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
-        order: { start_date: 'ASC' },
-        skip: (page - 1) * limit,
-        take: limit,
-        where: where,
-      };
+      // Usar query builder para incluir academic_structures
+      const queryBuilder = this.eventRepository.createQueryBuilder('event')
+        .leftJoinAndSelect('event.bimestre', 'bimestre')
+        .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+        .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .orderBy('event.start_date', 'ASC')
+        .skip((page - 1) * limit)
+        .take(limit);
 
-      const events = await this.eventRepository.find(options);
-      
-      const eventDtos = events.map(event => ScheduleEventDto.fromEntity(event));
+      // Aplicar condiciones WHERE
+      if (active !== undefined) {
+        queryBuilder.andWhere('event.active = :active', { active });
+      }
+      if (bimestre_id) {
+        queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
+      }
+
+      const result = await queryBuilder.getRawAndEntities();
+      const events = result.entities;
+      const raw = result.raw;
+      const eventDtos = events.map(event => {
+         const academicData = raw.find(r => r.event_id === event.id);
+         if (academicData) {
+           (event as any).academic_name = academicData.academic_name;
+           (event as any).academic_school_prog = academicData.academic_school_prog;
+           (event as any).academic_code = academicData.academic_code;
+         }
+         return ScheduleEventDto.fromEntity(event);
+       });
 
       this.logger.log(`Se encontraron ${events.length} eventos de ${total} totales`);
       

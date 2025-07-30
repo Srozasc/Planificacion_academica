@@ -15,9 +15,22 @@ export interface Subject {
   name: string;
   category: string;
   acronym: string;
+  course: string;
+  plan_code?: string;
+  level?: string;
 }
 
 export interface Room {
+  value: string;
+  label: string;
+}
+
+export interface Plan {
+  value: string;
+  label: string;
+}
+
+export interface Level {
   value: string;
   label: string;
 }
@@ -43,7 +56,7 @@ export class DropdownService {
 
   async getSubjects(): Promise<Subject[]> {
     const query = `
-      SELECT id, code, name, category, acronym
+      SELECT id, code, name, category, acronym, course, code as plan_code, level
       FROM academic_structures
       WHERE is_active = 1
       ORDER BY name ASC
@@ -83,5 +96,35 @@ export class DropdownService {
     ];
 
     return combinedRooms.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  async getPlans(): Promise<Plan[]> {
+    const query = `
+      SELECT DISTINCT code as value, code as label
+      FROM academic_structures
+      WHERE code IS NOT NULL AND code != '' AND is_active = 1
+      ORDER BY code ASC
+    `;
+    
+    console.log('DEBUG: Ejecutando consulta getPlans:', query);
+    const plans = await this.entityManager.query(query);
+    console.log('DEBUG: Resultado getPlans:', plans);
+    console.log('DEBUG: Número de planes encontrados:', plans.length);
+    return plans;
+  }
+
+  async getLevels(): Promise<Level[]> {
+    const query = `
+      SELECT DISTINCT level as value, level as label
+      FROM academic_structures
+      WHERE level IS NOT NULL AND level != '' AND is_active = 1
+      ORDER BY level ASC
+    `;
+    
+    console.log('DEBUG: Ejecutando consulta getLevels:', query);
+    const levels = await this.entityManager.query(query);
+    console.log('DEBUG: Resultado getLevels:', levels);
+    console.log('DEBUG: Número de niveles encontrados:', levels.length);
+    return levels;
   }
 }

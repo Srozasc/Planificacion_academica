@@ -15,6 +15,12 @@ export class ScheduleEventDto {
   active: boolean;
   created_at: Date;
   updated_at: Date;
+  
+  // Nuevos campos para la lista de eventos
+  course_name?: string; // name de academic_structures
+  section?: string; // school_prog de academic_structures
+  plan_code?: string; // code de academic_structures
+  teacher_names?: string; // nombres de docentes desde event_teachers
 
   // Información adicional del bimestre si está disponible
   bimestre?: {
@@ -55,6 +61,9 @@ export class ScheduleEventDto {
       if (dto.teachers.length > 0) {
         dto.teacher = dto.teachers[0].name;
       }
+      
+      // Nuevo campo: nombres de docentes concatenados
+      dto.teacher_names = dto.teachers.map(t => t.name).join(', ');
     }
 
     // Incluir información del bimestre si está disponible
@@ -64,6 +73,17 @@ export class ScheduleEventDto {
         nombre: entity.bimestre.nombre,
         anoAcademico: entity.bimestre.anoAcademico,
       };
+    }
+
+    // Incluir información de academic_structures si está disponible
+    if (entity.academic_name) {
+      dto.course_name = entity.academic_name;
+    }
+    if (entity.academic_school_prog) {
+      dto.section = entity.academic_school_prog;
+    }
+    if (entity.academic_code) {
+      dto.plan_code = entity.academic_code;
     }
 
     return dto;
@@ -82,10 +102,14 @@ export class ScheduleEventDto {
         teacher: this.teacher, // Campo legacy
         teachers: this.teachers, // Múltiples docentes
         teacher_ids: this.teacher_ids, // IDs de docentes
+        teacher_names: this.teacher_names, // Nombres de docentes concatenados
         room: this.room,
         students: this.students,
         subject: this.subject,
         bimestre: this.bimestre,
+        course_name: this.course_name, // Nombre del curso
+        section: this.section, // Sección
+        plan_code: this.plan_code, // Código del plan
       },
     };
   }

@@ -2110,6 +2110,26 @@ export class UploadService {
           // pero registramos el problema
         }
       }
+      
+      // Si es una carga de Nómina de Docentes, ejecutar el SP de migración
+      if (upload.uploadType === 'Nómina Docentes') {
+        this.logger.log('=== EJECUTANDO MIGRACIÓN PARA NÓMINA DE DOCENTES ===');
+        try {
+          // Migrar datos de staging_nomina_docentes a teachers
+          this.logger.log('Iniciando migración de datos de staging_nomina_docentes a teachers...');
+          await this.migrateNominaDocentes();
+          this.logger.log('Migración de nómina de docentes completada exitosamente');
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (migrationError) {
+          this.logger.error('Error durante la migración de nómina de docentes:', migrationError.message);
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
 
       this.logger.log('Carga aprobada exitosamente');
       return {
@@ -2209,6 +2229,46 @@ export class UploadService {
       this.logger.log(`=== MIGRACIÓN COMPLETADA: ${migratedRecords} registros procesados ===`);
     } catch (error) {
       this.logger.error('Error durante la migración de academic structures:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Migra datos de staging_nomina_docentes a teachers
+   */
+  private async migrateNominaDocentes(): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE NÓMINA DOCENTES CON SP ===');
+      
+      // Verificar conteo actual en staging_nomina_docentes
+      const stagingCount = await this.stagingNominaDocentesRepository.count();
+      this.logger.log(`Registros en staging_nomina_docentes: ${stagingCount}`);
+      
+      if (stagingCount === 0) {
+        this.logger.log('No hay registros en staging_nomina_docentes para migrar');
+        return;
+      }
+
+      // Verificar conteo actual en teachers antes de la migración
+      const currentCount = await this.dataSource.query('SELECT COUNT(*) as count FROM teachers');
+      const currentTeachersCount = currentCount[0].count;
+      this.logger.log(`Registros actuales en teachers antes de migración: ${currentTeachersCount}`);
+
+      // Ejecutar el procedimiento almacenado sp_migrate_staging_nomina_docentes_to_teachers
+      this.logger.log('Ejecutando procedimiento almacenado sp_migrate_staging_nomina_docentes_to_teachers...');
+      await this.dataSource.query('CALL sp_migrate_staging_nomina_docentes_to_teachers()');
+      this.logger.log('Procedimiento almacenado ejecutado exitosamente');
+      
+      // Verificar conteo final
+      const finalCount = await this.dataSource.query('SELECT COUNT(*) as count FROM teachers');
+      const finalTeachersCount = finalCount[0].count;
+      this.logger.log(`Conteo final en teachers: ${finalTeachersCount}`);
+      
+      const processedRecords = finalTeachersCount - currentTeachersCount;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de nómina docentes:', error.message);
       this.logger.error('Stack trace:', error.stack);
       throw error;
     }

@@ -32,6 +32,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     fechaFin: '',
     fechaPago1: '',
     fechaPago2: '',
+    // Nuevos campos para rangos de fechas de pago
+    fechaPago1Inicio: '',
+    fechaPago1Fin: '',
+    fechaPago2Inicio: '',
+    fechaPago2Fin: '',
     anoAcademico: new Date().getFullYear(),
     numeroBimestre: 1,
     descripcion: ''
@@ -48,6 +53,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     mensaje: string;
     bimestreConflicto?: Bimestre;
   }>({ mostrar: false, mensaje: '' });
+  
+  const [erroresRangosFechas, setErroresRangosFechas] = useState<{
+    fechaPago1: string;
+    fechaPago2: string;
+  }>({ fechaPago1: '', fechaPago2: '' });
 
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +78,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     // Validar solapamiento cuando cambien las fechas o el año académico
     if (name === 'fechaInicio' || name === 'fechaFin' || name === 'anoAcademico') {
       validarSolapamientoEnTiempoReal(updatedFormData);
+    }
+    
+    // Validar rangos de fechas de pago en tiempo real
+    if (name.includes('fechaPago')) {
+      validarRangosFechasPago(updatedFormData);
     }
   };
 
@@ -108,11 +123,35 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
     }
   };
+  
+  const validarRangosFechasPago = (data: CreateBimestreDto) => {
+    const errores = { fechaPago1: '', fechaPago2: '' };
+    
+    // Validar rango de pago 1
+    if (data.fechaPago1Inicio && data.fechaPago1Fin) {
+      if (new Date(data.fechaPago1Inicio) > new Date(data.fechaPago1Fin)) {
+        errores.fechaPago1 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
+      }
+    }
+    
+    // Validar rango de pago 2
+    if (data.fechaPago2Inicio && data.fechaPago2Fin) {
+      if (new Date(data.fechaPago2Inicio) > new Date(data.fechaPago2Fin)) {
+        errores.fechaPago2 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
+      }
+    }
+    
+    setErroresRangosFechas(errores);
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevenir envío si hay advertencias de solapamiento
-    if (advertenciaSolapamiento.mostrar) {
+    // Validar rangos de fechas antes del envío
+    validarRangosFechasPago(formData);
+    
+    // Prevenir envío si hay errores de validación
+    if (advertenciaSolapamiento.mostrar || erroresRangosFechas.fechaPago1 || erroresRangosFechas.fechaPago2) {
       return;
     }
     
@@ -170,6 +209,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       fechaFin: formatDateForInput(bimestre.fechaFin),
       fechaPago1: bimestre.fechaPago1 ? formatDateForInput(bimestre.fechaPago1) : '',
       fechaPago2: bimestre.fechaPago2 ? formatDateForInput(bimestre.fechaPago2) : '',
+      // Nuevos campos para rangos de fechas de pago
+      fechaPago1Inicio: bimestre.fechaPago1Inicio ? formatDateForInput(bimestre.fechaPago1Inicio) : '',
+      fechaPago1Fin: bimestre.fechaPago1Fin ? formatDateForInput(bimestre.fechaPago1Fin) : '',
+      fechaPago2Inicio: bimestre.fechaPago2Inicio ? formatDateForInput(bimestre.fechaPago2Inicio) : '',
+      fechaPago2Fin: bimestre.fechaPago2Fin ? formatDateForInput(bimestre.fechaPago2Fin) : '',
       anoAcademico: bimestre.anoAcademico,
       numeroBimestre: bimestre.numeroBimestre,
       descripcion: bimestre.descripcion || ''
@@ -184,11 +228,17 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       fechaFin: '',
       fechaPago1: '',
       fechaPago2: '',
+      // Nuevos campos para rangos de fechas de pago
+      fechaPago1Inicio: '',
+      fechaPago1Fin: '',
+      fechaPago2Inicio: '',
+      fechaPago2Fin: '',
       anoAcademico: new Date().getFullYear(),
       numeroBimestre: 1,
       descripcion: ''
     });
     setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
+    setErroresRangosFechas({ fechaPago1: '', fechaPago2: '' });
   };
 
   const handleEliminarBimestre = async (id: number) => {
@@ -320,30 +370,74 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Rangos de Fechas de Pago */}
+              <div className="space-y-4">
+                {/* Rango de Pago 1 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Pago 1
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Pago 1 (Rango)
                   </label>
-                  <input
-                    type="date"
-                    name="fechaPago1"
-                    value={formData.fechaPago1}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                      <input
+                        type="date"
+                        name="fechaPago1Inicio"
+                        value={formData.fechaPago1Inicio}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                      <input
+                        type="date"
+                        name="fechaPago1Fin"
+                        value={formData.fechaPago1Fin}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  {erroresRangosFechas.fechaPago1 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {erroresRangosFechas.fechaPago1}
+                    </p>
+                  )}
                 </div>
+                
+                {/* Rango de Pago 2 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Pago 2
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Pago 2 (Rango)
                   </label>
-                  <input
-                    type="date"
-                    name="fechaPago2"
-                    value={formData.fechaPago2}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                      <input
+                        type="date"
+                        name="fechaPago2Inicio"
+                        value={formData.fechaPago2Inicio}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                      <input
+                        type="date"
+                        name="fechaPago2Fin"
+                        value={formData.fechaPago2Fin}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  {erroresRangosFechas.fechaPago2 && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {erroresRangosFechas.fechaPago2}
+                    </p>
+                  )}
                 </div>
               </div>              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

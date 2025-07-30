@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dropdown API</title>
+</head>
+<body>
+    <h1>Test Dropdown API</h1>
+    <button onclick="testPlans()">Test Plans</button>
+    <button onclick="testLevels()">Test Levels</button>
+    <div id="results"></div>
+
+    <script>
+        async function testPlans() {
+            try {
+                console.log('Testing plans endpoint...');
+                const response = await fetch('http://localhost:3001/api/dropdown/plans');
+                const data = await response.json();
+                console.log('Plans data:', data);
+                document.getElementById('results').innerHTML = '<h3>Plans:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+
+        async function testLevels() {
+            try {
+                console.log('Testing levels endpoint...');
+                const response = await fetch('http://localhost:3001/api/dropdown/levels');
+                const data = await response.json();
+                console.log('Levels data:', data);
+                document.getElementById('results').innerHTML = '<h3>Levels:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('results').innerHTML = '<h3>Error:</h3><pre>' + error.message + '</pre>';
+            }
+        }
+    </script>
+</body>
+</html>

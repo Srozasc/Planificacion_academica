@@ -7,6 +7,11 @@ export interface Bimestre {
   fechaFin: string;
   fechaPago1?: string;
   fechaPago2?: string;
+  // Nuevos campos para rangos de fechas de pago
+  fechaPago1Inicio?: string;
+  fechaPago1Fin?: string;
+  fechaPago2Inicio?: string;
+  fechaPago2Fin?: string;
   anoAcademico: number;
   numeroBimestre: number;
   activo: boolean;
@@ -21,6 +26,11 @@ export interface CreateBimestreDto {
   fechaFin: string;
   fechaPago1?: string;
   fechaPago2?: string;
+  // Nuevos campos para rangos de fechas de pago
+  fechaPago1Inicio?: string;
+  fechaPago1Fin?: string;
+  fechaPago2Inicio?: string;
+  fechaPago2Fin?: string;
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
@@ -30,6 +40,13 @@ export interface UpdateBimestreDto {
   nombre?: string;
   fechaInicio?: string;
   fechaFin?: string;
+  fechaPago1?: string;
+  fechaPago2?: string;
+  // Nuevos campos para rangos de fechas de pago
+  fechaPago1Inicio?: string;
+  fechaPago1Fin?: string;
+  fechaPago2Inicio?: string;
+  fechaPago2Fin?: string;
   activo?: boolean;
   descripcion?: string;
 }

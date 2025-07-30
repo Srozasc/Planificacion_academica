@@ -9,6 +9,11 @@ export interface CreateBimestreDto {
   fechaFin: string;    // Cambiado a string para manejar conversión manual
   fechaPago1?: string;
   fechaPago2?: string;
+  // Nuevos campos para rangos de fechas de pago
+  fechaPago1Inicio?: string;
+  fechaPago1Fin?: string;
+  fechaPago2Inicio?: string;
+  fechaPago2Fin?: string;
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
@@ -20,6 +25,11 @@ export interface UpdateBimestreDto {
   fechaFin?: string;    // Cambiado a string para manejar conversión manual
   fechaPago1?: string;
   fechaPago2?: string;
+  // Nuevos campos para rangos de fechas de pago
+  fechaPago1Inicio?: string;
+  fechaPago1Fin?: string;
+  fechaPago2Inicio?: string;
+  fechaPago2Fin?: string;
   descripcion?: string;
 }
 
@@ -145,6 +155,12 @@ export class BimestreService {
       const fechaPago1 = createBimestreDto.fechaPago1 ? this.parseLocalDate(createBimestreDto.fechaPago1) : undefined;
       const fechaPago2 = createBimestreDto.fechaPago2 ? this.parseLocalDate(createBimestreDto.fechaPago2) : undefined;
       
+      // Parsear nuevos campos de rangos de fechas de pago
+      const fechaPago1Inicio = createBimestreDto.fechaPago1Inicio ? this.parseLocalDate(createBimestreDto.fechaPago1Inicio) : undefined;
+      const fechaPago1Fin = createBimestreDto.fechaPago1Fin ? this.parseLocalDate(createBimestreDto.fechaPago1Fin) : undefined;
+      const fechaPago2Inicio = createBimestreDto.fechaPago2Inicio ? this.parseLocalDate(createBimestreDto.fechaPago2Inicio) : undefined;
+      const fechaPago2Fin = createBimestreDto.fechaPago2Fin ? this.parseLocalDate(createBimestreDto.fechaPago2Fin) : undefined;
+      
       // 🔍 DEBUG: Fechas parseadas
       this.logger.log('fechaInicio (Date parseada):', fechaInicio);
       this.logger.log('fechaInicio (ISO):', fechaInicio.toISOString());
@@ -156,6 +172,15 @@ export class BimestreService {
       // Validar fechas
       if (fechaInicio >= fechaFin) {
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
+      }
+      
+      // Validar rangos de fechas de pago
+      if (fechaPago1Inicio && fechaPago1Fin && fechaPago1Inicio > fechaPago1Fin) {
+        throw new BadRequestException('La fecha de inicio del primer pago debe ser anterior o igual a la fecha de fin');
+      }
+      
+      if (fechaPago2Inicio && fechaPago2Fin && fechaPago2Inicio > fechaPago2Fin) {
+        throw new BadRequestException('La fecha de inicio del segundo pago debe ser anterior o igual a la fecha de fin');
       }
 
       // Validar que no exista otro bimestre con el mismo número en el mismo año
@@ -181,7 +206,11 @@ export class BimestreService {
         fechaInicio,
         fechaFin,
         fechaPago1,
-        fechaPago2
+        fechaPago2,
+        fechaPago1Inicio,
+        fechaPago1Fin,
+        fechaPago2Inicio,
+        fechaPago2Fin
       });
       
       // 🔍 DEBUG: Objeto antes de guardar
@@ -231,6 +260,20 @@ export class BimestreService {
       if (updateBimestreDto.fechaPago2) {
         updateData.fechaPago2 = this.parseLocalDate(updateBimestreDto.fechaPago2);
       }
+      
+      // Parsear nuevos campos de rangos de fechas de pago
+      if (updateBimestreDto.fechaPago1Inicio) {
+        updateData.fechaPago1Inicio = this.parseLocalDate(updateBimestreDto.fechaPago1Inicio);
+      }
+      if (updateBimestreDto.fechaPago1Fin) {
+        updateData.fechaPago1Fin = this.parseLocalDate(updateBimestreDto.fechaPago1Fin);
+      }
+      if (updateBimestreDto.fechaPago2Inicio) {
+        updateData.fechaPago2Inicio = this.parseLocalDate(updateBimestreDto.fechaPago2Inicio);
+      }
+      if (updateBimestreDto.fechaPago2Fin) {
+        updateData.fechaPago2Fin = this.parseLocalDate(updateBimestreDto.fechaPago2Fin);
+      }
 
       // Validar fechas si se proporcionan ambas
       const fechaInicio = updateData.fechaInicio || bimestre.fechaInicio;
@@ -238,6 +281,20 @@ export class BimestreService {
       
       if (fechaInicio >= fechaFin) {
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
+      }
+      
+      // Validar rangos de fechas de pago si se proporcionan
+      const fechaPago1Inicio = updateData.fechaPago1Inicio || bimestre.fechaPago1Inicio;
+      const fechaPago1Fin = updateData.fechaPago1Fin || bimestre.fechaPago1Fin;
+      const fechaPago2Inicio = updateData.fechaPago2Inicio || bimestre.fechaPago2Inicio;
+      const fechaPago2Fin = updateData.fechaPago2Fin || bimestre.fechaPago2Fin;
+      
+      if (fechaPago1Inicio && fechaPago1Fin && fechaPago1Inicio > fechaPago1Fin) {
+        throw new BadRequestException('La fecha de inicio del primer pago debe ser anterior o igual a la fecha de fin');
+      }
+      
+      if (fechaPago2Inicio && fechaPago2Fin && fechaPago2Inicio > fechaPago2Fin) {
+        throw new BadRequestException('La fecha de inicio del segundo pago debe ser anterior o igual a la fecha de fin');
       }
 
       // Validar que no haya solapamiento de fechas con otros bimestres del mismo año (excluyendo el actual)
