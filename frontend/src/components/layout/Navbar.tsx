@@ -72,7 +72,7 @@ const Navbar: React.FC = () => {
                   Sin bimestre seleccionado
                 </span>
                 <span className="text-xs">
-                  (Requerido para crear usuarios)
+                  (Requerido)
                 </span>
               </div>
             )}

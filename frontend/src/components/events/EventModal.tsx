@@ -145,10 +145,10 @@ const EventModal: React.FC<EventModalProps> = ({
     }
   }, [isOpen]);
 
-  // Recargar datos cuando cambie el bimestre seleccionado
+  // Recargar datos cuando cambie el bimestre seleccionado (incluso si es null)
   useEffect(() => {
-    if (isOpen && bimestreSeleccionado) {
-      console.log('Bimestre cambió, recargando datos del dropdown...');
+    if (isOpen) {
+      console.log('Bimestre cambió, recargando datos del dropdown...', bimestreSeleccionado);
       loadDropdownData();
     }
   }, [bimestreSeleccionado, isOpen]);
@@ -188,6 +188,20 @@ const EventModal: React.FC<EventModalProps> = ({
     // Obtener el bimestre_id del navbar
     const bimestreId = bimestreSeleccionado?.id;
     console.log('Cargando datos para bimestre_id:', bimestreId, 'Tipo de evento:', formData.tipoEvento);
+    
+    // Si no hay bimestre seleccionado, dejar todas las listas vacías
+    if (!bimestreId) {
+      console.log('No hay bimestre seleccionado - dejando listas vacías');
+      setTeachers([]);
+      setAllSubjects([]);
+      setSubjects([]);
+      setPlans([]);
+      setLevels([]);
+      setFilteredPlans([]);
+      setFilteredLevels([]);
+      setIsLoadingDropdowns(false);
+      return;
+    }
     
     try {
       console.log('Llamando a las APIs del dropdownService...');
@@ -283,11 +297,25 @@ const EventModal: React.FC<EventModalProps> = ({
 
     // Filtrar por nivel si está seleccionado
     if (selectedLevel) {
-      const levelToCompare = parseInt(selectedLevel);
-      filteredSubjects = filteredSubjects.filter(subject => 
-        subject.level === levelToCompare
-      );
+      filteredSubjects = filteredSubjects.filter(subject => {
+        // Manejar tanto números como strings para compatibilidad
+        const subjectLevel = subject.level;
+        if (typeof subjectLevel === 'number') {
+          return subjectLevel === parseInt(selectedLevel);
+        } else if (typeof subjectLevel === 'string') {
+          return subjectLevel === selectedLevel || subjectLevel === selectedLevel.toString();
+        }
+        return false;
+      });
     }
+
+    console.log('DEBUG: Filtrado de asignaturas:', {
+      selectedPlan,
+      selectedLevel,
+      totalSubjects: allSubjects.length,
+      filteredCount: filteredSubjects.length,
+      tipoEvento: formData.tipoEvento
+    });
 
     setSubjects(filteredSubjects);
     
@@ -295,7 +323,7 @@ const EventModal: React.FC<EventModalProps> = ({
     if (formData.subject && !filteredSubjects.find(s => s.acronym === formData.subject)) {
       setFormData(prev => ({ ...prev, subject: '', title: '' }));
     }
-  }, [selectedPlan, selectedLevel, allSubjects, formData.subject]);
+  }, [selectedPlan, selectedLevel, allSubjects, formData.subject, formData.tipoEvento]);
 
   // Efecto para filtrar planes basándose en el término de búsqueda
   useEffect(() => {
