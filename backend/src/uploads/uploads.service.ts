@@ -2130,6 +2130,35 @@ export class UploadService {
           // pero registramos el problema
         }
       }
+      
+      // Si es una carga de Vacantes Inicio, ejecutar el SP de migración
+      if (upload.uploadType === 'Vacantes Inicio') {
+        this.logger.log('=== EJECUTANDO MIGRACIÓN PARA VACANTES INICIO ===');
+        try {
+          // Obtener el email del usuario aprobador
+          const approverUser = await this.dataSource.query(
+            'SELECT email_institucional FROM users WHERE id = ?',
+            [approvedByUserId]
+          );
+          
+          const approverEmail = approverUser.length > 0 ? approverUser[0].email_institucional : null;
+          this.logger.log(`Usuario aprobador: ${approverEmail || 'SISTEMA'}`);
+          
+          // Migrar datos de staging_vacantes_inicio a vacantes_inicio_permanente
+          this.logger.log('Iniciando migración de datos de staging_vacantes_inicio a vacantes_inicio_permanente...');
+          await this.migrateVacantesInicio(approverEmail);
+          this.logger.log('Migración de vacantes inicio completada exitosamente');
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (migrationError) {
+          this.logger.error('Error durante la migración de vacantes inicio:', migrationError.message);
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
 
       this.logger.log('Carga aprobada exitosamente');
       return {
@@ -2269,6 +2298,49 @@ export class UploadService {
       this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
     } catch (error) {
       this.logger.error('Error durante la migración de nómina docentes:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Migra datos de staging_vacantes_inicio a vacantes_inicio_permanente
+   */
+  private async migrateVacantesInicio(approverEmail: string): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE VACANTES INICIO CON SP ===');
+      
+      // Verificar conteo actual en staging_vacantes_inicio
+      const stagingCount = await this.stagingVacantesInicioRepository.count();
+      this.logger.log(`Registros en staging_vacantes_inicio: ${stagingCount}`);
+      
+      if (stagingCount === 0) {
+        this.logger.log('No hay registros en staging_vacantes_inicio para migrar');
+        return;
+      }
+
+      // Verificar conteo actual en vacantes_inicio_permanente antes de la migración
+      const currentCount = await this.dataSource.query('SELECT COUNT(*) as count FROM vacantes_inicio_permanente');
+      const currentVacantesCount = currentCount[0].count;
+      this.logger.log(`Registros actuales en vacantes_inicio_permanente antes de migración: ${currentVacantesCount}`);
+
+      // Ejecutar el procedimiento almacenado sp_migrate_staging_vacantes_inicio_to_permanente
+      this.logger.log('Ejecutando procedimiento almacenado sp_migrate_staging_vacantes_inicio_to_permanente...');
+      await this.dataSource.query(
+        'CALL sp_migrate_staging_vacantes_inicio_to_permanente(?)',
+        [approverEmail]
+      );
+      this.logger.log('Procedimiento almacenado ejecutado exitosamente');
+      
+      // Verificar conteo final
+      const finalCount = await this.dataSource.query('SELECT COUNT(*) as count FROM vacantes_inicio_permanente');
+      const finalVacantesCount = finalCount[0].count;
+      this.logger.log(`Conteo final en vacantes_inicio_permanente: ${finalVacantesCount}`);
+      
+      const processedRecords = finalVacantesCount - currentVacantesCount;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de vacantes inicio:', error.message);
       this.logger.error('Stack trace:', error.stack);
       throw error;
     }

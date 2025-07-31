@@ -889,6 +889,11 @@ const EventModal: React.FC<EventModalProps> = ({
                   Crear múltiples eventos de la misma asignatura
                 </label>
               </div>
+              {enableMultipleEvents && (
+                <p className="text-sm text-red-500 mt-2">
+                  Se crearán múltiples eventos idénticos.
+                </p>
+              )}
               
               {enableMultipleEvents && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
