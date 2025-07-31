@@ -33,4 +33,23 @@ export class DropdownController {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
     return this.dropdownService.getLevels(bimestreIdNum);
   }
+
+  // Endpoints para datos de "Inicio" desde vacantes_inicio_permanente
+  @Get('plans-inicio')
+  async getPlansInicio(@Query('bimestreId') bimestreId?: string): Promise<Plan[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getPlansInicio(bimestreIdNum);
+  }
+
+  @Get('levels-inicio')
+  async getLevelsInicio(@Query('bimestreId') bimestreId?: string): Promise<Level[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getLevelsInicio(bimestreIdNum);
+  }
+
+  @Get('subjects-inicio')
+  async getSubjectsInicio(@Query('bimestreId') bimestreId?: string): Promise<Subject[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getSubjectsInicio(bimestreIdNum);
+  }
 }

@@ -163,4 +163,87 @@ export class DropdownService {
     console.log('DEBUG: Número de niveles encontrados:', levels.length);
     return levels;
   }
+
+  // Métodos para cargar datos desde vacantes_inicio_permanente (tipo "Inicio")
+  async getPlansInicio(bimestreId?: number): Promise<Plan[]> {
+    let query = `
+      SELECT DISTINCT codigo_plan as value, codigo_plan as label
+      FROM vacantes_inicio_permanente
+      WHERE codigo_plan IS NOT NULL AND codigo_plan != '' AND activo = 1
+    `;
+    
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY codigo_plan ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getPlansInicio:', query, 'con parámetros:', params);
+    const plans = await this.entityManager.query(query, params);
+    console.log('DEBUG: Resultado getPlansInicio:', plans);
+    console.log('DEBUG: Número de planes de inicio encontrados:', plans.length);
+    return plans;
+  }
+
+  async getLevelsInicio(bimestreId?: number): Promise<Level[]> {
+    let query = `
+      SELECT DISTINCT nivel as value, nivel as label
+      FROM vacantes_inicio_permanente
+      WHERE nivel IS NOT NULL AND nivel != '' AND activo = 1
+    `;
+    
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY nivel ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getLevelsInicio:', query, 'con parámetros:', params);
+    const levels = await this.entityManager.query(query, params);
+    console.log('DEBUG: Resultado getLevelsInicio:', levels);
+    console.log('DEBUG: Número de niveles de inicio encontrados:', levels.length);
+    return levels;
+  }
+
+  async getSubjectsInicio(bimestreId?: number): Promise<Subject[]> {
+    let query = `
+      SELECT 
+        ROW_NUMBER() OVER (ORDER BY sigla_asignatura) as id,
+        codigo_plan as code,
+        asignatura as name,
+        'INICIO' as category,
+        sigla_asignatura as acronym,
+        asignatura as course,
+        codigo_plan as plan_code,
+        nivel as level
+      FROM vacantes_inicio_permanente
+      WHERE sigla_asignatura IS NOT NULL AND sigla_asignatura != '' 
+        AND asignatura IS NOT NULL AND asignatura != '' 
+        AND activo = 1
+    `;
+    
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY sigla_asignatura ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getSubjectsInicio:', query, 'con parámetros:', params);
+    const subjects = await this.entityManager.query(query, params);
+    console.log('DEBUG: Resultado getSubjectsInicio:', subjects);
+    console.log('DEBUG: Número de asignaturas de inicio encontradas:', subjects.length);
+    return subjects;
+  }
 }

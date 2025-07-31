@@ -34,6 +34,7 @@ export interface CreateEventData {
   teacher_ids?: number[]; // Nuevo campo para múltiples docentes
   subject?: string;
   students?: number;
+  tipoEvento?: 'inicio' | 'continuidad'; // Nuevo campo para tipo de evento
 }
 
 const EventModal: React.FC<EventModalProps> = ({
@@ -108,7 +109,8 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher: '',
       teacher_ids: [],
       subject: '',
-      students: 0
+      students: 0,
+      tipoEvento: undefined
     };
   });
 
@@ -185,19 +187,35 @@ const EventModal: React.FC<EventModalProps> = ({
     
     // Obtener el bimestre_id del navbar
     const bimestreId = bimestreSeleccionado?.id;
-    console.log('Cargando datos para bimestre_id:', bimestreId);
+    console.log('Cargando datos para bimestre_id:', bimestreId, 'Tipo de evento:', formData.tipoEvento);
     
     try {
       console.log('Llamando a las APIs del dropdownService...');
       
-      const [teachersData, subjectsData, plansData, levelsData] = await Promise.all([
-        dropdownService.getTeachers(bimestreId),
-        dropdownService.getSubjects(bimestreId),
-        dropdownService.getPlans(bimestreId),
-        dropdownService.getLevels(bimestreId)
-      ]);
+      // Los docentes siempre se cargan de la misma fuente
+      const teachersData = await dropdownService.getTeachers(bimestreId);
       
-      console.log('Datos recibidos para bimestre', bimestreId, ':', {
+      let subjectsData, plansData, levelsData;
+      
+      if (formData.tipoEvento === 'inicio') {
+        // Cargar datos desde vacantes_inicio_permanente
+        console.log('Cargando datos de INICIO desde vacantes_inicio_permanente...');
+        [subjectsData, plansData, levelsData] = await Promise.all([
+          dropdownService.getSubjectsInicio(bimestreId),
+          dropdownService.getPlansInicio(bimestreId),
+          dropdownService.getLevelsInicio(bimestreId)
+        ]);
+      } else {
+        // Cargar datos desde academic_structures (comportamiento actual)
+        console.log('Cargando datos de CONTINUIDAD desde academic_structures...');
+        [subjectsData, plansData, levelsData] = await Promise.all([
+          dropdownService.getSubjects(bimestreId),
+          dropdownService.getPlans(bimestreId),
+          dropdownService.getLevels(bimestreId)
+        ]);
+      }
+      
+      console.log('Datos recibidos para bimestre', bimestreId, 'tipo', formData.tipoEvento, ':', {
         teachers: teachersData,
         subjects: subjectsData,
         plans: plansData,
@@ -303,6 +321,23 @@ const EventModal: React.FC<EventModalProps> = ({
     }
   }, [levelSearchTerm, levels]);
 
+  // Efecto para recargar datos cuando cambie el tipo de evento
+  useEffect(() => {
+    if (isOpen && formData.tipoEvento) {
+      console.log('Tipo de evento cambió a:', formData.tipoEvento, '- Recargando datos...');
+      loadDropdownData();
+      
+      // Limpiar selecciones cuando cambie el tipo
+      setSelectedPlan('');
+      setSelectedLevel('');
+      setFormData(prev => ({ 
+        ...prev, 
+        subject: '', 
+        title: '' 
+      }));
+    }
+  }, [formData.tipoEvento]);
+
   useEffect(() => {
     if (isOpen) {
       if (editingEvent) {
@@ -327,7 +362,8 @@ const EventModal: React.FC<EventModalProps> = ({
           teacher: editingEvent.extendedProps?.teacher || '',
           teacher_ids: editingEvent.extendedProps?.teacher_ids || [], // Cargar los IDs de docentes
           subject: editingEvent.extendedProps?.subject || '',
-          students: editingEvent.extendedProps?.students || 0
+          students: editingEvent.extendedProps?.students || 0,
+          tipoEvento: undefined
         });
         
         setEventCounter(existingCounter);
@@ -352,7 +388,8 @@ const EventModal: React.FC<EventModalProps> = ({
             teacher: '',
             teacher_ids: [],
             subject: '',
-            students: 0
+            students: 0,
+            tipoEvento: undefined
           });
         }, 100);
       }
@@ -473,7 +510,8 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher: '',
       teacher_ids: [],
       subject: '',
-      students: 0
+      students: 0,
+      tipoEvento: undefined
     });
     setErrors({});
     setEventCounter(1);
@@ -586,7 +624,45 @@ const EventModal: React.FC<EventModalProps> = ({
             </div>
           </div>
 
-
+          {/* Checkboxes de Tipo de Evento */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">
+              Tipo de Evento
+            </label>
+            <div className="flex space-x-6">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.tipoEvento === 'inicio'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
+                    } else {
+                      setFormData(prev => ({ ...prev, tipoEvento: undefined }));
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Inicio</span>
+              </label>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.tipoEvento === 'continuidad'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
+                    } else {
+                      setFormData(prev => ({ ...prev, tipoEvento: undefined }));
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Continuidad</span>
+              </label>
+            </div>
+          </div>
 
           {/* Detalles adicionales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

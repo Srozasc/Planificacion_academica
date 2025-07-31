@@ -90,5 +90,45 @@ export const dropdownService = {
       console.error('Error fetching levels:', error);
       return [];
     }
+  },
+
+  // Métodos para cargar datos de "Inicio" desde vacantes_inicio_permanente
+  async getPlansInicio(bimestreId?: number): Promise<Plan[]> {
+    try {
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/plans-inicio con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/plans-inicio', { params });
+      console.log('Respuesta de plans-inicio:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching plans inicio:', error);
+      return [];
+    }
+  },
+
+  async getLevelsInicio(bimestreId?: number): Promise<Level[]> {
+    try {
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/levels-inicio con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/levels-inicio', { params });
+      console.log('Respuesta de levels-inicio:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching levels inicio:', error);
+      return [];
+    }
+  },
+
+  async getSubjectsInicio(bimestreId?: number): Promise<Subject[]> {
+    try {
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/subjects-inicio con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/subjects-inicio', { params });
+      console.log('Respuesta de subjects-inicio:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching subjects inicio:', error);
+      return [];
+    }
   }
 };
