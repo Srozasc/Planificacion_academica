@@ -143,6 +143,14 @@ const EventModal: React.FC<EventModalProps> = ({
     }
   }, [isOpen]);
 
+  // Recargar datos cuando cambie el bimestre seleccionado
+  useEffect(() => {
+    if (isOpen && bimestreSeleccionado) {
+      console.log('Bimestre cambió, recargando datos del dropdown...');
+      loadDropdownData();
+    }
+  }, [bimestreSeleccionado, isOpen]);
+
   // Actualizar fechas cuando cambie el bimestre seleccionado o se abra el modal
   useEffect(() => {
     console.log('useEffect bimestre - bimestreSeleccionado:', bimestreSeleccionado);
@@ -174,39 +182,28 @@ const EventModal: React.FC<EventModalProps> = ({
   const loadDropdownData = async () => {
     setIsLoadingDropdowns(true);
     console.log('Iniciando carga de datos de dropdown...');
+    
+    // Obtener el bimestre_id del navbar
+    const bimestreId = bimestreSeleccionado?.id;
+    console.log('Cargando datos para bimestre_id:', bimestreId);
+    
     try {
-      console.log('Llamando a las APIs...');
-      
-      // Test directo sin interceptores
-      const baseURL = 'http://localhost:3001/api';
-      
-      const [teachersResponse, subjectsResponse, plansResponse, levelsResponse] = await Promise.all([
-        fetch(`${baseURL}/dropdown/teachers`),
-        fetch(`${baseURL}/dropdown/subjects`),
-        fetch(`${baseURL}/dropdown/plans`),
-        fetch(`${baseURL}/dropdown/levels`)
-      ]);
-      
-      console.log('Status codes:', {
-        teachers: teachersResponse.status,
-        subjects: subjectsResponse.status,
-        plans: plansResponse.status,
-        levels: levelsResponse.status
-      });
+      console.log('Llamando a las APIs del dropdownService...');
       
       const [teachersData, subjectsData, plansData, levelsData] = await Promise.all([
-        teachersResponse.json(),
-        subjectsResponse.json(),
-        plansResponse.json(),
-        levelsResponse.json()
+        dropdownService.getTeachers(bimestreId),
+        dropdownService.getSubjects(bimestreId),
+        dropdownService.getPlans(bimestreId),
+        dropdownService.getLevels(bimestreId)
       ]);
       
-      console.log('Datos recibidos:', {
+      console.log('Datos recibidos para bimestre', bimestreId, ':', {
         teachers: teachersData,
         subjects: subjectsData,
         plans: plansData,
         levels: levelsData
       });
+      
       setTeachers(teachersData);
       setAllSubjects(subjectsData); // Guardar todas las asignaturas
       setSubjects(subjectsData); // Inicialmente mostrar todas

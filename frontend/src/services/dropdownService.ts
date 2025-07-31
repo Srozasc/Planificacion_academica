@@ -34,9 +34,10 @@ export interface Level {
 }
 
 export const dropdownService = {
-  async getTeachers(): Promise<Teacher[]> {
+  async getTeachers(bimestreId?: number): Promise<Teacher[]> {
     try {
-      const response = await apiClient.get('/dropdown/teachers');
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      const response = await apiClient.get('/dropdown/teachers', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching teachers:', error);
@@ -44,9 +45,10 @@ export const dropdownService = {
     }
   },
 
-  async getSubjects(): Promise<Subject[]> {
+  async getSubjects(bimestreId?: number): Promise<Subject[]> {
     try {
-      const response = await apiClient.get('/dropdown/subjects');
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      const response = await apiClient.get('/dropdown/subjects', { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching subjects:', error);
@@ -64,10 +66,11 @@ export const dropdownService = {
     }
   },
 
-  async getPlans(): Promise<Plan[]> {
+  async getPlans(bimestreId?: number): Promise<Plan[]> {
     try {
-      console.log('Llamando a /dropdown/plans...');
-      const response = await apiClient.get('/dropdown/plans');
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/plans con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/plans', { params });
       console.log('Respuesta de plans:', response.data);
       return response.data;
     } catch (error) {
@@ -76,10 +79,11 @@ export const dropdownService = {
     }
   },
 
-  async getLevels(): Promise<Level[]> {
+  async getLevels(bimestreId?: number): Promise<Level[]> {
     try {
-      console.log('Llamando a /dropdown/levels...');
-      const response = await apiClient.get('/dropdown/levels');
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/levels con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/levels', { params });
       console.log('Respuesta de levels:', response.data);
       return response.data;
     } catch (error) {

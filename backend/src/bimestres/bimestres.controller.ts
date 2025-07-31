@@ -9,8 +9,12 @@ import {
   ParseIntPipe,
   UseGuards,
   Logger,
-  Query
+  Query,
+  UseInterceptors,
+  UploadedFile
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { multerConfig } from '../uploads/config/multer.config';
 import { BimestreService, CreateBimestreDto, UpdateBimestreDto } from '../common/services/bimestre.service';
 import { ResponseService } from '../common/services/response.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -126,6 +130,64 @@ export class BimestresController {
       throw error; // Re-lanzar la excepción para que NestJS la maneje correctamente
     }
   }
+
+  @Post('carga-masiva')
+  @Roles('Maestro', 'Editor')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async cargaMasiva(@UploadedFile() file: Express.Multer.File) {
+    try {
+      if (!file) {
+        return this.responseService.error(
+          'No se proporcionó ningún archivo',
+          ['Debe seleccionar un archivo Excel']
+        );
+      }
+
+      const resultado = await this.bimestreService.procesarCargaMasiva(file.buffer);
+      
+      return this.responseService.success(
+        resultado,
+        `Carga masiva completada exitosamente. ${resultado.bimestresCreados} bimestres creados.`
+      );
+    } catch (error) {
+      this.logger.error('Error en carga masiva de bimestres', error);
+      return this.responseService.error(
+        'Error en la carga masiva',
+        [error.message]
+      );
+    }
+  }
+
+  @Get(':id/dependencies')
+  @Roles('Maestro')
+  async checkDependencies(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const dependencies = await this.bimestreService.checkDependencies(id);
+      return this.responseService.success(
+        dependencies,
+        'Dependencias verificadas exitosamente'
+      );
+    } catch (error) {
+      this.logger.error(`Error al verificar dependencias del bimestre ${id}`, error);
+      throw error;
+    }
+  }
+
+  @Delete(':id/with-events')
+  @Roles('Maestro')
+  async removeWithEvents(@Param('id', ParseIntPipe) id: number) {
+    try {
+      await this.bimestreService.deleteWithEvents(id);
+      return this.responseService.success(
+        null,
+        'Bimestre y eventos asociados eliminados exitosamente'
+      );
+    } catch (error) {
+      this.logger.error(`Error al eliminar bimestre con eventos ${id}`, error);
+      throw error;
+    }
+  }
+
   @Delete(':id')
   @Roles('Maestro')
   async remove(@Param('id', ParseIntPipe) id: number) {

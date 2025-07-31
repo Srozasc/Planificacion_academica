@@ -8,7 +8,8 @@ import {
   PencilIcon,
   TrashIcon,
   CheckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  DocumentArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 interface BimestreConfiguradorProps {
@@ -24,15 +25,15 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     crearBimestre,
     actualizarBimestre,
     eliminarBimestre,
+    eliminarBimestreConEventos,
+    verificarDependencias,
     clearError
   } = useBimestreStore();
   const [formData, setFormData] = useState<CreateBimestreDto>({
-    nombre: '',
+    nombre: `Bimestre ${new Date().getFullYear()} 1`,
     fechaInicio: '',
     fechaFin: '',
-    fechaPago1: '',
-    fechaPago2: '',
-    // Nuevos campos para rangos de fechas de pago
+    // Campos para rangos de fechas de pago
     fechaPago1Inicio: '',
     fechaPago1Fin: '',
     fechaPago2Inicio: '',
@@ -48,6 +49,12 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   });
 
   const [confirmacionEliminar, setConfirmacionEliminar] = useState<number | null>(null);
+  const [confirmacionEliminarConEventos, setConfirmacionEliminarConEventos] = useState<{
+    bimestreId: number | null;
+    eventCount: number;
+    tables: string[];
+  }>({ bimestreId: null, eventCount: 0, tables: [] });
+  const [verificandoDependencias, setVerificandoDependencias] = useState(false);
   const [advertenciaSolapamiento, setAdvertenciaSolapamiento] = useState<{
     mostrar: boolean;
     mensaje: string;
@@ -55,9 +62,19 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   }>({ mostrar: false, mensaje: '' });
   
   const [erroresRangosFechas, setErroresRangosFechas] = useState<{
-    fechaPago1: string;
-    fechaPago2: string;
-  }>({ fechaPago1: '', fechaPago2: '' });
+    rangoPago1: string;
+    rangoPago2: string;
+  }>({ rangoPago1: '', rangoPago2: '' });
+
+  // Estados para carga masiva
+  const [cargandoArchivo, setCargandoArchivo] = useState(false);
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null);
+  const [resultadoCarga, setResultadoCarga] = useState<{
+    mostrar: boolean;
+    exito: boolean;
+    mensaje: string;
+    detalles?: any;
+  }>({ mostrar: false, exito: false, mensaje: '' });
 
   useEffect(() => {
     if (isOpen) {
@@ -72,6 +89,13 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       ...formData,
       [name]: name === 'anoAcademico' || name === 'numeroBimestre' ? parseInt(value) : value
     };
+    
+    // Generar nombre automáticamente cuando cambien año académico o número de bimestre
+    if (name === 'anoAcademico' || name === 'numeroBimestre') {
+      const anoAcademico = name === 'anoAcademico' ? parseInt(value) : formData.anoAcademico;
+      const numeroBimestre = name === 'numeroBimestre' ? parseInt(value) : formData.numeroBimestre;
+      updatedFormData.nombre = `Bimestre ${anoAcademico} ${numeroBimestre}`;
+    }
     
     setFormData(updatedFormData);
     
@@ -125,19 +149,19 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   };
   
   const validarRangosFechasPago = (data: CreateBimestreDto) => {
-    const errores = { fechaPago1: '', fechaPago2: '' };
+    const errores = { rangoPago1: '', rangoPago2: '' };
     
     // Validar rango de pago 1
     if (data.fechaPago1Inicio && data.fechaPago1Fin) {
       if (new Date(data.fechaPago1Inicio) > new Date(data.fechaPago1Fin)) {
-        errores.fechaPago1 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
+        errores.rangoPago1 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
       }
     }
     
     // Validar rango de pago 2
     if (data.fechaPago2Inicio && data.fechaPago2Fin) {
       if (new Date(data.fechaPago2Inicio) > new Date(data.fechaPago2Fin)) {
-        errores.fechaPago2 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
+        errores.rangoPago2 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
       }
     }
     
@@ -151,7 +175,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     validarRangosFechasPago(formData);
     
     // Prevenir envío si hay errores de validación
-    if (advertenciaSolapamiento.mostrar || erroresRangosFechas.fechaPago1 || erroresRangosFechas.fechaPago2) {
+    if (advertenciaSolapamiento.mostrar || erroresRangosFechas.rangoPago1 || erroresRangosFechas.rangoPago2) {
       return;
     }
     
@@ -168,13 +192,16 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       }
       
       // Limpiar formulario y advertencias
+      const currentYear = new Date().getFullYear();
       setFormData({
-        nombre: '',
+        nombre: `Bimestre ${currentYear} 1`,
         fechaInicio: '',
         fechaFin: '',
-        fechaPago1: '',
-        fechaPago2: '',
-        anoAcademico: new Date().getFullYear(),
+        fechaPago1Inicio: '',
+        fechaPago1Fin: '',
+        fechaPago2Inicio: '',
+        fechaPago2Fin: '',
+        anoAcademico: currentYear,
         numeroBimestre: 1,
         descripcion: ''
       });
@@ -204,12 +231,10 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
 
   const handleEditarBimestre = (bimestre: Bimestre) => {
     setFormData({
-      nombre: bimestre.nombre,
+      nombre: `Bimestre ${bimestre.anoAcademico} ${bimestre.numeroBimestre}`,
       fechaInicio: formatDateForInput(bimestre.fechaInicio),
       fechaFin: formatDateForInput(bimestre.fechaFin),
-      fechaPago1: bimestre.fechaPago1 ? formatDateForInput(bimestre.fechaPago1) : '',
-      fechaPago2: bimestre.fechaPago2 ? formatDateForInput(bimestre.fechaPago2) : '',
-      // Nuevos campos para rangos de fechas de pago
+      // Campos para rangos de fechas de pago
       fechaPago1Inicio: bimestre.fechaPago1Inicio ? formatDateForInput(bimestre.fechaPago1Inicio) : '',
       fechaPago1Fin: bimestre.fechaPago1Fin ? formatDateForInput(bimestre.fechaPago1Fin) : '',
       fechaPago2Inicio: bimestre.fechaPago2Inicio ? formatDateForInput(bimestre.fechaPago2Inicio) : '',
@@ -222,33 +247,187 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   };
   const handleCancelarEdicion = () => {
     setModoEdicion({ activo: false, bimestre: null });
+    const currentYear = new Date().getFullYear();
     setFormData({
-      nombre: '',
+      nombre: `Bimestre ${currentYear} 1`,
       fechaInicio: '',
       fechaFin: '',
-      fechaPago1: '',
-      fechaPago2: '',
-      // Nuevos campos para rangos de fechas de pago
+      // Campos para rangos de fechas de pago
       fechaPago1Inicio: '',
       fechaPago1Fin: '',
       fechaPago2Inicio: '',
       fechaPago2Fin: '',
-      anoAcademico: new Date().getFullYear(),
+      anoAcademico: currentYear,
       numeroBimestre: 1,
       descripcion: ''
     });
     setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
-    setErroresRangosFechas({ fechaPago1: '', fechaPago2: '' });
+    setErroresRangosFechas({ rangoPago1: '', rangoPago2: '' });
   };
 
   const handleEliminarBimestre = async (id: number) => {
     try {
+      setVerificandoDependencias(true);
       clearError();
-      await eliminarBimestre(id);
-      setConfirmacionEliminar(null);
+      
+      // Verificar si hay eventos asociados
+      const dependencies = await verificarDependencias(id);
+      
+      if (dependencies.hasEvents) {
+        // Mostrar modal de confirmación con eventos
+        setConfirmacionEliminarConEventos({
+          bimestreId: id,
+          eventCount: dependencies.eventCount,
+          tables: dependencies.tables
+        });
+        setConfirmacionEliminar(null);
+      } else {
+        // Eliminar directamente si no hay eventos
+        await eliminarBimestre(id);
+        setConfirmacionEliminar(null);
+      }
     } catch (error) {
-      console.error('Error al eliminar bimestre:', error);
+      console.error('Error al verificar dependencias:', error);
+    } finally {
+      setVerificandoDependencias(false);
     }
+  };
+
+  const handleEliminarBimestreConEventos = async () => {
+    if (!confirmacionEliminarConEventos.bimestreId) return;
+    
+    try {
+      clearError();
+      await eliminarBimestreConEventos(confirmacionEliminarConEventos.bimestreId);
+      setConfirmacionEliminarConEventos({ bimestreId: null, eventCount: 0, tables: [] });
+    } catch (error) {
+      console.error('Error al eliminar bimestre con eventos:', error);
+    }
+  };
+
+  const handleCancelarEliminacionConEventos = () => {
+    setConfirmacionEliminarConEventos({ bimestreId: null, eventCount: 0, tables: [] });
+  };
+
+  // Funciones para carga masiva
+  const handleSeleccionarArchivo = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar que sea un archivo Excel
+      const allowedTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        setResultadoCarga({
+          mostrar: true,
+          exito: false,
+          mensaje: 'Formato de archivo no válido. Solo se permiten archivos Excel (.xlsx, .xls)'
+        });
+        return;
+      }
+      
+      setArchivoSeleccionado(file);
+      setResultadoCarga({ mostrar: false, exito: false, mensaje: '' });
+    }
+  };
+
+  const handleCargaMasiva = async () => {
+    if (!archivoSeleccionado) {
+      setResultadoCarga({
+        mostrar: true,
+        exito: false,
+        mensaje: 'Debe seleccionar un archivo Excel'
+      });
+      return;
+    }
+
+    setCargandoArchivo(true);
+    setResultadoCarga({ mostrar: false, exito: false, mensaje: '' });
+
+    try {
+      const result = await bimestreService.cargaMasiva(archivoSeleccionado);
+      
+      const bimestresCreados = result?.bimestresCreados || 0;
+      const años = result?.años || [];
+      
+      setResultadoCarga({
+        mostrar: true,
+        exito: true,
+        mensaje: `Se cargaron exitosamente ${bimestresCreados} bimestres${años.length > 0 ? ` para los años: ${años.join(', ')}` : ''}`
+      });
+      
+      // Limpiar archivo seleccionado
+      setArchivoSeleccionado(null);
+      const fileInput = document.getElementById('archivo-excel') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+      
+      // Recargar bimestres
+      await fetchBimestres();
+    } catch (error: any) {
+      console.error('Error en carga masiva:', error);
+      
+      let mensajeError = 'Error en la carga masiva';
+      let detallesError = null;
+      
+      if (error.response?.data?.message) {
+        const mensaje = error.response.data.message;
+        
+        // Personalizar mensajes específicos para hacerlos más amigables
+        if (mensaje.includes('Ya existen bimestres para el año académico')) {
+          mensajeError = mensaje; // Usar el mensaje exacto del backend
+        } else if (mensaje.includes('El archivo debe contener exactamente 5 bimestres')) {
+          mensajeError = '📋 El archivo Excel debe contener exactamente 5 bimestres. Por favor, verifique que su archivo tenga la estructura correcta.';
+        } else if (mensaje.includes('Encabezado incorrecto')) {
+          mensajeError = '📊 El formato del archivo Excel no es correcto. Por favor, descargue la plantilla y asegúrese de usar los encabezados exactos.';
+        } else if (mensaje.includes('Formato de fecha inválido')) {
+          mensajeError = '📅 Hay fechas con formato incorrecto en el archivo. Use el formato DD-MM-YYYY (ejemplo: 15-03-2025).';
+        } else {
+          mensajeError = mensaje;
+        }
+        
+        // No mostrar detalles técnicos para errores de bimestres existentes
+        if (!mensaje.includes('Ya existen bimestres para el año académico')) {
+          detallesError = error.response.data.errors;
+        }
+      } else if (error.message) {
+        mensajeError = error.message;
+      }
+      
+      setResultadoCarga({
+        mostrar: true,
+        exito: false,
+        mensaje: mensajeError,
+        detalles: detallesError
+      });
+    } finally {
+      setCargandoArchivo(false);
+    }
+  };
+
+  const handleDescargarPlantilla = () => {
+    // Crear datos de ejemplo para la plantilla
+    const plantillaData = [
+      ['Número', 'Año', 'Fecha_Inicio', 'Fecha_Fin', 'Pago1_Inicio', 'Pago1_Fin', 'Pago2_Inicio', 'Pago2_Fin', 'Descripción'],
+      [1, 2025, '11-03-2025', '11-05-2025', '03-03-2025', '30-04-2025', '01-05-2025', '14-05-2025', 'Primer Bimestre'],
+      [2, 2025, '20-05-2025', '20-07-2025', '15-05-2025', '30-06-2025', '01-07-2025', '31-07-2025', 'Segundo Bimestre'],
+      [3, 2025, '12-08-2025', '12-10-2025', '01-08-2025', '30-09-2025', '01-10-2025', '15-10-2025', 'Tercer Bimestre'],
+      [4, 2025, '21-10-2025', '24-12-2025', '16-10-2025', '30-11-2025', '01-12-2025', '31-12-2025', 'Cuarto Bimestre'],
+      [5, 2026, '06-01-2026', '01-03-2026', '01-01-2026', '28-02-2026', '01-03-2026', '04-03-2026', 'Quinto Bimestre']
+    ];
+    
+    // Crear CSV
+    const csvContent = plantillaData.map(row => row.join('\t')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'plantilla_bimestres.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!isOpen) return null;
@@ -273,6 +452,114 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
             <div className="bg-red-50 border border-red-200 rounded-md p-4">
               <p className="text-red-800">{error}</p>
             </div>          )}
+
+          {/* Carga masiva desde Excel */}
+          <div className="border rounded-lg p-6 bg-blue-50">
+            <div className="flex items-center space-x-2 mb-4">
+              <DocumentArrowUpIcon className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-medium text-gray-900">
+                Carga Masiva desde Excel
+              </h3>
+            </div>
+            
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Sube un archivo Excel con múltiples bimestres para crear varios a la vez.
+              </p>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <input
+                      id="archivo-excel"
+                      type="file"
+                      accept=".xlsx,.xls"
+                      onChange={handleSeleccionarArchivo}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-4 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => document.getElementById('archivo-excel')?.click()}
+                      disabled={cargandoArchivo}
+                    >
+                      <DocumentArrowUpIcon className="h-4 w-4 mr-2" />
+                      {archivoSeleccionado ? 'Cambiar Archivo' : 'Seleccionar Archivo Excel'}
+                    </button>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    onClick={handleDescargarPlantilla}
+                  >
+                    Descargar Plantilla
+                  </button>
+                </div>
+                
+                {archivoSeleccionado && (
+                  <div className="bg-gray-50 p-3 rounded-md">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium">Archivo seleccionado:</span> {archivoSeleccionado.name}
+                    </p>
+                    <button
+                      type="button"
+                      className="mt-2 inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={handleCargaMasiva}
+                      disabled={cargandoArchivo}
+                    >
+                      {cargandoArchivo ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Procesando...
+                        </>
+                      ) : (
+                        'Cargar Bimestres'
+                      )}
+                    </button>
+                  </div>
+                )}
+                
+                {resultadoCarga.mostrar && (
+                  <div className={`p-4 rounded-md ${
+                    resultadoCarga.exito 
+                      ? 'bg-green-50 border border-green-200' 
+                      : 'bg-red-50 border border-red-200'
+                  }`}>
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        {resultadoCarga.exito ? (
+                          <CheckIcon className="h-5 w-5 text-green-400" />
+                        ) : (
+                          <ExclamationTriangleIcon className="h-5 w-5 text-red-400" />
+                        )}
+                      </div>
+                      <div className="ml-3">
+                        <div className={`text-sm font-medium whitespace-pre-line ${
+                          resultadoCarga.exito ? 'text-green-800' : 'text-red-800'
+                        }`}>
+                          {resultadoCarga.mensaje}
+                        </div>
+                        {resultadoCarga.detalles && !resultadoCarga.mensaje.includes('Ya existen bimestres para el año académico') && (
+                          <div className="mt-2 text-sm text-gray-600">
+                            <pre className="whitespace-pre-wrap">
+                              {typeof resultadoCarga.detalles === 'string' 
+                                ? resultadoCarga.detalles 
+                                : JSON.stringify(resultadoCarga.detalles, null, 2)
+                              }
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Creación manual */}
           <div className="border rounded-lg p-6">            <div className="flex items-center space-x-2 mb-4">
@@ -299,16 +586,14 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre del Bimestre
+                    Nombre del Bimestre (Generado automáticamente)
                   </label>
                   <input
                     type="text"
                     name="nombre"
                     value={formData.nombre}
-                    onChange={handleInputChange}
-                    placeholder="Ej: Primer Bimestre 2025"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                 </div>                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -399,9 +684,9 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                       />
                     </div>
                   </div>
-                  {erroresRangosFechas.fechaPago1 && (
+                  {erroresRangosFechas.rangoPago1 && (
                     <p className="text-red-500 text-sm mt-1">
-                      {erroresRangosFechas.fechaPago1}
+                      {erroresRangosFechas.rangoPago1}
                     </p>
                   )}
                 </div>
@@ -433,9 +718,9 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                       />
                     </div>
                   </div>
-                  {erroresRangosFechas.fechaPago2 && (
+                  {erroresRangosFechas.rangoPago2 && (
                     <p className="text-red-500 text-sm mt-1">
-                      {erroresRangosFechas.fechaPago2}
+                      {erroresRangosFechas.rangoPago2}
                     </p>
                   )}
                 </div>
@@ -557,18 +842,23 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                         </button>
                         
                         {confirmacionEliminar === bimestre.id ? (
-                          <div className="flex space-x-1">
+                          <div className="flex space-x-2">
                             <button
                               onClick={() => handleEliminarBimestre(bimestre.id)}
-                              disabled={isLoading}
+                              disabled={isLoading || verificandoDependencias}
                               className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded disabled:opacity-50"
                               title="Confirmar eliminación"
                             >
-                              <CheckIcon className="h-4 w-4" />
+                              {verificandoDependencias ? (
+                                <div className="animate-spin h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full"></div>
+                              ) : (
+                                <CheckIcon className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setConfirmacionEliminar(null)}
-                              className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
+                              disabled={isLoading || verificandoDependencias}
+                              className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded disabled:opacity-50"
                               title="Cancelar eliminación"
                             >
                               <XMarkIcon className="h-4 w-4" />
@@ -577,7 +867,7 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                         ) : (
                           <button
                             onClick={() => setConfirmacionEliminar(bimestre.id)}
-                            disabled={isLoading}
+                            disabled={isLoading || verificandoDependencias}
                             className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded disabled:opacity-50"
                             title="Eliminar bimestre"
                           >
@@ -593,6 +883,58 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmación para eliminación con eventos */}
+      {confirmacionEliminarConEventos.bimestreId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <ExclamationTriangleIcon className="h-6 w-6 text-amber-500 mr-3" />
+              <h3 className="text-lg font-medium text-gray-900">
+                Eliminar Bimestre con Eventos
+              </h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-gray-600 mb-3">
+                Este bimestre tiene <strong>{confirmacionEliminarConEventos.eventCount} eventos asociados</strong> en las siguientes tablas:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-600 mb-4">
+                {confirmacionEliminarConEventos.tables.map((table, index) => (
+                  <li key={index} className="mb-1">
+                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{table}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                <p className="text-sm text-amber-800">
+                  <strong>⚠️ Advertencia:</strong> Si continúa, se eliminarán primero todos los eventos asociados y luego el bimestre. Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelarEliminacionConEventos}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarBimestreConEventos}
+                disabled={isLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 disabled:opacity-50 flex items-center space-x-2"
+              >
+                {isLoading && (
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                )}
+                <span>Eliminar Todo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

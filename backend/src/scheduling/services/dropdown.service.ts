@@ -42,27 +42,45 @@ export class DropdownService {
     private readonly entityManager: EntityManager,
   ) {}
 
-  async getTeachers(): Promise<Teacher[]> {
-    const query = `
+  async getTeachers(bimestreId?: number): Promise<Teacher[]> {
+    let query = `
       SELECT id, name, rut, email
       FROM teachers
       WHERE is_active = 1
-      ORDER BY name ASC
     `;
     
-    const teachers = await this.entityManager.query(query);
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY name ASC`;
+    
+    const teachers = await this.entityManager.query(query, params);
     return teachers;
   }
 
-  async getSubjects(): Promise<Subject[]> {
-    const query = `
+  async getSubjects(bimestreId?: number): Promise<Subject[]> {
+    let query = `
       SELECT id, code, name, category, acronym, course, code as plan_code, level
       FROM academic_structures
       WHERE is_active = 1
-      ORDER BY name ASC
     `;
     
-    const subjects = await this.entityManager.query(query);
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY name ASC`;
+    
+    const subjects = await this.entityManager.query(query, params);
     return subjects;
   }
 
@@ -98,31 +116,49 @@ export class DropdownService {
     return combinedRooms.sort((a, b) => a.label.localeCompare(b.label));
   }
 
-  async getPlans(): Promise<Plan[]> {
-    const query = `
+  async getPlans(bimestreId?: number): Promise<Plan[]> {
+    let query = `
       SELECT DISTINCT code as value, code as label
       FROM academic_structures
       WHERE code IS NOT NULL AND code != '' AND is_active = 1
-      ORDER BY code ASC
     `;
     
-    console.log('DEBUG: Ejecutando consulta getPlans:', query);
-    const plans = await this.entityManager.query(query);
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY code ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getPlans:', query, 'con parámetros:', params);
+    const plans = await this.entityManager.query(query, params);
     console.log('DEBUG: Resultado getPlans:', plans);
     console.log('DEBUG: Número de planes encontrados:', plans.length);
     return plans;
   }
 
-  async getLevels(): Promise<Level[]> {
-    const query = `
+  async getLevels(bimestreId?: number): Promise<Level[]> {
+    let query = `
       SELECT DISTINCT level as value, level as label
       FROM academic_structures
       WHERE level IS NOT NULL AND level != '' AND is_active = 1
-      ORDER BY level ASC
     `;
     
-    console.log('DEBUG: Ejecutando consulta getLevels:', query);
-    const levels = await this.entityManager.query(query);
+    const params = [];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    }
+    
+    query += ` ORDER BY level ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getLevels:', query, 'con parámetros:', params);
+    const levels = await this.entityManager.query(query, params);
     console.log('DEBUG: Resultado getLevels:', levels);
     console.log('DEBUG: Número de niveles encontrados:', levels.length);
     return levels;

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { DropdownService, Subject, Teacher, Room, Plan, Level } from '../services/dropdown.service';
 
 @Controller('dropdown')
@@ -6,13 +6,15 @@ export class DropdownController {
   constructor(private readonly dropdownService: DropdownService) {}
 
   @Get('teachers')
-  async getTeachers(): Promise<Teacher[]> {
-    return this.dropdownService.getTeachers();
+  async getTeachers(@Query('bimestreId') bimestreId?: string): Promise<Teacher[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getTeachers(bimestreIdNum);
   }
 
   @Get('subjects')
-  async getSubjects(): Promise<Subject[]> {
-    return this.dropdownService.getSubjects();
+  async getSubjects(@Query('bimestreId') bimestreId?: string): Promise<Subject[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getSubjects(bimestreIdNum);
   }
 
   @Get('rooms')
@@ -21,12 +23,14 @@ export class DropdownController {
   }
 
   @Get('plans')
-  async getPlans(): Promise<Plan[]> {
-    return this.dropdownService.getPlans();
+  async getPlans(@Query('bimestreId') bimestreId?: string): Promise<Plan[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getPlans(bimestreIdNum);
   }
 
   @Get('levels')
-  async getLevels(): Promise<Level[]> {
-    return this.dropdownService.getLevels();
+  async getLevels(@Query('bimestreId') bimestreId?: string): Promise<Level[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.dropdownService.getLevels(bimestreIdNum);
   }
 }

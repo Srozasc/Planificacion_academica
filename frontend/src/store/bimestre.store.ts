@@ -150,6 +150,37 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
       throw error;
     }},
 
+  verificarDependencias: async (id: number) => {
+    try {
+      return await bimestreService.checkDependencies(id);
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  eliminarBimestreConEventos: async (id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      await bimestreService.deleteWithEvents(id);
+      
+      // Remover de la lista
+      const { bimestres, bimestreSeleccionado } = get();
+      const bimestresActualizados = bimestres.filter(b => b.id !== id);
+      
+      set({ 
+        bimestres: bimestresActualizados,
+        bimestreSeleccionado: bimestreSeleccionado?.id === id ? null : bimestreSeleccionado,
+        isLoading: false 
+      });
+    } catch (error) {
+      set({ 
+        error: error instanceof Error ? error.message : 'Error al eliminar bimestre con eventos',
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+
   eliminarBimestre: async (id: number) => {
     set({ isLoading: true, error: null });
     try {

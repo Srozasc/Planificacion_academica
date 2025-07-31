@@ -14,13 +14,7 @@ export class Bimestre {
   @Column({ type: 'date' })
   fechaFin: Date;
 
-  @Column({ type: 'date', nullable: true })
-  fechaPago1?: Date;
-
-  @Column({ type: 'date', nullable: true })
-  fechaPago2?: Date;
-
-  // Nuevos campos para rangos de fechas de pago
+  // Campos para rangos de fechas de pago
   @Column({ type: 'date', nullable: true })
   fechaPago1Inicio?: Date;
 

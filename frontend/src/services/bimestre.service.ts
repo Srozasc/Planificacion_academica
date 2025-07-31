@@ -5,9 +5,7 @@ export interface Bimestre {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  fechaPago1?: string;
-  fechaPago2?: string;
-  // Nuevos campos para rangos de fechas de pago
+  // Campos para rangos de fechas de pago
   fechaPago1Inicio?: string;
   fechaPago1Fin?: string;
   fechaPago2Inicio?: string;
@@ -24,9 +22,7 @@ export interface CreateBimestreDto {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  fechaPago1?: string;
-  fechaPago2?: string;
-  // Nuevos campos para rangos de fechas de pago
+  // Campos para rangos de fechas de pago
   fechaPago1Inicio?: string;
   fechaPago1Fin?: string;
   fechaPago2Inicio?: string;
@@ -40,9 +36,7 @@ export interface UpdateBimestreDto {
   nombre?: string;
   fechaInicio?: string;
   fechaFin?: string;
-  fechaPago1?: string;
-  fechaPago2?: string;
-  // Nuevos campos para rangos de fechas de pago
+  // Campos para rangos de fechas de pago
   fechaPago1Inicio?: string;
   fechaPago1Fin?: string;
   fechaPago2Inicio?: string;
@@ -86,8 +80,44 @@ export class BimestreService {
     const response = await apiClient.put(`${this.baseUrl}/${id}`, updateBimestreDto);
     return response.data.data;
   }
+  async checkDependencies(id: number): Promise<{
+    hasEvents: boolean;
+    eventCount: number;
+    tables: string[];
+  }> {
+    const response = await apiClient.get(`${this.baseUrl}/${id}/dependencies`);
+    return response.data.data;
+  }
+
+  async deleteWithEvents(id: number): Promise<void> {
+    await apiClient.delete(`${this.baseUrl}/${id}/with-events`);
+  }
+
   async delete(id: number): Promise<void> {
     await apiClient.delete(`${this.baseUrl}/${id}`);
+  }
+
+  async cargaMasiva(file: File): Promise<{ bimestresCreados: number; años: number[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await apiClient.post(`${this.baseUrl}/carga-masiva`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    // Verificar si la respuesta indica éxito o error
+    if (!response.data.success) {
+      // Si success es false, lanzar un error para que sea manejado en el catch
+      const error = new Error(response.data.message || 'Error en la carga masiva');
+      (error as any).response = {
+        data: response.data
+      };
+      throw error;
+    }
+    
+    return response.data.data;
   }
 
   // Métodos helpers para el frontend
