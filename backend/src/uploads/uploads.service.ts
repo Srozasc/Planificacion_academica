@@ -229,7 +229,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId, // Usuario que realiza la carga
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -257,7 +257,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         error.message
       );
       
@@ -373,7 +373,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId, // Usuario que realiza la carga
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -401,7 +401,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         error.message
       );
       
@@ -743,7 +743,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         error.message
       );
       
@@ -976,7 +976,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         error.message
       );
       
@@ -1271,7 +1271,7 @@ export class UploadService {
           validation.errors.length > 0 ? 'Con errores' : 'Exitoso',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId, // Usuario que realiza la carga
           validation.errors.length > 0 ? validation.errors.join('; ') : null
         );
         
@@ -1299,7 +1299,7 @@ export class UploadService {
         'Error',
         0,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         error.message
       );
       
@@ -1509,7 +1509,7 @@ export class UploadService {
           'Con errores',
           data.length,
           data.length - validation.validRecords.length,
-          null, // userId - se puede agregar cuando esté disponible
+          userId, // Usuario que realiza la carga
           validation.errors.join('; ')
         );
         
@@ -1537,7 +1537,7 @@ export class UploadService {
           'Exitoso',
           data.length,
           0,
-          null, // userId - se puede agregar cuando esté disponible
+          userId, // Usuario que realiza la carga
           null
         );
         
@@ -1565,7 +1565,7 @@ export class UploadService {
         'Exitoso',
         data.length,
         0,
-        null, // userId - se puede agregar cuando esté disponible
+        userId, // Usuario que realiza la carga
         null
       );
 
