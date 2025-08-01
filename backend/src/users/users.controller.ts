@@ -44,9 +44,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateUserDto: UpdateUserDto
+    @Body() updateUserDto: UpdateUserDto,
+    @Query('bimestreId') bimestreId?: string
   ): Promise<UserResponseDto> {
-    return this.usersService.update(id, updateUserDto);
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.usersService.update(id, updateUserDto, bimestreIdNum);
   }
 
   @Delete(':id')

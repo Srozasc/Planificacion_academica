@@ -239,7 +239,7 @@ export class UsersService {
     };
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, updateUserDto: UpdateUserDto, bimestreId?: number): Promise<UserResponseDto> {
     // Verificar que el usuario existe
     const user = await this.userRepository.findOne({
       where: { id, deletedAt: null },
@@ -277,11 +277,11 @@ export class UsersService {
       
       // Sincronizar permisos si se proporcionaron
       if (careerPermissionIds !== undefined) {
-        await this.syncCareerPermissions(manager, savedUser.id, careerPermissionIds);
+        await this.syncCareerPermissions(manager, savedUser.id, careerPermissionIds, bimestreId);
       }
       
       if (categoryPermissionIds !== undefined) {
-        await this.syncCategoryPermissions(manager, savedUser.id, categoryPermissionIds);
+        await this.syncCategoryPermissions(manager, savedUser.id, categoryPermissionIds, bimestreId);
       }
       
       // Recargar la entidad con las relaciones para obtener el nombre del rol
@@ -307,17 +307,27 @@ export class UsersService {
     });
   }
 
-  private async syncCareerPermissions(manager: any, userId: number, careerPermissionIds: number[]): Promise<void> {
-     // Obtener el bimestre activo
-     const bimestreActivo = await this.bimestreService.findBimestreActual();
-     if (!bimestreActivo) {
-       throw new BadRequestException('No hay un bimestre activo configurado');
+  private async syncCareerPermissions(manager: any, userId: number, careerPermissionIds: number[], bimestreId?: number): Promise<void> {
+     // Determinar qué bimestre usar
+     let bimestreAUsar;
+     if (bimestreId) {
+       // Usar el bimestre seleccionado
+       bimestreAUsar = await this.bimestreService.findById(bimestreId);
+       if (!bimestreAUsar) {
+         throw new BadRequestException(`Bimestre con ID ${bimestreId} no encontrado`);
+       }
+     } else {
+       // Fallback al bimestre activo
+       bimestreAUsar = await this.bimestreService.findBimestreActual();
+       if (!bimestreAUsar) {
+         throw new BadRequestException('No hay un bimestre activo configurado');
+       }
      }
      
-     // Eliminar permisos de carrera existentes para el bimestre actual
+     // Eliminar permisos de carrera existentes para el bimestre
      await manager.delete(UsuarioPermisoCarrera, { 
        usuario_id: userId, 
-       bimestre_id: bimestreActivo.id 
+       bimestre_id: bimestreAUsar.id 
      });
      
      // Crear nuevos permisos de carrera
@@ -326,7 +336,7 @@ export class UsersService {
          manager.create(UsuarioPermisoCarrera, {
            usuario_id: userId,
            carrera_id: carreraId,
-           bimestre_id: bimestreActivo.id,
+           bimestre_id: bimestreAUsar.id,
            activo: true
          })
        );
@@ -334,17 +344,27 @@ export class UsersService {
      }
    }
  
-   private async syncCategoryPermissions(manager: any, userId: number, categoryPermissionIds: string[]): Promise<void> {
-     // Obtener el bimestre activo
-     const bimestreActivo = await this.bimestreService.findBimestreActual();
-     if (!bimestreActivo) {
-       throw new BadRequestException('No hay un bimestre activo configurado');
+   private async syncCategoryPermissions(manager: any, userId: number, categoryPermissionIds: string[], bimestreId?: number): Promise<void> {
+     // Determinar qué bimestre usar
+     let bimestreAUsar;
+     if (bimestreId) {
+       // Usar el bimestre seleccionado
+       bimestreAUsar = await this.bimestreService.findById(bimestreId);
+       if (!bimestreAUsar) {
+         throw new BadRequestException(`Bimestre con ID ${bimestreId} no encontrado`);
+       }
+     } else {
+       // Fallback al bimestre activo
+       bimestreAUsar = await this.bimestreService.findBimestreActual();
+       if (!bimestreAUsar) {
+         throw new BadRequestException('No hay un bimestre activo configurado');
+       }
      }
      
-     // Eliminar permisos de categoría existentes para el bimestre actual
+     // Eliminar permisos de categoría existentes para el bimestre
      await manager.delete(UsuarioPermisoCategoria, { 
        usuario_id: userId, 
-       bimestre_id: bimestreActivo.id 
+       bimestre_id: bimestreAUsar.id 
      });
      
      // Crear nuevos permisos de categoría
@@ -353,7 +373,7 @@ export class UsersService {
          manager.create(UsuarioPermisoCategoria, {
            usuario_id: userId,
            categoria: categoria,
-           bimestre_id: bimestreActivo.id,
+           bimestre_id: bimestreAUsar.id,
            activo: true
          })
        );
@@ -843,17 +863,17 @@ export class UsersService {
       }
 
       // Buscar permisos por categoría
-      const permisoCategoria = await this.usuarioPermisoCategoriaRepository.findOne({
+      const permisosCategorias = await this.usuarioPermisoCategoriaRepository.find({
         where: { 
           usuario_id: userId,
           ...(bimestreId && { bimestre_id: bimestreId })
         }
       });
 
-      if (permisoCategoria) {
+      if (permisosCategorias.length > 0) {
         return {
           tipoPermiso: 'categoria',
-          categoria: permisoCategoria.categoria,
+          categorias: permisosCategorias.map(p => p.categoria),
           carreras: []
         };
       }
@@ -869,7 +889,7 @@ export class UsersService {
       if (permisosCarrera.length > 0) {
         return {
           tipoPermiso: 'carrera',
-          categoria: '',
+          categorias: [],
           carreras: permisosCarrera.map(p => p.carrera_id)
         };
       }
@@ -877,7 +897,7 @@ export class UsersService {
       // Sin permisos específicos
       return {
         tipoPermiso: '',
-        categoria: '',
+        categorias: [],
         carreras: []
       };
     } catch (error) {

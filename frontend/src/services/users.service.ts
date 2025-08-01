@@ -106,9 +106,12 @@ class UsersService {
     }
   }
 
-  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+  async updateUser(id: number, userData: Partial<User>, bimestreId?: number): Promise<User> {
     try {
-      const response = await apiClient.put<User>(`${this.baseUrl}/${id}`, userData);
+      const url = bimestreId 
+        ? `${this.baseUrl}/${id}?bimestreId=${bimestreId}` 
+        : `${this.baseUrl}/${id}`;
+      const response = await apiClient.put<User>(url, userData);
       return response.data;
     } catch (error) {
       console.error('Error updating user:', error);

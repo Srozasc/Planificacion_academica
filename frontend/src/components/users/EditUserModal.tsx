@@ -140,7 +140,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
            setFormData(prev => ({
              ...prev,
              tipoPermiso: permissions.tipoPermiso,
-             categorias: permissions.categoria ? [permissions.categoria] : [],
+             categorias: permissions.categorias || [],
              carreras: permissions.carreras || []
            }));
          }
@@ -333,7 +333,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       });
       
       // Actualizar datos del usuario con sincronización completa de permisos
-      await usersService.updateUser(user.id, updateData);
+      await usersService.updateUser(user.id, updateData, bimestreSeleccionado?.id);
       
       // Si se solicita cambio de contraseña, procesarlo
       if (passwordData.changePassword) {
