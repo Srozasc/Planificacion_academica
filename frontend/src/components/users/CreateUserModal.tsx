@@ -21,7 +21,7 @@ interface FormData {
   roleExpiresAt?: string;
   previousRoleId?: number;
   tipoPermiso?: 'categoria' | 'carrera';
-  categoria?: string;
+  categorias?: string[];
   carreras?: number[];
 }
 
@@ -140,7 +140,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       setFormData(prev => ({
         ...prev,
         tipoPermiso: value as 'categoria' | 'carrera',
-        categoria: '',
+        categorias: [],
         carreras: []
       }));
     } else {
@@ -166,6 +166,20 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         carreras: isSelected 
           ? currentCarreras.filter(id => id !== carreraId)
           : [...currentCarreras, carreraId]
+      };
+    });
+  };
+
+  const handleCategoriaToggle = (categoria: string) => {
+    setFormData(prev => {
+      const currentCategorias = prev.categorias || [];
+      const isSelected = currentCategorias.includes(categoria);
+      
+      return {
+        ...prev,
+        categorias: isSelected 
+          ? currentCategorias.filter(cat => cat !== categoria)
+          : [...currentCategorias, categoria]
       };
     });
   };
@@ -200,8 +214,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     }
 
     // Validaciones de permisos
-    if (formData.tipoPermiso === 'categoria' && !formData.categoria?.trim()) {
-      newErrors.categoria = 'Seleccione una categoría';
+    if (formData.tipoPermiso === 'categoria' && (!formData.categorias || formData.categorias.length === 0)) {
+      newErrors.categorias = 'Seleccione al menos una categoría';
     }
 
     if (formData.tipoPermiso === 'carrera' && (!formData.carreras || formData.carreras.length === 0)) {
@@ -242,8 +256,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         }),
         ...(formData.tipoPermiso && {
           tipoPermiso: formData.tipoPermiso,
-          ...(formData.tipoPermiso === 'categoria' && formData.categoria && {
-            categoria: formData.categoria
+          ...(formData.tipoPermiso === 'categoria' && formData.categorias && {
+            categorias: formData.categorias
           }),
           ...(formData.tipoPermiso === 'carrera' && formData.carreras && {
             carreras: formData.carreras
@@ -286,7 +300,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       roleExpiresAt: '',
       previousRoleId: undefined,
       tipoPermiso: undefined,
-      categoria: '',
+      categorias: [],
       carreras: []
     });
     setErrors({});
@@ -449,34 +463,41 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
             </select>
           </div>
 
-          {/* Campo de Categoría */}
+          {/* Campo de Categorías */}
           {formData.tipoPermiso === 'categoria' && (
             <div className="mt-4">
-              <label htmlFor="categoria" className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría *
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Categorías * (seleccione una o más)
               </label>
-              <select
-                id="categoria"
-                name="categoria"
-                value={formData.categoria || ''}
-                onChange={handleInputChange}
-                disabled={categoriasLoading}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.categoria ? 'border-red-500' : 'border-gray-300'
-                } ${categoriasLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <option value="">Seleccione una categoría</option>
+              <div className={`border rounded-md p-3 max-h-40 overflow-y-auto ${
+                errors.categorias ? 'border-red-500' : 'border-gray-300'
+              }`}>
                 {categoriasLoading ? (
-                  <option value="">Cargando categorías...</option>
+                  <p className="text-gray-500">Cargando categorías...</p>
+                ) : categorias.length === 0 ? (
+                  <p className="text-gray-500">No hay categorías disponibles</p>
                 ) : (
                   categorias.map(categoria => (
-                    <option key={categoria} value={categoria}>
-                      {categoria}
-                    </option>
+                    <label key={categoria} className="flex items-center space-x-2 py-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.categorias?.includes(categoria) || false}
+                        onChange={() => handleCategoriaToggle(categoria)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {categoria}
+                      </span>
+                    </label>
                   ))
                 )}
-              </select>
-              {errors.categoria && <p className="text-red-500 text-sm mt-1">{errors.categoria}</p>}
+              </div>
+              {errors.categorias && <p className="text-red-500 text-sm mt-1">{errors.categorias}</p>}
+              {formData.categorias && formData.categorias.length > 0 && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {formData.categorias.length} categoría(s) seleccionada(s)
+                </p>
+              )}
             </div>
           )}
 

@@ -171,19 +171,22 @@ export class UsersService {
     const bimestreActivo = bimestreId;
     
     // Crear registros en permisos_pendientes para emular carga masiva
-    if (createUserDto.tipoPermiso === 'categoria' && createUserDto.categoria) {
-      const permisosPendientes = this.permisosPendientesRepository.create({
-        usuarioMail: createUserDto.emailInstitucional,
-        usuarioNombre: createUserDto.name,
-        cargo: 'Usuario Manual', // Valor por defecto para usuarios creados manualmente
-        permisoCarreraCodigo: null,
-        tipoRol: userWithRole.role?.name || 'Visualizador',
-        permisoCategoria: createUserDto.categoria,
-        fechaExpiracion: createUserDto.roleExpiresAt ? new Date(createUserDto.roleExpiresAt) : null,
-        estado: 'PENDIENTE',
-        bimestre_id: bimestreActivo
-      });
-      await this.permisosPendientesRepository.save(permisosPendientes);
+    if (createUserDto.tipoPermiso === 'categoria' && createUserDto.categorias && createUserDto.categorias.length > 0) {
+      // Crear un registro por cada categoría
+      for (const categoria of createUserDto.categorias) {
+        const permisosPendientes = this.permisosPendientesRepository.create({
+          usuarioMail: createUserDto.emailInstitucional,
+          usuarioNombre: createUserDto.name,
+          cargo: 'Usuario Manual', // Valor por defecto para usuarios creados manualmente
+          permisoCarreraCodigo: null,
+          tipoRol: userWithRole.role?.name || 'Visualizador',
+          permisoCategoria: categoria,
+          fechaExpiracion: createUserDto.roleExpiresAt ? new Date(createUserDto.roleExpiresAt) : null,
+          estado: 'PENDIENTE',
+          bimestre_id: bimestreActivo
+        });
+        await this.permisosPendientesRepository.save(permisosPendientes);
+      }
     } else if (createUserDto.tipoPermiso === 'carrera' && createUserDto.carreras && createUserDto.carreras.length > 0) {
       // Obtener códigos de carrera
       const carreras = await this.dataSource.query(
@@ -209,7 +212,7 @@ export class UsersService {
     }
 
     // Ejecutar scripts de permisos si se crearon permisos
-    if (createUserDto.tipoPermiso && (createUserDto.categoria || (createUserDto.carreras && createUserDto.carreras.length > 0))) {
+    if (createUserDto.tipoPermiso && ((createUserDto.categorias && createUserDto.categorias.length > 0) || (createUserDto.carreras && createUserDto.carreras.length > 0))) {
       try {
         console.log('🔄 Ejecutando scripts de permisos para usuario:', createUserDto.emailInstitucional);
         await this.executePermissionScriptsForUser();

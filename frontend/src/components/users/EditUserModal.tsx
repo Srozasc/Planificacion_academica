@@ -22,7 +22,7 @@ interface FormData {
   previousRoleId?: number;
   isActive: boolean;
   tipoPermiso?: 'categoria' | 'carrera';
-  categoria?: string;
+  categorias?: string[];
   carreras?: number[];
 }
 
@@ -41,7 +41,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     previousRoleId: 1, // Por defecto será Visualizador (nuevo ID)
     isActive: true,
     tipoPermiso: undefined,
-    categoria: '',
+    categorias: [],
     carreras: []
   });
 
@@ -140,7 +140,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
            setFormData(prev => ({
              ...prev,
              tipoPermiso: permissions.tipoPermiso,
-             categoria: permissions.categoria || '',
+             categorias: permissions.categoria ? [permissions.categoria] : [],
              carreras: permissions.carreras || []
            }));
          }
@@ -202,7 +202,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       
       // Si se cambia el tipo de permiso, limpiar los valores relacionados
       if (name === 'tipoPermiso') {
-        updated.categoria = '';
+        updated.categorias = [];
         updated.carreras = [];
       }
       
@@ -225,6 +225,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         carreras: isSelected 
           ? currentCarreras.filter(id => id !== carreraId)
           : [...currentCarreras, carreraId]
+      };
+    });
+  };
+
+  const handleCategoriaToggle = (categoria: string) => {
+    setFormData(prev => {
+      const currentCategorias = prev.categorias || [];
+      const isSelected = currentCategorias.includes(categoria);
+      
+      return {
+        ...prev,
+        categorias: isSelected 
+          ? currentCategorias.filter(cat => cat !== categoria)
+          : [...currentCategorias, categoria]
       };
     });
   };
@@ -285,7 +299,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     
     try {
       // Preparar datos para envío, incluyendo sincronización completa de permisos
-      const { tipoPermiso, categoria, carreras, ...userUpdateData } = formData;
+      const { tipoPermiso, categorias, carreras, ...userUpdateData } = formData;
       const updateData: any = {
         ...userUpdateData,
         previousRoleId: formData.previousRoleId || undefined
@@ -301,9 +315,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         // Enviar lista completa de IDs de carreras seleccionadas
         updateData.careerPermissionIds = formData.carreras || [];
         updateData.categoryPermissionIds = []; // Limpiar permisos de categoría
-      } else if (formData.tipoPermiso === 'categoria' && formData.categoria) {
-         // Enviar categoría como string
-         updateData.categoryPermissionIds = [formData.categoria];
+      } else if (formData.tipoPermiso === 'categoria' && formData.categorias && formData.categorias.length > 0) {
+         // Enviar array de categorías
+         updateData.categoryPermissionIds = formData.categorias;
          updateData.careerPermissionIds = []; // Limpiar permisos de carrera
       } else {
         // Si no hay tipo de permiso seleccionado, limpiar todos los permisos
@@ -616,25 +630,31 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               {formData.tipoPermiso === 'categoria' && (
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Categoría *
+                    Categorías * (seleccione una o más)
                   </label>
                   {categoriasLoading ? (
                     <div className="text-sm text-gray-500">Cargando categorías...</div>
                   ) : (
-                    <select
-                      name="categoria"
-                      value={formData.categoria || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Seleccionar categoría</option>
+                    <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
                       {categorias.map((categoria) => (
-                        <option key={categoria} value={categoria}>
-                          {categoria}
-                        </option>
+                        <label key={categoria} className="flex items-center mb-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.categorias?.includes(categoria) || false}
+                            onChange={() => handleCategoriaToggle(categoria)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">
+                            {categoria}
+                          </span>
+                        </label>
                       ))}
-                    </select>
+                    </div>
+                  )}
+                  {formData.categorias && formData.categorias.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {formData.categorias.length} categoría(s) seleccionada(s)
+                    </p>
                   )}
                 </div>
               )}

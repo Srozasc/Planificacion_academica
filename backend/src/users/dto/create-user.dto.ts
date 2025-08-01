@@ -37,8 +37,10 @@ export class CreateUserDto {
   tipoPermiso?: 'categoria' | 'carrera';
 
   @IsOptional()
-  @IsString({ message: 'La categoría debe ser una cadena de texto' })
-  categoria?: string;
+  @IsArray({ message: 'Las categorías deben ser un arreglo' })
+  @ArrayNotEmpty({ message: 'Debe seleccionar al menos una categoría' })
+  @IsString({ each: true, message: 'Cada categoría debe ser una cadena de texto' })
+  categorias?: string[];
 
   @IsOptional()
   @IsArray({ message: 'Las carreras deben ser un arreglo' })

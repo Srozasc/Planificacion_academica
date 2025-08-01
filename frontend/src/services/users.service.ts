@@ -39,7 +39,7 @@ export interface CreateUserData {
   roleExpiresAt?: string;
   previousRoleId?: number;
   tipoPermiso?: 'categoria' | 'carrera';
-  categoria?: string;
+  categorias?: string[];
   carreras?: number[];
 }
 
@@ -63,13 +63,13 @@ export interface ImportResult {
 
 export interface UserPermissions {
   tipoPermiso?: 'categoria' | 'carrera';
-  categoria?: string;
+  categorias?: string[];
   carreras?: number[];
 }
 
 export interface UpdateUserPermissionsData {
   tipoPermiso?: 'categoria' | 'carrera';
-  categoria?: string;
+  categorias?: string[];
   carreras?: number[];
 }
 
