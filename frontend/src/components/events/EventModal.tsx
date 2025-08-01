@@ -110,7 +110,7 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher_ids: [],
       subject: '',
       students: 0,
-      tipoEvento: undefined
+      tipoEvento: 'continuidad'
     };
   });
 
@@ -417,7 +417,7 @@ const EventModal: React.FC<EventModalProps> = ({
             teacher_ids: [],
             subject: '',
             students: 0,
-            tipoEvento: undefined
+            tipoEvento: 'continuidad'
           });
         }, 100);
       }
@@ -539,7 +539,7 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher_ids: [],
       subject: '',
       students: 0,
-      tipoEvento: undefined
+      tipoEvento: 'continuidad'
     });
     setErrors({});
     setEventCounter(1);
@@ -652,7 +652,7 @@ const EventModal: React.FC<EventModalProps> = ({
             </div>
           </div>
 
-          {/* Checkboxes de Tipo de Evento */}
+          {/* Radio buttons de Tipo de Evento */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
               Tipo de Evento
@@ -660,32 +660,28 @@ const EventModal: React.FC<EventModalProps> = ({
             <div className="flex space-x-6">
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name="tipoEvento"
+                  value="inicio"
                   checked={formData.tipoEvento === 'inicio'}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
-                    } else {
-                      setFormData(prev => ({ ...prev, tipoEvento: undefined }));
-                    }
+                    setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
                   }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">Inicio</span>
               </label>
               
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name="tipoEvento"
+                  value="continuidad"
                   checked={formData.tipoEvento === 'continuidad'}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
-                    } else {
-                      setFormData(prev => ({ ...prev, tipoEvento: undefined }));
-                    }
+                    setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
                   }}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">Continuidad</span>
               </label>
