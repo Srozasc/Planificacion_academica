@@ -13,6 +13,7 @@ import { VacantesInicioModule } from './vacantes-inicio/vacantes-inicio.module';
 import { NominaDocentesModule } from './nomina-docentes/nomina-docentes.module';
 import { CarrerasModule } from './carreras/carreras.module';
 import { AsignaturasModule } from './asignaturas/asignaturas.module';
+import { ReporteCursablesModule } from './reporte-cursables/reporte-cursables.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({  imports: [
@@ -31,6 +32,7 @@ import { ConfigModule } from '@nestjs/config';
     NominaDocentesModule, // Nomina Docentes management
     CarrerasModule,       // Carreras management
     AsignaturasModule,    // Asignaturas management
+    ReporteCursablesModule, // Reporte Cursables management
   ],
   controllers: [AppController],
   providers: [AppService],

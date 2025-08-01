@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { dropdownService, Teacher, Subject, Plan, Level } from '../../services/dropdownService';
 import { eventService } from '../../services/event.service';
 import { useBimestreStore } from '../../store/bimestre.store';
+import { reporteCursablesService, VacantesRequeridas } from '../../services/reporteCursables.service';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -137,6 +138,8 @@ const EventModal: React.FC<EventModalProps> = ({
   const [enableDateEditing, setEnableDateEditing] = useState(false);
   const [enableMultipleEvents, setEnableMultipleEvents] = useState(false);
   const [eventQuantity, setEventQuantity] = useState(1);
+  const [vacantesRequeridas, setVacantesRequeridas] = useState<VacantesRequeridas | null>(null);
+  const [isLoadingVacantes, setIsLoadingVacantes] = useState(false);
 
   // Cargar datos de las listas desplegables cuando se abra el modal
   useEffect(() => {
@@ -283,6 +286,31 @@ const EventModal: React.FC<EventModalProps> = ({
     
     updateTitle();
   }, [formData.subject]);
+
+  // Cargar vacantes requeridas cuando cambie la asignatura
+  useEffect(() => {
+    const loadVacantesRequeridas = async () => {
+      if (formData.subject && bimestreSeleccionado?.id) {
+        setIsLoadingVacantes(true);
+        try {
+          const vacantes = await reporteCursablesService.getVacantesRequeridas(
+            formData.subject,
+            bimestreSeleccionado.id
+          );
+          setVacantesRequeridas(vacantes);
+        } catch (error) {
+          console.error('Error cargando vacantes requeridas:', error);
+          setVacantesRequeridas(null);
+        } finally {
+          setIsLoadingVacantes(false);
+        }
+      } else {
+        setVacantesRequeridas(null);
+      }
+    };
+    
+    loadVacantesRequeridas();
+  }, [formData.subject, bimestreSeleccionado?.id]);
 
   // Efecto para filtrar asignaturas por plan y nivel
   useEffect(() => {
@@ -548,6 +576,8 @@ const EventModal: React.FC<EventModalProps> = ({
     setEnableDateEditing(false); // Resetear checkbox de edición de fechas
     setEnableMultipleEvents(false); // Resetear checkbox de eventos múltiples
     setEventQuantity(1); // Resetear cantidad de eventos
+    setVacantesRequeridas(null); // Limpiar vacantes requeridas
+    setIsLoadingVacantes(false); // Resetear estado de carga de vacantes
     onClose();
   };
 
@@ -826,7 +856,7 @@ const EventModal: React.FC<EventModalProps> = ({
                 )}
               </div>
               {formData.subject && (
-                <div className="mt-2">
+                <div className="mt-2 space-y-2">
                   <p className="text-sm text-gray-600">
                     Asignatura seleccionada: <span className="font-medium">
                       {(() => {
@@ -835,6 +865,37 @@ const EventModal: React.FC<EventModalProps> = ({
                       })()}
                     </span>
                   </p>
+                  
+                  {/* Información de vacantes requeridas */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-shrink-0">
+                        <svg className="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        {isLoadingVacantes ? (
+                          <p className="text-sm text-blue-700">Cargando información de vacantes...</p>
+                        ) : vacantesRequeridas ? (
+                          <div>
+                            <p className="text-sm font-medium text-blue-800">
+                              Total de vacantes requeridas: <span className="font-bold">{vacantesRequeridas.total_vacantes}</span>
+                            </p>
+                            {vacantesRequeridas.plan && (
+                              <p className="text-xs text-blue-600">
+                                Plan: {vacantesRequeridas.plan} | Nivel: {vacantesRequeridas.nivel}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-blue-700">
+                            No se encontraron datos de vacantes para esta asignatura en el bimestre actual
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
