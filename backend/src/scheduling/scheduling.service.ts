@@ -170,23 +170,23 @@ export class SchedulingService {
         throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio');
       }
 
-      // Determinar automáticamente el bimestre_id si no se especifica
+      // Usar bimestre_id proporcionado desde el frontend (navbar)
       let bimestreId = createEventDto.bimestre_id;
       
-      this.logger.log(`Bimestre_id recibido: ${bimestreId} (tipo: ${typeof bimestreId})`);
+      this.logger.log(`Bimestre_id recibido desde frontend: ${bimestreId} (tipo: ${typeof bimestreId})`);
       
       if (!bimestreId) {
-        this.logger.log('Bimestre_id no especificado, determinando automáticamente...');
-        // Buscar el bimestre que contiene la fecha de inicio del evento
+        this.logger.log('Bimestre_id no proporcionado desde frontend, determinando automáticamente como fallback...');
+        // Buscar el bimestre que contiene la fecha de inicio del evento (solo como fallback)
         const bimestreEncontrado = await this.bimestreService.findBimestreByFecha(startDate);
         if (bimestreEncontrado) {
           bimestreId = bimestreEncontrado.id;
-          this.logger.log(`Bimestre determinado automáticamente: ${bimestreEncontrado.nombre} (ID: ${bimestreId})`);
+          this.logger.log(`Bimestre determinado automáticamente como fallback: ${bimestreEncontrado.nombre} (ID: ${bimestreId})`);
         } else {
           this.logger.warn(`No se pudo determinar automáticamente el bimestre para el evento con fecha de inicio: ${startDate.toISOString()}`);
         }
       } else {
-        this.logger.log(`Usando bimestre_id proporcionado: ${bimestreId}`);
+        this.logger.log(`Usando bimestre_id proporcionado desde frontend (navbar): ${bimestreId}`);
       }
       
       // Validar que el evento esté dentro del bimestre si se especifica o se determinó automáticamente
@@ -357,16 +357,23 @@ export class SchedulingService {
         throw new BadRequestException('Uno o más docentes no existen');
       }
 
-      // Crear las relaciones event-teacher
+      // Obtener el evento para extraer el bimestre_id
+      const event = await this.eventRepository.findOne({ where: { id: eventId } });
+      if (!event) {
+        throw new NotFoundException(`Evento con ID ${eventId} no encontrado`);
+      }
+
+      // Crear las relaciones event-teacher incluyendo el id_bimestre
       const eventTeachers = teacherIds.map(teacherId => 
         this.eventTeacherRepository.create({
           eventId: eventId,
-          teacherId: teacherId
+          teacherId: teacherId,
+          idBimestre: event.bimestre_id // Asignar el bimestre del evento
         })
       );
 
       await this.eventTeacherRepository.save(eventTeachers);
-      this.logger.log(`Asignados ${teacherIds.length} docentes al evento ${eventId}`);
+      this.logger.log(`Asignados ${teacherIds.length} docentes al evento ${eventId} con bimestre ${event.bimestre_id}`);
     } catch (error) {
       this.logger.error(`Error al asignar docentes al evento ${eventId}`, error);
       throw error;

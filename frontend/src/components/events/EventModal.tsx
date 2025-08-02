@@ -3,6 +3,7 @@ import { dropdownService, Teacher, Subject, Plan, Level } from '../../services/d
 import { eventService } from '../../services/event.service';
 import { useBimestreStore } from '../../store/bimestre.store';
 import { reporteCursablesService, VacantesRequeridas } from '../../services/reporteCursables.service';
+import { teacherHoursService } from '../../services/teacherHours.service';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -140,6 +141,8 @@ const EventModal: React.FC<EventModalProps> = ({
   const [eventQuantity, setEventQuantity] = useState(1);
   const [vacantesRequeridas, setVacantesRequeridas] = useState<VacantesRequeridas | null>(null);
   const [isLoadingVacantes, setIsLoadingVacantes] = useState(false);
+  const [teachersHours, setTeachersHours] = useState<Record<number, number>>({});
+  const [isLoadingTeachersHours, setIsLoadingTeachersHours] = useState(false);
 
   // Cargar datos de las listas desplegables cuando se abra el modal
   useEffect(() => {
@@ -311,6 +314,31 @@ const EventModal: React.FC<EventModalProps> = ({
     
     loadVacantesRequeridas();
   }, [formData.subject, bimestreSeleccionado?.id]);
+
+  // Cargar horas asignadas cuando cambien los docentes seleccionados
+  useEffect(() => {
+    const loadTeachersHours = async () => {
+      if (formData.teacher_ids && formData.teacher_ids.length > 0 && bimestreSeleccionado?.id) {
+        setIsLoadingTeachersHours(true);
+        try {
+          const hoursResponse = await teacherHoursService.getMultipleTeachersAssignedHours(
+            formData.teacher_ids,
+            bimestreSeleccionado.id
+          );
+          setTeachersHours(hoursResponse.teachersHours);
+        } catch (error) {
+          console.error('Error cargando horas asignadas de docentes:', error);
+          setTeachersHours({});
+        } finally {
+          setIsLoadingTeachersHours(false);
+        }
+      } else {
+        setTeachersHours({});
+      }
+    };
+    
+    loadTeachersHours();
+  }, [formData.teacher_ids, bimestreSeleccionado?.id]);
 
   // Efecto para filtrar asignaturas por plan y nivel
   useEffect(() => {
@@ -979,12 +1007,36 @@ const EventModal: React.FC<EventModalProps> = ({
                   <p className="text-sm text-gray-600">
                     {formData.teacher_ids.length} docente(s) seleccionado(s)
                   </p>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                  <div className="space-y-2 mt-2">
                     {formData.teacher_ids.map(teacherId => {
                       const teacher = teachers.find(t => t.id === teacherId);
+                      const horasAsignadas = teachersHours[teacherId] || 0;
                       return teacher ? (
-                        <span key={teacherId} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {teacher.name}
+                        <div key={teacherId} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm font-medium text-blue-800">
+                                {teacher.name}
+                              </span>
+                              <span className="text-xs text-blue-600">
+                                {teacher.rut}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <div className="flex items-center space-x-1">
+                                <svg className="h-3 w-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {isLoadingTeachersHours ? (
+                                  <span className="text-xs text-blue-600">Cargando horas...</span>
+                                ) : (
+                                  <span className="text-xs text-blue-600">
+                                    {horasAsignadas} horas asignadas en este bimestre
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                           <button
                             type="button"
                             onClick={() => {
@@ -1000,11 +1052,14 @@ const EventModal: React.FC<EventModalProps> = ({
                                 };
                               });
                             }}
-                            className="ml-1 text-blue-600 hover:text-blue-800"
+                            className="ml-2 text-blue-600 hover:text-blue-800 p-1"
+                            title="Remover docente"
                           >
-                            ×
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                           </button>
-                        </span>
+                        </div>
                       ) : null;
                     })}
                   </div>

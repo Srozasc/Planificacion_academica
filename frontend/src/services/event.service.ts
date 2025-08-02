@@ -49,8 +49,20 @@ class EventService {
     }
   }
 
-  async createEvent(eventData: CreateEventData): Promise<Event> {
+  async createEvent(eventData: CreateEventData, bimestreId?: number): Promise<Event> {
     try {
+      // Obtener bimestre_id del navbar si no se proporciona explícitamente
+      let finalBimestreId = bimestreId;
+      if (!finalBimestreId) {
+        const navbarBimestreElement = document.querySelector('[data-bimestre-id]');
+        if (navbarBimestreElement) {
+          const navbarBimestreId = navbarBimestreElement.getAttribute('data-bimestre-id');
+          if (navbarBimestreId) {
+            finalBimestreId = parseInt(navbarBimestreId, 10);
+          }
+        }
+      }
+
       // Convertir CreateEventData a formato esperado por el backend
       const event: any = {
         title: eventData.title,
@@ -60,6 +72,11 @@ class EventService {
         teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
         subject: eventData.subject
       };
+      
+      // Incluir bimestre_id si está disponible
+      if (finalBimestreId) {
+        event.bimestre_id = finalBimestreId;
+      }
       
       // Solo incluir students si es mayor que 0
       if (eventData.students && eventData.students > 0) {
@@ -76,8 +93,20 @@ class EventService {
     }
   }
 
-  async updateEvent(id: string, eventData: CreateEventData): Promise<Event> {
+  async updateEvent(id: string, eventData: CreateEventData, bimestreId?: number): Promise<Event> {
     try {
+      // Obtener bimestre_id del navbar si no se proporciona explícitamente
+      let finalBimestreId = bimestreId;
+      if (!finalBimestreId) {
+        const navbarBimestreElement = document.querySelector('[data-bimestre-id]');
+        if (navbarBimestreElement) {
+          const navbarBimestreId = navbarBimestreElement.getAttribute('data-bimestre-id');
+          if (navbarBimestreId) {
+            finalBimestreId = parseInt(navbarBimestreId, 10);
+          }
+        }
+      }
+
       // Convertir CreateEventData a formato esperado por el backend
       const event: any = {
         title: eventData.title,
@@ -87,6 +116,11 @@ class EventService {
         teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
         subject: eventData.subject
       };
+      
+      // Incluir bimestre_id si está disponible
+      if (finalBimestreId) {
+        event.bimestre_id = finalBimestreId;
+      }
       
       // Solo incluir students si es mayor que 0
       if (eventData.students && eventData.students > 0) {
