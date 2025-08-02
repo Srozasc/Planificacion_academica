@@ -32,20 +32,21 @@ const DashboardPage: React.FC = () => {
   const loadEvents = async () => {
     setIsLoadingEvents(true);
     try {
-      let startDate, endDate;
-      
-      if (bimestreSeleccionado) {
-        startDate = bimestreSeleccionado.fechaInicio;
-        endDate = bimestreSeleccionado.fechaFin;
-        console.log('🔍 Cargando eventos para bimestre:', { 
-          bimestreId: bimestreSeleccionado.id,
-          nombre: bimestreSeleccionado.nombre,
-          startDate, 
-          endDate 
-        });
-      } else {
-        console.log('🔍 No hay bimestre seleccionado, cargando todos los eventos');
+      // Si no hay bimestre seleccionado, no cargar eventos
+      if (!bimestreSeleccionado) {
+        console.log('🔍 No hay bimestre seleccionado, lista de eventos vacía');
+        setEvents([]);
+        return;
       }
+      
+      const startDate = bimestreSeleccionado.fechaInicio;
+      const endDate = bimestreSeleccionado.fechaFin;
+      console.log('🔍 Cargando eventos para bimestre:', { 
+        bimestreId: bimestreSeleccionado.id,
+        nombre: bimestreSeleccionado.nombre,
+        startDate, 
+        endDate 
+      });
       
       console.log('📡 Llamando a eventService.getEvents con parámetros:', { startDate, endDate });
       const fetchedEvents = await eventService.getEvents(startDate, endDate);
@@ -196,11 +197,6 @@ const DashboardPage: React.FC = () => {
     loadEvents();
   }, [bimestreSeleccionado]);
 
-  // Cargar datos al montar el componente
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
 
 
 
@@ -324,7 +320,16 @@ const DashboardPage: React.FC = () => {
                   </table>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No hay eventos programados</p>
+                <div className="text-center py-8">
+                  {!bimestreSeleccionado ? (
+                    <div className="space-y-2">
+                      <p className="text-gray-500">Selecciona un bimestre para ver los eventos programados</p>
+                      <p className="text-sm text-gray-400">Usa el selector de bimestre arriba para comenzar</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No hay eventos programados para este bimestre</p>
+                  )}
+                </div>
               )}
             </div>
           </div>
