@@ -407,23 +407,10 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   };
 
   const handleDescargarPlantilla = () => {
-    // Crear datos de ejemplo para la plantilla
-    const plantillaData = [
-      ['Número', 'Año', 'Fecha_Inicio', 'Fecha_Fin', 'Pago1_Inicio', 'Pago1_Fin', 'Pago2_Inicio', 'Pago2_Fin', 'Descripción'],
-      [1, 2025, '11-03-2025', '11-05-2025', '03-03-2025', '30-04-2025', '01-05-2025', '14-05-2025', 'Primer Bimestre'],
-      [2, 2025, '20-05-2025', '20-07-2025', '15-05-2025', '30-06-2025', '01-07-2025', '31-07-2025', 'Segundo Bimestre'],
-      [3, 2025, '12-08-2025', '12-10-2025', '01-08-2025', '30-09-2025', '01-10-2025', '15-10-2025', 'Tercer Bimestre'],
-      [4, 2025, '21-10-2025', '24-12-2025', '16-10-2025', '30-11-2025', '01-12-2025', '31-12-2025', 'Cuarto Bimestre'],
-      [5, 2026, '06-01-2026', '01-03-2026', '01-01-2026', '28-02-2026', '01-03-2026', '04-03-2026', 'Quinto Bimestre']
-    ];
-    
-    // Crear CSV
-    const csvContent = plantillaData.map(row => row.join('\t')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    // Descargar la plantilla oficial de Excel
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'plantilla_bimestres.csv');
+    link.href = '/templates/plantilla_bimestres.xlsx';
+    link.download = 'plantilla_bimestres.xlsx';
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
