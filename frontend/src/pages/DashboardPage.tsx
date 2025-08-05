@@ -19,10 +19,50 @@ const DashboardPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  
+  // Estados para filtros
+  const [filters, setFilters] = useState({
+    plan: '',
+    evento: '',
+    docente: '',
+    capacidad: ''
+  });
+  const [showFilters, setShowFilters] = useState({
+    plan: false,
+    evento: false,
+    docente: false,
+    capacidad: false
+  });
 
   const { bimestreSeleccionado } = useBimestreStore();
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
   const { toast, showToast, hideToast } = useToast();
+
+  // Función para manejar cambios en filtros
+  const handleFilterChange = (column: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [column]: value
+    }));
+  };
+
+  // Función para alternar visibilidad de filtros
+  const toggleFilter = (column: string) => {
+    setShowFilters(prev => ({
+      ...prev,
+      [column]: !prev[column as keyof typeof prev]
+    }));
+  };
+
+  // Función para filtrar eventos
+  const filteredEvents = events.filter(event => {
+    const planMatch = !filters.plan || (event.extendedProps?.plan_code || '').toLowerCase().includes(filters.plan.toLowerCase());
+    const eventoMatch = !filters.evento || event.title.toLowerCase().includes(filters.evento.toLowerCase());
+    const docenteMatch = !filters.docente || (event.extendedProps?.teacher_names || event.extendedProps?.teacher || '').toLowerCase().includes(filters.docente.toLowerCase());
+    const capacidadMatch = !filters.capacidad || (event.extendedProps?.students || '').toString().includes(filters.capacidad);
+    
+    return planMatch && eventoMatch && docenteMatch && capacidadMatch;
+  });
 
 
 
@@ -278,21 +318,97 @@ const DashboardPage: React.FC = () => {
             
             {/* Lista de eventos */}
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Eventos Programados ({events.length})</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">Eventos Programados ({filteredEvents.length})</h3>
               {events.length > 0 ? (
                 <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
                   <table className="min-w-full bg-white">
                     <thead className="bg-gray-100 sticky top-0 z-10">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Plan</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Evento</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Docente</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Capacidad</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                          <div className="flex flex-col">
+                            <button 
+                              onClick={() => toggleFilter('plan')}
+                              className="text-left hover:text-gray-700 cursor-pointer"
+                            >
+                              Plan
+                            </button>
+                            {showFilters.plan && (
+                              <input
+                                type="text"
+                                placeholder="Filtrar..."
+                                value={filters.plan}
+                                onChange={(e) => handleFilterChange('plan', e.target.value)}
+                                className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                          <div className="flex flex-col">
+                            <button 
+                              onClick={() => toggleFilter('evento')}
+                              className="text-left hover:text-gray-700 cursor-pointer"
+                            >
+                              Evento
+                            </button>
+                            {showFilters.evento && (
+                              <input
+                                type="text"
+                                placeholder="Filtrar..."
+                                value={filters.evento}
+                                onChange={(e) => handleFilterChange('evento', e.target.value)}
+                                className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                          <div className="flex flex-col">
+                            <button 
+                              onClick={() => toggleFilter('docente')}
+                              className="text-left hover:text-gray-700 cursor-pointer"
+                            >
+                              Docente
+                            </button>
+                            {showFilters.docente && (
+                              <input
+                                type="text"
+                                placeholder="Filtrar..."
+                                value={filters.docente}
+                                onChange={(e) => handleFilterChange('docente', e.target.value)}
+                                className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                          <div className="flex flex-col">
+                            <button 
+                              onClick={() => toggleFilter('capacidad')}
+                              className="text-left hover:text-gray-700 cursor-pointer"
+                            >
+                              Capacidad
+                            </button>
+                            {showFilters.capacidad && (
+                              <input
+                                type="text"
+                                placeholder="Filtrar..."
+                                value={filters.capacidad}
+                                onChange={(e) => handleFilterChange('capacidad', e.target.value)}
+                                className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </div>
+                        </th>
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {events.map(event => (
+                      {filteredEvents.map(event => (
                         <tr key={event.id} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.plan_code || '-'}</td>
                           <td className="px-3 py-2 text-sm text-gray-900">{event.title}</td>
