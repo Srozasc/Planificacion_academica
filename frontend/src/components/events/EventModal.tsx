@@ -938,7 +938,7 @@ const EventModal: React.FC<EventModalProps> = ({
               <div className="mb-3">
                 <input
                   type="text"
-                  placeholder="Buscar docente por nombre o RUT..."
+                  placeholder="Buscar docente por nombre o ID..."
                   value={teacherSearchTerm}
                   onChange={(e) => setTeacherSearchTerm(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -957,7 +957,8 @@ const EventModal: React.FC<EventModalProps> = ({
                       .filter(teacher => {
                         const searchLower = teacherSearchTerm.toLowerCase();
                         return teacher.name.toLowerCase().includes(searchLower) ||
-                               teacher.rut.toLowerCase().includes(searchLower);
+                               teacher.id.toString().toLowerCase().includes(searchLower) ||
+                               (teacher.id_docente && teacher.id_docente.toLowerCase().includes(searchLower));
                       })
                       .map((teacher) => (
                         <label key={teacher.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
@@ -987,7 +988,7 @@ const EventModal: React.FC<EventModalProps> = ({
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="text-sm text-gray-700">
-                            {teacher.name} - {teacher.rut}
+                            ID: {teacher.id_docente || teacher.id} - {teacher.name}
                           </span>
                         </label>
                       ))
@@ -995,7 +996,8 @@ const EventModal: React.FC<EventModalProps> = ({
                     {teachers.filter(teacher => {
                       const searchLower = teacherSearchTerm.toLowerCase();
                       return teacher.name.toLowerCase().includes(searchLower) ||
-                             teacher.rut.toLowerCase().includes(searchLower);
+                             teacher.id.toString().toLowerCase().includes(searchLower) ||
+                             (teacher.id_docente && teacher.id_docente.toLowerCase().includes(searchLower));
                     }).length === 0 && teacherSearchTerm && (
                       <p className="text-gray-500 text-sm italic">No se encontraron docentes que coincidan con la búsqueda</p>
                     )}
@@ -1015,11 +1017,11 @@ const EventModal: React.FC<EventModalProps> = ({
                         <div key={teacherId} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-md">
                           <div className="flex-1">
                             <div className="flex items-center space-x-2">
+                              <span className="text-xs text-blue-600">
+                                ID: {teacher.id_docente || teacher.id}
+                              </span>
                               <span className="text-sm font-medium text-blue-800">
                                 {teacher.name}
-                              </span>
-                              <span className="text-xs text-blue-600">
-                                {teacher.rut}
                               </span>
                             </div>
                             <div className="flex items-center space-x-2 mt-1">

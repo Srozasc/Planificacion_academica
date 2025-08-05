@@ -4,7 +4,9 @@ import { MulterModule } from '@nestjs/platform-express';
 import { UploadsController } from './uploads.controller';
 import { UploadService } from './uploads.service';
 import { StagingAdolSimple } from '../adol/entities/adol-position.entity';
+import { AdolAprobados } from '../adol/entities/adol-aprobados.entity';
 import { StagingDol } from '../dol/entities/dol-position.entity';
+import { DolAprobados } from '../dol/entities/dol-aprobados.entity';
 import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inicio.entity';
 import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
@@ -21,7 +23,9 @@ import { multerConfig } from './config/multer.config';
   imports: [
     TypeOrmModule.forFeature([
       StagingAdolSimple,
+      AdolAprobados,
       StagingDol,
+      DolAprobados,
       StagingVacantesInicio,
       StagingEstructuraAcademica,
       StagingReporteCursables,

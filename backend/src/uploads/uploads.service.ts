@@ -3,7 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import { StagingAdolSimple } from '../adol/entities/adol-position.entity';
+import { AdolAprobados } from '../adol/entities/adol-aprobados.entity';
 import { StagingDol } from '../dol/entities/dol-position.entity';
+import { DolAprobados } from '../dol/entities/dol-aprobados.entity';
 import { StagingVacantesInicio } from '../vacantes-inicio/entities/vacantes-inicio.entity';
 import { StagingEstructuraAcademica } from '../estructura-academica/entities/estructura-academica.entity';
 import { AcademicStructure } from '../academic/entities/academic-structure.entity';
@@ -60,8 +62,12 @@ export class UploadService {
   constructor(
     @InjectRepository(StagingAdolSimple)
     private stagingAdolRepository: Repository<StagingAdolSimple>,
+    @InjectRepository(AdolAprobados)
+    private adolAprobadosRepository: Repository<AdolAprobados>,
     @InjectRepository(StagingDol)
     private stagingDolRepository: Repository<StagingDol>,
+    @InjectRepository(DolAprobados)
+    private dolAprobadosRepository: Repository<DolAprobados>,
     @InjectRepository(StagingVacantesInicio)
     private stagingVacantesInicioRepository: Repository<StagingVacantesInicio>,
     @InjectRepository(StagingEstructuraAcademica)
@@ -75,7 +81,8 @@ export class UploadService {
     @InjectRepository(UploadLog)
     private readonly uploadLogRepository: Repository<UploadLog>,
     private readonly responseService: ResponseService,
-    private dataSource: DataSource, ) {}
+    private dataSource: DataSource
+  ) {}
 
   /**
    * Registra una operación de carga en la tabla upload_logs
@@ -2188,6 +2195,64 @@ export class UploadService {
           // pero registramos el problema
         }
       }
+      
+      // Si es una carga de ADOL, ejecutar el SP de migración
+      if (upload.uploadType === 'ADOL') {
+        this.logger.log('=== EJECUTANDO MIGRACIÓN PARA ADOL ===');
+        try {
+          // Obtener el email del usuario aprobador
+          const approverUser = await this.dataSource.query(
+            'SELECT email_institucional FROM users WHERE id = ?',
+            [approvedByUserId]
+          );
+          
+          const approverEmail = approverUser.length > 0 ? approverUser[0].email_institucional : null;
+          this.logger.log(`Usuario aprobador: ${approverEmail || 'SISTEMA'}`);
+          
+          // Migrar datos de staging_adol_simple a adol_aprobados
+          this.logger.log('Iniciando migración de datos de staging_adol_simple a adol_aprobados...');
+          await this.migrateAdol(approverEmail);
+          this.logger.log('Migración de ADOL completada exitosamente');
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (migrationError) {
+          this.logger.error('Error durante la migración de ADOL:', migrationError.message);
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
+      
+      // Si es una carga de DOL, ejecutar el SP de migración
+      if (upload.uploadType === 'DOL') {
+        this.logger.log('=== EJECUTANDO MIGRACIÓN PARA DOL ===');
+        try {
+          // Obtener el email del usuario aprobador
+          const approverUser = await this.dataSource.query(
+            'SELECT email_institucional FROM users WHERE id = ?',
+            [approvedByUserId]
+          );
+          
+          const approverEmail = approverUser.length > 0 ? approverUser[0].email_institucional : null;
+          this.logger.log(`Usuario aprobador: ${approverEmail || 'SISTEMA'}`);
+          
+          // Migrar datos de staging_dol a dol_aprobados
+          this.logger.log('Iniciando migración de datos de staging_dol a dol_aprobados...');
+          await this.migrateDol(approverEmail);
+          this.logger.log('Migración de DOL completada exitosamente');
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (migrationError) {
+          this.logger.error('Error durante la migración de DOL:', migrationError.message);
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
 
       this.logger.log('Carga aprobada exitosamente');
       return {
@@ -2413,6 +2478,74 @@ export class UploadService {
       this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
     } catch (error) {
       this.logger.error('Error durante la migración de reporte cursables:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Migra datos de staging_adol_simple a adol_aprobados usando el SP
+   */
+  private async migrateAdol(approverEmail: string): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE ADOL ===');
+      
+      // Verificar conteo actual en staging_adol_simple
+      const stagingCountResult = await this.dataSource.query('SELECT COUNT(*) as count FROM staging_adol_simple');
+      const stagingCount = stagingCountResult[0].count;
+      this.logger.log(`Registros en staging_adol_simple: ${stagingCount}`);
+      
+      if (stagingCount === 0) {
+        this.logger.log('No hay registros en staging_adol_simple para migrar');
+        return;
+      }
+
+      // Verificar conteo actual en adol_aprobados antes de la migración
+      const currentCount = await this.dataSource.query('SELECT COUNT(*) as count FROM adol_aprobados');
+      const currentAdolCount = currentCount[0].count;
+      this.logger.log(`Registros actuales en adol_aprobados antes de migración: ${currentAdolCount}`);
+
+      // Ejecutar el procedimiento almacenado sp_migrate_staging_adol_to_aprobados
+      this.logger.log('Ejecutando procedimiento almacenado sp_migrate_staging_adol_to_aprobados...');
+      await this.dataSource.query(
+        'CALL sp_migrate_staging_adol_to_aprobados(?)',
+        [approverEmail]
+      );
+      this.logger.log('Procedimiento almacenado ejecutado exitosamente');
+      
+      // Verificar conteo final
+      const finalCount = await this.dataSource.query('SELECT COUNT(*) as count FROM adol_aprobados');
+      const finalAdolCount = finalCount[0].count;
+      this.logger.log(`Conteo final en adol_aprobados: ${finalAdolCount}`);
+      
+      const processedRecords = finalAdolCount - currentAdolCount;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de ADOL:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  private async migrateDol(approverEmail: string): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE DOL ===');
+      
+      // Contar registros actuales en dol_aprobados
+      const currentDolCount = await this.dolAprobadosRepository.count();
+      this.logger.log(`Registros actuales en dol_aprobados: ${currentDolCount}`);
+      
+      // Ejecutar el procedimiento almacenado de migración
+      await this.dataSource.query('CALL sp_migrate_staging_dol_to_aprobados(?)', [approverEmail]);
+      
+      // Contar registros después de la migración
+      const finalDolCount = await this.dolAprobadosRepository.count();
+      this.logger.log(`Registros finales en dol_aprobados: ${finalDolCount}`);
+      
+      const processedRecords = finalDolCount - currentDolCount;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${processedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de DOL:', error.message);
       this.logger.error('Stack trace:', error.stack);
       throw error;
     }

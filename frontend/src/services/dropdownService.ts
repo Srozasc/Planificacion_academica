@@ -5,6 +5,7 @@ export interface Teacher {
   name: string;
   rut: string;
   email: string;
+  id_docente?: string;
 }
 
 export interface Subject {

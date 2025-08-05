@@ -50,11 +50,11 @@ import { User } from '../users/entities/user.entity';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: 'mysql',
-        host: configService.get('DATABASE_HOST') || 'localhost',
-        port: configService.get('DATABASE_PORT') || 3306,
-        username: configService.get('DATABASE_USERNAME') || 'planificacion_user',
-        password: configService.get('DATABASE_PASSWORD') || 'PlanUser2025!',
-        database: configService.get('DATABASE_NAME') || 'planificacion_academica',        entities: [
+        host: configService.get('DB_HOST'),
+        port: configService.get('DB_PORT')|| 3306,
+        username: configService.get('DB_USERNAME'),
+        password: configService.get('DB_PASSWORD'),
+        database: configService.get('DB_NAME'),        entities: [
           // Incluir las entidades base
           Role,
           Bimestre,
@@ -80,8 +80,8 @@ import { User } from '../users/entities/user.entity';
         return createPool({
           host: configService.get('DATABASE_HOST') || 'localhost',
           port: configService.get('DATABASE_PORT') || 3306,
-          user: configService.get('DATABASE_USERNAME') || 'planificacion_user',
-          password: configService.get('DATABASE_PASSWORD') || 'PlanUser2025!',
+          user: configService.get('DATABASE_USERNAME'),
+          password: configService.get('DATABASE_PASSWORD'),
           database: configService.get('DATABASE_NAME') || 'planificacion_academica',
           waitForConnections: true,
           connectionLimit: 10,

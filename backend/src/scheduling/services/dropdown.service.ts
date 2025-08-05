@@ -7,6 +7,7 @@ export interface Teacher {
   name: string;
   rut: string;
   email: string;
+  id_docente?: string;
 }
 
 export interface Subject {
@@ -44,7 +45,7 @@ export class DropdownService {
 
   async getTeachers(bimestreId?: number): Promise<Teacher[]> {
     let query = `
-      SELECT id, name, rut, email
+      SELECT id, name, rut, email, id_docente
       FROM teachers
       WHERE is_active = 1
     `;

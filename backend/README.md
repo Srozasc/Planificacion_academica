@@ -41,8 +41,8 @@ npm run start:dev
 # Base de datos
 DATABASE_HOST=localhost
 DATABASE_PORT=3306
-DATABASE_USERNAME=planificacion_user
-DATABASE_PASSWORD=PlanUser2025!
+DATABASE_USERNAME=your_database_user
+DATABASE_PASSWORD=your_secure_password
 DATABASE_NAME=planificacion_academica
 
 # JWT
