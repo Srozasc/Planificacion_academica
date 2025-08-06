@@ -4,6 +4,7 @@ import { eventService } from '../../services/event.service';
 import { useBimestreStore } from '../../store/bimestre.store';
 import { reporteCursablesService, VacantesRequeridas } from '../../services/reporteCursables.service';
 import { teacherHoursService } from '../../services/teacherHours.service';
+import { asignaturasService } from '../../services/asignaturas.service';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -36,7 +37,8 @@ export interface CreateEventData {
   teacher_ids?: number[]; // Nuevo campo para múltiples docentes
   subject?: string;
   students?: number;
-  tipoEvento?: 'inicio' | 'continuidad'; // Nuevo campo para tipo de evento
+  horas?: number; // Campo para cantidad de horas (solo para ADOL)
+  tipoEvento?: 'inicio' | 'continuidad' | 'adol'; // Nuevo campo para tipo de evento
 }
 
 const EventModal: React.FC<EventModalProps> = ({
@@ -112,6 +114,7 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher_ids: [],
       subject: '',
       students: 0,
+      horas: 0,
       tipoEvento: 'continuidad'
     };
   });
@@ -225,6 +228,26 @@ const EventModal: React.FC<EventModalProps> = ({
           dropdownService.getPlansInicio(bimestreId),
           dropdownService.getLevelsInicio(bimestreId)
         ]);
+      } else if (formData.tipoEvento === 'adol') {
+        // Cargar datos de ADOL aprobados
+        console.log('Cargando datos de ADOL desde adol_aprobados...');
+        const adolData = await asignaturasService.getAdolAprobados(bimestreId);
+        
+        // Convertir datos de ADOL al formato Subject esperado
+        subjectsData = adolData.map((item, index) => ({
+          id: index + 1,
+          code: item.sigla,
+          name: item.descripcion,
+          category: 'ADOL',
+          acronym: item.sigla,
+          course: item.descripcion,
+          plan_code: '',
+          level: ''
+        }));
+        
+        // Para ADOL no necesitamos planes ni niveles
+        plansData = [];
+        levelsData = [];
       } else {
         // Cargar datos desde academic_structures (comportamiento actual)
         console.log('Cargando datos de CONTINUIDAD desde academic_structures...');
@@ -447,6 +470,7 @@ const EventModal: React.FC<EventModalProps> = ({
           teacher_ids: editingEvent.extendedProps?.teacher_ids || [], // Cargar los IDs de docentes
           subject: editingEvent.extendedProps?.subject || '',
           students: editingEvent.extendedProps?.students || 0,
+          horas: 0,
           tipoEvento: undefined
         });
         
@@ -473,6 +497,7 @@ const EventModal: React.FC<EventModalProps> = ({
             teacher_ids: [],
             subject: '',
             students: 0,
+            horas: 0,
             tipoEvento: 'continuidad'
           });
         }, 100);
@@ -595,6 +620,7 @@ const EventModal: React.FC<EventModalProps> = ({
       teacher_ids: [],
       subject: '',
       students: 0,
+      horas: 0,
       tipoEvento: 'continuidad'
     });
     setErrors({});
@@ -743,6 +769,20 @@ const EventModal: React.FC<EventModalProps> = ({
                 />
                 <span className="text-sm text-gray-700">Continuidad</span>
               </label>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tipoEvento"
+                  value="adol"
+                  checked={formData.tipoEvento === 'adol'}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, tipoEvento: 'adol' }));
+                  }}
+                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">ADOL</span>
+              </label>
             </div>
           </div>
 
@@ -763,10 +803,14 @@ const EventModal: React.FC<EventModalProps> = ({
                 onFocus={() => setShowPlanDropdown(true)}
                 onBlur={() => setTimeout(() => setShowPlanDropdown(false), 200)}
                 placeholder="Buscar plan..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoadingDropdowns}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  formData.tipoEvento === 'adol' || isLoadingDropdowns
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                    : 'border-gray-300'
+                }`}
+                disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
               />
-              {showPlanDropdown && filteredPlans.length > 0 && (
+              {showPlanDropdown && filteredPlans.length > 0 && formData.tipoEvento !== 'adol' && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                   {filteredPlans.map((plan) => (
                     <div
@@ -800,10 +844,14 @@ const EventModal: React.FC<EventModalProps> = ({
                 onFocus={() => setShowLevelDropdown(true)}
                 onBlur={() => setTimeout(() => setShowLevelDropdown(false), 200)}
                 placeholder="Buscar nivel..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={isLoadingDropdowns}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  formData.tipoEvento === 'adol' || isLoadingDropdowns
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                    : 'border-gray-300'
+                }`}
+                disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
               />
-              {showLevelDropdown && filteredLevels.length > 0 && (
+              {showLevelDropdown && filteredLevels.length > 0 && formData.tipoEvento !== 'adol' && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                   {filteredLevels.map((level) => (
                     <div
@@ -1070,7 +1118,7 @@ const EventModal: React.FC<EventModalProps> = ({
             </div>
           </div>
 
-          {/* Número de Estudiantes */}
+          {/* Número de Estudiantes y Horas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1080,10 +1128,39 @@ const EventModal: React.FC<EventModalProps> = ({
                 type="number"
                 value={formData.students || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, students: parseInt(e.target.value) || 0 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={formData.tipoEvento === 'adol'}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  formData.tipoEvento === 'adol' 
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                    : 'border-gray-300'
+                }`}
                 placeholder="0"
                 min="0"
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cantidad de Horas
+              </label>
+              <input
+                type="number"
+                value={formData.horas || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, horas: parseInt(e.target.value) || 0 }))}
+                disabled={formData.tipoEvento !== 'adol'}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  formData.tipoEvento !== 'adol' 
+                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                    : 'border-gray-300'
+                }`}
+                placeholder="0"
+                min="0"
+              />
+              {formData.tipoEvento !== 'adol' && (
+                <p className="text-gray-500 text-xs mt-1">
+                  Solo disponible para eventos tipo ADOL
+                </p>
+              )}
             </div>
           </div>
 

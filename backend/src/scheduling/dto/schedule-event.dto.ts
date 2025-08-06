@@ -10,6 +10,7 @@ export class ScheduleEventDto {
   subject?: string;
   room?: string;
   students?: number;
+  horas?: number; // Cantidad de horas para eventos ADOL
   background_color?: string;
   bimestre_id?: number;
   active: boolean;
@@ -41,6 +42,7 @@ export class ScheduleEventDto {
     dto.subject = entity.subject;
     dto.room = entity.room;
     dto.students = entity.students;
+    dto.horas = entity.horas;
     dto.background_color = entity.background_color;
     dto.bimestre_id = entity.bimestre_id;
     dto.active = entity.active;

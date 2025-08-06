@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches, IsArray, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches, IsArray, IsNumber, IsDecimal } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateEventDto {
@@ -49,6 +49,21 @@ export class CreateEventDto {
     return (parsed === 0 || isNaN(parsed)) ? undefined : parsed;
   })
   students?: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'horas must be a decimal number with at most 2 decimal places' })
+  @Min(0.01, { message: 'horas must be greater than 0 if provided' })
+  @Max(99.99, { message: 'horas must not exceed 99.99' })
+  @Transform(({ value }) => {
+    // Si el valor es undefined, null, o string vacío, retornar undefined
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    const parsed = parseFloat(value);
+    // Si el valor parseado es 0 o NaN, retornar undefined para que sea tratado como opcional
+    return (parsed === 0 || isNaN(parsed)) ? undefined : parsed;
+  })
+  horas?: number; // Cantidad de horas para eventos ADOL
 
   @IsString()
   @Matches(/^#[0-9A-Fa-f]{6}$/, {

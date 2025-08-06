@@ -159,6 +159,7 @@ export class SchedulingService {
   async create(createEventDto: CreateEventDto): Promise<ScheduleEventDto> {
     try {
       this.logger.log(`Creating event with data: ${JSON.stringify(createEventDto)}`);
+      this.logger.log(`Campo horas recibido: ${createEventDto.horas} (tipo: ${typeof createEventDto.horas})`);
       
       // Validar fechas
       const startDate = new Date(createEventDto.start_date);

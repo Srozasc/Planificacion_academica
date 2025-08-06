@@ -21,6 +21,12 @@ class AsignaturasService {
     const response = await apiClient.get('/asignaturas/categorias');
     return response.data;
   }
+
+  async getAdolAprobados(bimestreId?: number): Promise<{ sigla: string; descripcion: string }[]> {
+    const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+    const response = await apiClient.get('/asignaturas/adol-aprobados', { params });
+    return response.data;
+  }
 }
 
 export const asignaturasService = new AsignaturasService();

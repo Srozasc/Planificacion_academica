@@ -31,4 +31,10 @@ export class AsignaturasController {
   async findByBimestre(@Param('bimestreId', ParseIntPipe) bimestreId: number): Promise<Asignatura[]> {
     return this.asignaturasService.findByBimestre(bimestreId);
   }
+
+  @Get('adol-aprobados')
+  async getAdolAprobados(@Query('bimestreId') bimestreId?: string): Promise<{ sigla: string; descripcion: string }[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.asignaturasService.getAdolAprobados(bimestreIdNum);
+  }
 }

@@ -84,4 +84,32 @@ export class AsignaturasService {
 
     return result.map(item => item.categoria).filter(categoria => categoria);
   }
+
+  async getAdolAprobados(bimestreId?: number): Promise<{ sigla: string; descripcion: string }[]> {
+    let query = `
+      SELECT DISTINCT sigla, descripcion
+      FROM adol_aprobados
+      WHERE activo = 1
+        AND sigla IS NOT NULL AND sigla != ''
+        AND descripcion IS NOT NULL AND descripcion != ''
+    `;
+    
+    const params = [];
+    
+    if (bimestreId) {
+      query += ` AND id_bimestre = ?`;
+      params.push(bimestreId);
+    } else {
+      // Si no se especifica bimestre, usar el bimestre activo actual
+      const bimestreActual = await this.bimestreService.findBimestreActual();
+      if (bimestreActual) {
+        query += ` AND id_bimestre = ?`;
+        params.push(bimestreActual.id);
+      }
+    }
+    
+    query += ` ORDER BY sigla ASC`;
+    
+    return this.asignaturaRepository.query(query, params);
+  }
 }

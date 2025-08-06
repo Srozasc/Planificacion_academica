@@ -82,6 +82,13 @@ class EventService {
       if (eventData.students && eventData.students > 0) {
         event.students = eventData.students;
       }
+      
+      // Solo incluir horas si es mayor que 0
+      if (eventData.horas && eventData.horas > 0) {
+        event.horas = eventData.horas;
+      }
+      
+      console.log('Frontend - Enviando evento al backend:', event);
 
       const response = await apiClient.post(this.baseUrl, event);
       return response.data.data;
@@ -125,6 +132,11 @@ class EventService {
       // Solo incluir students si es mayor que 0
       if (eventData.students && eventData.students > 0) {
         event.students = eventData.students;
+      }
+      
+      // Solo incluir horas si es mayor que 0
+      if (eventData.horas && eventData.horas > 0) {
+        event.horas = eventData.horas;
       }
 
       const response = await apiClient.put(`${this.baseUrl}/${id}`, event);
