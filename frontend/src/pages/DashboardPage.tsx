@@ -35,7 +35,10 @@ const DashboardPage: React.FC = () => {
   });
 
   const { bimestreSeleccionado } = useBimestreStore();
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuthStore();
+  
+  // Verificar si el usuario es visualizador (solo lectura)
+  const isVisualizador = user?.roleId === 1;
   const { toast, showToast, hideToast } = useToast();
 
   // Función para manejar cambios en filtros
@@ -282,14 +285,16 @@ const DashboardPage: React.FC = () => {
                 <p className="text-xs sm:text-sm text-gray-600">Visualiza y gestiona los eventos académicos</p>
               </div>
               <div className="flex items-center space-x-3">
-                {/* Configurador de Bimestres */}
-                <button
-                  onClick={() => setIsConfiguradorOpen(true)}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <CogIcon className="h-4 w-4" />
-                  <span>Configurar Bimestres</span>
-                </button>
+                {/* Configurador de Bimestres - Solo para usuarios no visualizadores */}
+                {!isVisualizador && (
+                  <button
+                    onClick={() => setIsConfiguradorOpen(true)}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <CogIcon className="h-4 w-4" />
+                    <span>Configurar Bimestres</span>
+                  </button>
+                )}
               </div>
             </div>
             
@@ -309,16 +314,18 @@ const DashboardPage: React.FC = () => {
         {/* Calendar Content - Vista removida, funcionalidad mantenida */}
         <div className="p-3 sm:p-6">
           <div className="space-y-4">
-            {/* Botón para crear nuevo evento */}
-             <div className="flex justify-end items-center mb-4">
-               <button
-                  onClick={handleCreateEventClick}
-                  className="bg-uc-yellow hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <span>+</span>
-                  <span>Crear Evento</span>
-                </button>
-             </div>
+            {/* Botón para crear nuevo evento - Solo para usuarios no visualizadores */}
+             {!isVisualizador && (
+               <div className="flex justify-end items-center mb-4">
+                 <button
+                    onClick={handleCreateEventClick}
+                    className="bg-uc-yellow hover:bg-yellow-500 text-black px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <span>+</span>
+                    <span>Crear Evento</span>
+                  </button>
+               </div>
+             )}
             
             {/* Lista de eventos */}
             <div className="bg-gray-50 rounded-lg p-4">
@@ -422,18 +429,24 @@ const DashboardPage: React.FC = () => {
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.students || '-'}</td>
                           <td className="px-3 py-2 text-sm">
                             <div className="flex space-x-2">
-                              <button
-                                 onClick={() => handleEditEventClick(event)}
-                                 className="text-blue-600 hover:text-blue-800 text-sm"
-                               >
-                                 Editar
-                               </button>
-                              <button
-                                onClick={() => handleEventDelete(event.id)}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Eliminar
-                              </button>
+                              {!isVisualizador ? (
+                                <>
+                                  <button
+                                     onClick={() => handleEditEventClick(event)}
+                                     className="text-blue-600 hover:text-blue-800 text-sm"
+                                   >
+                                     Editar
+                                   </button>
+                                  <button
+                                    onClick={() => handleEventDelete(event.id)}
+                                    className="text-red-600 hover:text-red-800 text-sm"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-gray-400 text-sm italic">Solo lectura</span>
+                              )}
                             </div>
                           </td>
                         </tr>

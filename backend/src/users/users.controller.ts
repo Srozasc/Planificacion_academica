@@ -7,12 +7,16 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AdminChangePasswordDto } from './dto/admin-change-password.dto';
 import { UserResponseDto, UsersListResponseDto } from './dto/user-response.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
+  @Roles('Maestro')
   async findAll(
     @Query() queryDto: QueryUsersDto,
     @Query('bimestreId') bimestreId?: string
@@ -22,6 +26,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Roles('Maestro')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Query('bimestreId') bimestreId?: string
@@ -31,7 +36,7 @@ export class UsersController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async create(
     @Body() createUserDto: CreateUserDto,
     @Query('bimestreId') bimestreId?: string
@@ -41,7 +46,7 @@ export class UsersController {
   }
 
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -52,13 +57,13 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async remove(@Param('id', ParseIntPipe) id: number): Promise<{ message: string }> {
     return this.usersService.remove(id);
   }
 
   @Post('admin-change-password')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async adminChangePassword(
     @Body() adminChangePasswordDto: AdminChangePasswordDto,
     @Req() req: any
@@ -68,7 +73,7 @@ export class UsersController {
   }
 
   @Post('import')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file'))
   async importUsers(
     @UploadedFile() file: Express.Multer.File,
@@ -83,7 +88,7 @@ export class UsersController {
   }
 
   @Get(':id/permissions')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async getUserPermissions(
     @Param('id', ParseIntPipe) id: number,
     @Query('bimestreId') bimestreId?: string
@@ -93,7 +98,7 @@ export class UsersController {
   }
 
   @Put(':id/permissions')
-  @UseGuards(JwtAuthGuard)
+  @Roles('Maestro')
   async updateUserPermissions(
     @Param('id', ParseIntPipe) id: number,
     @Body() permissionsData: any,

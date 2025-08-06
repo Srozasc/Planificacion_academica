@@ -34,7 +34,7 @@ export class UploadsController {
 
 
   @Post('adol')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadAdol(
     @UploadedFile() file: Express.Multer.File,
@@ -101,7 +101,7 @@ export class UploadsController {
   }
 
   @Post('dol')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadDol(
     @UploadedFile() file: Express.Multer.File,
@@ -168,7 +168,7 @@ export class UploadsController {
   }
 
   @Post('vacantes-inicio')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadVacantesInicio(
     @UploadedFile() file: Express.Multer.File,
@@ -235,7 +235,7 @@ export class UploadsController {
   }
 
   @Post('estructura-academica')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadEstructuraAcademica(
     @UploadedFile() file: Express.Multer.File,
@@ -302,7 +302,7 @@ export class UploadsController {
   }
 
   @Post('reporte-cursables')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   async uploadReporteCursables(
     @UploadedFile() file: Express.Multer.File,
@@ -407,7 +407,7 @@ export class UploadsController {
 
   @Post('nomina-docentes')
   @UseInterceptors(FileInterceptor('file', multerConfig))
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   async uploadNominaDocentes(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
@@ -479,7 +479,7 @@ export class UploadsController {
   }
 
   @Get('details/:uploadId')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   async getUploadDetails(@Param('uploadId') uploadId: string) {
     try {
       this.logger.log(`=== OBTENIENDO DETALLES DE CARGA: ${uploadId} ===`);
@@ -505,7 +505,7 @@ export class UploadsController {
 
   // Nuevos endpoints para gestión de cargas
   @Get('recent')
-  @Roles('Maestro', 'Editor')
+  @Roles('Maestro')
   async getRecentUploads(@Query('bimestreId') bimestreId?: string) {
     try {
       this.logger.log('=== OBTENIENDO CARGAS RECIENTES ===');

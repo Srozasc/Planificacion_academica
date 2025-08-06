@@ -27,12 +27,39 @@ const Navbar: React.FC = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-  };  const navigationItems = [
+  };
+
+  const isMaestro = user?.role === 'Maestro';
+
+  // Definir todos los elementos de navegación
+  const allNavigationItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '🏠' },
     { path: '/usuarios', label: 'Usuarios', icon: '👥' },
     { path: '/carga-datos', label: 'Carga de Datos', icon: '📁' },
     { path: '/reportes', label: 'Reportes', icon: '📊' },
-  ];return (
+  ];
+
+  // Filtrar elementos de navegación según el rol
+  const navigationItems = React.useMemo(() => {
+    // Si no hay usuario cargado, mostrar solo elementos básicos
+    if (!user) {
+      return allNavigationItems.filter(item => 
+        item.path === '/dashboard' || item.path === '/reportes'
+      );
+    }
+    
+    // Solo los usuarios Maestro pueden ver Usuarios y Carga de Datos
+    if (!isMaestro) {
+      return allNavigationItems.filter(item => 
+        item.path !== '/usuarios' && item.path !== '/carga-datos'
+      );
+    }
+    
+    // Los usuarios Maestro ven todos los elementos
+    return allNavigationItems;
+  }, [user, isMaestro]);
+
+  return (
     <>
       {/* Header superior amarillo */}
       <div className="bg-uc-yellow text-black py-2 px-4">
