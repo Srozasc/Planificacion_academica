@@ -97,7 +97,7 @@ export class UsersService {
   async findOne(id: number, bimestreId?: number): Promise<UserResponseDto | null> {
     const user = await this.userRepository.findOne({
       where: { id, deletedAt: null },
-      relations: ['role'],
+      relations: ['role', 'previousRole'],
     });
 
     if (!user) {
@@ -108,13 +108,15 @@ export class UsersService {
       id: user.id,
       emailInstitucional: user.emailInstitucional,
       name: user.name,
-
       telefono: user.telefono,
       roleId: user.roleId,
       roleName: user.role?.name,
       isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      roleExpiresAt: user.roleExpiresAt,
+      previousRoleId: user.previousRoleId,
+      previousRoleName: user.previousRoleId ? user.previousRole?.name : undefined,
     };
   }
 

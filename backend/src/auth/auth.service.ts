@@ -23,7 +23,7 @@ export class AuthService {
       `SELECT u.id, u.password_hash, u.name, u.is_active, u.role_id, u.role_expires_at, u.previous_role_id, r.name as role_name 
        FROM users u 
        INNER JOIN roles r ON u.role_id = r.id 
-       WHERE u.email_institucional = ?`,
+       WHERE u.email_institucional = ? AND u.deleted_at IS NULL`,
       [loginDto.email_institucional]
     );
 
@@ -97,7 +97,7 @@ export class AuthService {
     // Validar que el usuario sigue siendo válido
     try {
       const [user] = await this.entityManager.query(
-        'SELECT id, email_institucional, name, is_active FROM users WHERE id = ? AND is_active = TRUE',
+        'SELECT id, email_institucional, name, is_active FROM users WHERE id = ? AND is_active = TRUE AND deleted_at IS NULL',
         [payload.userId]
       );
       
@@ -121,7 +121,7 @@ export class AuthService {
   async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{message: string}> {
     // Obtener la contraseña actual del usuario
     const [user] = await this.entityManager.query(
-      'SELECT password_hash FROM users WHERE id = ? AND is_active = TRUE',
+      'SELECT password_hash FROM users WHERE id = ? AND is_active = TRUE AND deleted_at IS NULL',
       [userId]
     );
 

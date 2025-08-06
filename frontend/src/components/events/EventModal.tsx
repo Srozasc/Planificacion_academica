@@ -218,13 +218,15 @@ const EventModal: React.FC<EventModalProps> = ({
       // Los docentes siempre se cargan de la misma fuente
       const teachersData = await dropdownService.getTeachers(bimestreId);
       
-      let subjectsData, plansData, levelsData;
+      let subjectsData: Subject[];
+      let plansData: {value: string, label: string}[];
+      let levelsData: {value: string, label: string}[];
       
       if (formData.tipoEvento === 'inicio') {
-        // Cargar datos desde vacantes_inicio_permanente
-        console.log('Cargando datos de INICIO desde vacantes_inicio_permanente...');
+        // Cargar datos desde vacantes_inicio_permanente filtrados por permisos
+        console.log('Cargando datos de INICIO desde vacantes_inicio_permanente con permisos...');
         [subjectsData, plansData, levelsData] = await Promise.all([
-          dropdownService.getSubjectsInicio(bimestreId),
+          dropdownService.getSubjectsInicioWithPermissions(bimestreId),
           dropdownService.getPlansInicio(bimestreId),
           dropdownService.getLevelsInicio(bimestreId)
         ]);
@@ -249,10 +251,10 @@ const EventModal: React.FC<EventModalProps> = ({
         plansData = [];
         levelsData = [];
       } else {
-        // Cargar datos desde academic_structures (comportamiento actual)
-        console.log('Cargando datos de CONTINUIDAD desde academic_structures...');
+        // Cargar datos desde academic_structures filtrados por permisos
+        console.log('Cargando datos de CONTINUIDAD desde academic_structures con permisos...');
         [subjectsData, plansData, levelsData] = await Promise.all([
-          dropdownService.getSubjects(bimestreId),
+          dropdownService.getSubjectsWithPermissions(bimestreId),
           dropdownService.getPlans(bimestreId),
           dropdownService.getLevels(bimestreId)
         ]);
@@ -1231,7 +1233,8 @@ const EventModal: React.FC<EventModalProps> = ({
               type="submit"
               disabled={isLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >              {isLoading ? (
+            >
+              {isLoading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   {editingEvent ? 'Actualizando...' : (enableMultipleEvents && eventQuantity > 1 ? `Creando ${eventQuantity} eventos...` : 'Guardando...')}

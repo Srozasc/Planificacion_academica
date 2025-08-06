@@ -131,5 +131,32 @@ export const dropdownService = {
       console.error('Error fetching subjects inicio:', error);
       return [];
     }
+  },
+
+  // Métodos para obtener asignaturas filtradas por permisos del usuario
+  async getSubjectsWithPermissions(bimestreId?: number): Promise<Subject[]> {
+    try {
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/subjects-with-permissions con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/subjects-with-permissions', { params });
+      console.log('Respuesta de subjects-with-permissions:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching subjects with permissions:', error);
+      return [];
+    }
+  },
+
+  async getSubjectsInicioWithPermissions(bimestreId?: number): Promise<Subject[]> {
+    try {
+      const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+      console.log('Llamando a /dropdown/subjects-inicio-with-permissions con bimestreId:', bimestreId);
+      const response = await apiClient.get('/dropdown/subjects-inicio-with-permissions', { params });
+      console.log('Respuesta de subjects-inicio-with-permissions:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching subjects inicio with permissions:', error);
+      return [];
+    }
   }
 };

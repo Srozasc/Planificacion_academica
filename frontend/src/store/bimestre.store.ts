@@ -13,7 +13,8 @@ interface BimestreState {
   fetchBimestres: (anoAcademico?: number) => Promise<void>;
   fetchBimestresActivos: () => Promise<void>;
   fetchBimestreActual: () => Promise<void>;
-  seleccionarBimestre: (bimestre: Bimestre | null) => void;  crearBimestre: (createDto: CreateBimestreDto) => Promise<Bimestre>;
+  seleccionarBimestre: (bimestre: Bimestre | null) => void;
+  crearBimestre: (createDto: CreateBimestreDto) => Promise<Bimestre>;
   actualizarBimestre: (id: number, updateDto: UpdateBimestreDto) => Promise<Bimestre>;
   eliminarBimestre: (id: number) => Promise<void>;
   
@@ -127,7 +128,8 @@ export const useBimestreStore = create<BimestreState>((set, get) => ({
         isLoading: false 
       });
       
-      return bimestreActualizado;    } catch (error: any) {
+      return bimestreActualizado;
+    } catch (error: any) {
       let errorMessage = 'Error al actualizar bimestre';
       
       // Extraer el mensaje de error específico del backend

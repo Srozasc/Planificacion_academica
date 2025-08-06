@@ -66,7 +66,8 @@ const LoginPage: React.FC = () => {
       setIsSubmitting(true);
       setError('');
       await login(formData);
-      console.log('LoginPage: Login completado exitosamente');    } catch (error: any) {
+      console.log('LoginPage: Login completado exitosamente');
+    } catch (error: any) {
       console.log('LoginPage: Error capturado en catch block:', error);
       console.log('LoginPage: Error response status:', error.response?.status);
       console.log('LoginPage: Error response data:', error.response?.data);
@@ -96,7 +97,8 @@ const LoginPage: React.FC = () => {
         setError('Error inesperado. Intente nuevamente.');
       }
       
-      console.log('LoginPage: Mensaje de error establecido');    } finally {
+      console.log('LoginPage: Mensaje de error establecido');
+    } finally {
       console.log('LoginPage: Finalizando proceso de login, isSubmitting = false');
       setIsSubmitting(false);
     }

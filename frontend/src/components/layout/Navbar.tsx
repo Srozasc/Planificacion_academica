@@ -81,7 +81,7 @@ const Navbar: React.FC = () => {
                   {bimestreSeleccionado.nombre}
                 </span>
                 <span className="text-xs opacity-75">
-                  ({(() => {
+                  {(() => {
                     const parseLocalDate = (dateString: string): Date => {
                       const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
                       return new Date(year, month - 1, day);

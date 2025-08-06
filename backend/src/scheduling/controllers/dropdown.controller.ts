@@ -1,5 +1,6 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
 import { DropdownService, Subject, Teacher, Room, Plan, Level } from '../services/dropdown.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('dropdown')
 export class DropdownController {
@@ -51,5 +52,28 @@ export class DropdownController {
   async getSubjectsInicio(@Query('bimestreId') bimestreId?: string): Promise<Subject[]> {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
     return this.dropdownService.getSubjectsInicio(bimestreIdNum);
+  }
+
+  // Endpoints para asignaturas filtradas por permisos del usuario
+  @Get('subjects-with-permissions')
+  @UseGuards(JwtAuthGuard)
+  async getSubjectsWithPermissions(
+    @Req() req: any,
+    @Query('bimestreId') bimestreId?: string
+  ): Promise<Subject[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    const userId = req.user.userId;
+    return this.dropdownService.getSubjectsWithPermissions(userId, bimestreIdNum);
+  }
+
+  @Get('subjects-inicio-with-permissions')
+  @UseGuards(JwtAuthGuard)
+  async getSubjectsInicioWithPermissions(
+    @Req() req: any,
+    @Query('bimestreId') bimestreId?: string
+  ): Promise<Subject[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    const userId = req.user.userId;
+    return this.dropdownService.getSubjectsInicioWithPermissions(userId, bimestreIdNum);
   }
 }

@@ -247,4 +247,121 @@ export class DropdownService {
     console.log('DEBUG: Número de asignaturas de inicio encontradas:', subjects.length);
     return subjects;
   }
+
+  // Método para obtener asignaturas filtradas por permisos del usuario
+  async getSubjectsWithPermissions(userId: number, bimestreId?: number): Promise<Subject[]> {
+    console.log('DEBUG: getSubjectsWithPermissions llamado con userId:', userId, 'bimestreId:', bimestreId);
+    
+    let query = `
+      SELECT DISTINCT
+        a.id,
+        a.code,
+        a.name,
+        a.category,
+        a.acronym,
+        a.course,
+        a.code as plan_code,
+        a.level
+      FROM academic_structures a
+      WHERE a.is_active = 1
+        AND a.acronym IN (
+          SELECT DISTINCT uap.sigla
+          FROM usuario_asignaturas_permitidas uap
+          WHERE uap.usuario_id = ?
+        )
+    `;
+    
+    const params = [userId];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query = `
+        SELECT DISTINCT
+          a.id,
+          a.code,
+          a.name,
+          a.category,
+          a.acronym,
+          a.course,
+          a.code as plan_code,
+          a.level
+        FROM academic_structures a
+        WHERE a.is_active = 1
+          AND a.id_bimestre = ?
+          AND a.acronym IN (
+            SELECT DISTINCT uap.sigla
+            FROM usuario_asignaturas_permitidas uap
+            WHERE uap.usuario_id = ? AND uap.bimestre_id = ?
+          )
+      `;
+      params.splice(0, params.length, bimestreId, userId, bimestreId);
+    }
+    
+    query += ` ORDER BY a.name ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getSubjectsWithPermissions:', query, 'con parámetros:', params);
+    const subjects = await this.entityManager.query(query, params);
+    console.log('DEBUG: Resultado getSubjectsWithPermissions:', subjects);
+    console.log('DEBUG: Número de asignaturas con permisos encontradas:', subjects.length);
+    return subjects;
+  }
+
+  // Método para obtener asignaturas de inicio filtradas por permisos del usuario
+  async getSubjectsInicioWithPermissions(userId: number, bimestreId?: number): Promise<Subject[]> {
+    // Para asignaturas de inicio, necesitamos verificar permisos por código de plan o categoría INICIO
+    let query = `
+      SELECT DISTINCT
+        ROW_NUMBER() OVER (ORDER BY v.sigla_asignatura) as id,
+        v.codigo_plan as code,
+        v.asignatura as name,
+        'INICIO' as category,
+        v.sigla_asignatura as acronym,
+        v.asignatura as course,
+        v.codigo_plan as plan_code,
+        v.nivel as level
+      FROM vacantes_inicio_permanente v
+      WHERE v.sigla_asignatura IS NOT NULL AND v.sigla_asignatura != '' 
+        AND v.asignatura IS NOT NULL AND v.asignatura != '' 
+        AND v.activo = 1
+        AND (
+          -- Verificar permisos por carrera (código de plan)
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_carrera upc
+            JOIN carreras c ON upc.carrera_id = c.id
+            WHERE upc.usuario_id = ? AND c.codigo_plan = v.codigo_plan AND upc.activo = 1
+          )
+          OR
+          -- Verificar permisos por categoría INICIO
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_categoria upcat
+            WHERE upcat.usuario_id = ? AND upcat.categoria = 'INICIO' AND upcat.activo = 1
+          )
+        )
+    `;
+    
+    const params = [userId, userId];
+    
+    // Si se proporciona bimestre_id, filtrar por bimestre
+    if (bimestreId) {
+      query += ` AND v.id_bimestre = ?`;
+      // También filtrar los permisos por bimestre
+      query = query.replace(
+        'WHERE upc.usuario_id = ? AND c.codigo_plan = v.codigo_plan AND upc.activo = 1',
+        'WHERE upc.usuario_id = ? AND c.codigo_plan = v.codigo_plan AND upc.activo = 1 AND upc.bimestre_id = ?'
+      );
+      query = query.replace(
+        'WHERE upcat.usuario_id = ? AND upcat.categoria = \'INICIO\' AND upcat.activo = 1',
+        'WHERE upcat.usuario_id = ? AND upcat.categoria = \'INICIO\' AND upcat.activo = 1 AND upcat.bimestre_id = ?'
+      );
+      params.push(bimestreId, bimestreId, bimestreId);
+    }
+    
+    query += ` ORDER BY v.sigla_asignatura ASC`;
+    
+    console.log('DEBUG: Ejecutando consulta getSubjectsInicioWithPermissions:', query, 'con parámetros:', params);
+    const subjects = await this.entityManager.query(query, params);
+    console.log('DEBUG: Resultado getSubjectsInicioWithPermissions:', subjects);
+    console.log('DEBUG: Número de asignaturas de inicio con permisos encontradas:', subjects.length);
+    return subjects;
+  }
 }
