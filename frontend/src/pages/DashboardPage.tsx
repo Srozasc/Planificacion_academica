@@ -56,7 +56,11 @@ const DashboardPage: React.FC = () => {
 
   // Función para filtrar eventos
   const filteredEvents = events.filter(event => {
-    const planMatch = !filters.plan || (event.extendedProps?.plan_code || '').toLowerCase().includes(filters.plan.toLowerCase());
+    // Para el filtro de plan, considerar tanto plan_code como 'ADOL' para eventos que comienzan con 'ADOL'
+    const planText = event.extendedProps?.plan_code || 
+      (!event.extendedProps?.plan_code && event.title.startsWith('ADOL') ? 'ADOL' : '');
+    const planMatch = !filters.plan || planText.toLowerCase().includes(filters.plan.toLowerCase());
+    
     const eventoMatch = !filters.evento || event.title.toLowerCase().includes(filters.evento.toLowerCase());
     const docenteMatch = !filters.docente || (event.extendedProps?.teacher_names || event.extendedProps?.teacher || '').toLowerCase().includes(filters.docente.toLowerCase());
     const capacidadMatch = !filters.capacidad || (event.extendedProps?.students || '').toString().includes(filters.capacidad);
@@ -410,7 +414,9 @@ const DashboardPage: React.FC = () => {
                     <tbody className="divide-y divide-gray-200">
                       {filteredEvents.map(event => (
                         <tr key={event.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.plan_code || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600">
+                            {(!event.extendedProps?.plan_code && event.title.startsWith('ADOL')) ? 'ADOL' : (event.extendedProps?.plan_code || '-')}
+                          </td>
                           <td className="px-3 py-2 text-sm text-gray-900">{event.title}</td>
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.teacher_names || event.extendedProps?.teacher || '-'}</td>
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.students || '-'}</td>
