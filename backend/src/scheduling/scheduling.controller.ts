@@ -12,6 +12,7 @@ import {
   UseGuards,
   Logger,
   ValidationPipe,
+  Req,
 } from '@nestjs/common';
 import { SchedulingService } from './scheduling.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -33,9 +34,13 @@ export class SchedulingController {
   ) {}
 
   @Get()
-  async findAll(@Query(new ValidationPipe({ transform: true })) query: GetEventsQueryDto) {
+  async findAll(
+    @Query(new ValidationPipe({ transform: true })) query: GetEventsQueryDto,
+    @Req() req: any
+  ) {
     try {
-      const result = await this.schedulingService.findAll(query);
+      const userId = req.user.userId;
+      const result = await this.schedulingService.findAllWithPermissions(query, userId);
         // Convertir al formato esperado por el frontend
       const frontendEvents = result.data.map(event => event.toFrontendFormat());
       
@@ -75,9 +80,13 @@ export class SchedulingController {
   }
 
   @Get('bimestre/:bimestreId')
-  async findByBimestre(@Param('bimestreId', ParseIntPipe) bimestreId: number) {
+  async findByBimestre(
+    @Param('bimestreId', ParseIntPipe) bimestreId: number,
+    @Req() req: any
+  ) {
     try {
-      const events = await this.schedulingService.findByBimestre(bimestreId);
+      const userId = req.user.userId;
+      const events = await this.schedulingService.findByBimestreWithPermissions(bimestreId, userId);
       const frontendEvents = events.map(event => event.toFrontendFormat());
       
       return this.responseService.success(

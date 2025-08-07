@@ -24,6 +24,160 @@ export class SchedulingService {
     private readonly bimestreService: BimestreService,
   ) {}
 
+  async findAllWithPermissions(query: GetEventsQueryDto, userId: number): Promise<{ data: ScheduleEventDto[], total: number }> {
+    try {
+      const { start_date, end_date, bimestre_id, active, page = 1, limit = 50 } = query;
+      
+      // Construir condiciones WHERE
+      const where: any = {};
+
+      if (active !== undefined) {
+        where.active = active;
+      }
+
+      if (bimestre_id) {
+        where.bimestre_id = bimestre_id;
+      }
+
+      // Filtrado por fechas: un evento se incluye si hay alguna superposición con el rango solicitado
+      if (start_date && end_date) {
+        const startFilter = new Date(start_date);
+        const endFilter = new Date(end_date);
+        
+        // Usar query builder para condiciones más complejas con filtrado por permisos
+        const queryBuilder = this.eventRepository.createQueryBuilder('event')
+          .leftJoinAndSelect('event.bimestre', 'bimestre')
+          .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+          .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+          .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+          .where('(event.start_date <= :endFilter AND event.end_date >= :startFilter)', {
+            startFilter,
+            endFilter
+          })
+          .andWhere(`(
+            -- Verificar permisos por asignaturas permitidas
+            event.subject IN (
+              SELECT DISTINCT uap.sigla
+              FROM usuario_asignaturas_permitidas uap
+              WHERE uap.usuario_id = :userId
+              ${bimestre_id ? 'AND uap.bimestre_id = :bimestre_id' : ''}
+            )
+            OR
+            -- Verificar permisos por carrera (para eventos de inicio)
+            EXISTS (
+              SELECT 1 FROM usuario_permisos_carrera upc
+              JOIN carreras c ON upc.carrera_id = c.id
+              JOIN vacantes_inicio_permanente vip ON c.codigo_plan = vip.codigo_plan
+              WHERE upc.usuario_id = :userId AND vip.sigla_asignatura = event.subject AND upc.activo = 1
+              ${bimestre_id ? 'AND upc.bimestre_id = :bimestre_id' : ''}
+            )
+            OR
+            -- Verificar permisos por categoría INICIO
+            EXISTS (
+              SELECT 1 FROM usuario_permisos_categoria upcat
+              WHERE upcat.usuario_id = :userId AND upcat.categoria = 'INICIO' AND upcat.activo = 1
+              ${bimestre_id ? 'AND upcat.bimestre_id = :bimestre_id' : ''}
+            )
+          )`, { userId });
+
+        if (active !== undefined) {
+          queryBuilder.andWhere('event.active = :active', { active });
+        }
+
+        if (bimestre_id) {
+          queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
+        }
+
+        queryBuilder.orderBy('event.start_date', 'ASC')
+          .skip((page - 1) * limit)
+          .take(limit);
+
+        const result = await queryBuilder.getRawAndEntities();
+        const events = result.entities;
+        const raw = result.raw;
+        const eventDtos = events.map(event => {
+          const academicData = raw.find(r => r.event_id === event.id);
+          if (academicData) {
+            (event as any).academic_name = academicData.academic_name;
+            (event as any).academic_school_prog = academicData.academic_school_prog;
+            (event as any).academic_code = academicData.academic_code;
+          }
+          return ScheduleEventDto.fromEntity(event);
+        });
+        const total = await queryBuilder.getCount();
+        
+        this.logger.log(`Se encontraron ${events.length} eventos de ${total} totales con filtro de fechas y permisos para usuario ${userId}`);
+        return { data: eventDtos, total };
+      }
+
+      // Para casos sin filtro de fechas, usar query builder con permisos
+      const queryBuilder = this.eventRepository.createQueryBuilder('event')
+        .leftJoinAndSelect('event.bimestre', 'bimestre')
+        .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+        .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .where(`(
+          -- Verificar permisos por asignaturas permitidas
+          event.subject IN (
+            SELECT DISTINCT uap.sigla
+            FROM usuario_asignaturas_permitidas uap
+            WHERE uap.usuario_id = :userId
+            ${bimestre_id ? 'AND uap.bimestre_id = :bimestre_id' : ''}
+          )
+          OR
+          -- Verificar permisos por carrera (para eventos de inicio)
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_carrera upc
+            JOIN carreras c ON upc.carrera_id = c.id
+            JOIN vacantes_inicio_permanente vip ON c.codigo_plan = vip.codigo_plan
+            WHERE upc.usuario_id = :userId AND vip.sigla_asignatura = event.subject AND upc.activo = 1
+            ${bimestre_id ? 'AND upc.bimestre_id = :bimestre_id' : ''}
+          )
+          OR
+          -- Verificar permisos por categoría INICIO
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_categoria upcat
+            WHERE upcat.usuario_id = :userId AND upcat.categoria = 'INICIO' AND upcat.activo = 1
+            ${bimestre_id ? 'AND upcat.bimestre_id = :bimestre_id' : ''}
+          )
+        )`, { userId });
+
+      if (active !== undefined) {
+        queryBuilder.andWhere('event.active = :active', { active });
+      }
+
+      if (bimestre_id) {
+        queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
+      }
+
+      queryBuilder.orderBy('event.start_date', 'ASC')
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      const result = await queryBuilder.getRawAndEntities();
+      const events = result.entities;
+      const raw = result.raw;
+      const eventDtos = events.map(event => {
+        const academicData = raw.find(r => r.event_id === event.id);
+        if (academicData) {
+          (event as any).academic_name = academicData.academic_name;
+          (event as any).academic_school_prog = academicData.academic_school_prog;
+          (event as any).academic_code = academicData.academic_code;
+        }
+        return ScheduleEventDto.fromEntity(event);
+      });
+      const total = await queryBuilder.getCount();
+      
+      this.logger.log(`Se encontraron ${events.length} eventos de ${total} totales con permisos para usuario ${userId}`);
+      return { data: eventDtos, total };
+    } catch (error) {
+      this.logger.error('Error al obtener eventos con permisos', error);
+      throw error;
+    }
+  }
+
   async findAll(query: GetEventsQueryDto): Promise<{ data: ScheduleEventDto[], total: number }> {
     try {
       const { start_date, end_date, bimestre_id, active, page = 1, limit = 50 } = query;
@@ -399,6 +553,61 @@ export class SchedulingService {
   }
 
   // Método para obtener eventos por bimestre
+  async findByBimestreWithPermissions(bimestreId: number, userId: number): Promise<ScheduleEventDto[]> {
+    try {
+      const queryBuilder = this.eventRepository.createQueryBuilder('event')
+        .leftJoinAndSelect('event.bimestre', 'bimestre')
+        .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+        .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .where('event.bimestre_id = :bimestreId', { bimestreId })
+        .andWhere('event.active = :active', { active: true })
+        .andWhere(`(
+          -- Verificar permisos por asignaturas permitidas
+          event.subject IN (
+            SELECT DISTINCT uap.sigla
+            FROM usuario_asignaturas_permitidas uap
+            WHERE uap.usuario_id = :userId AND uap.bimestre_id = :bimestreId
+          )
+          OR
+          -- Verificar permisos por carrera (para eventos de inicio)
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_carrera upc
+            JOIN carreras c ON upc.carrera_id = c.id
+            JOIN vacantes_inicio_permanente vip ON c.codigo_plan = vip.codigo_plan
+            WHERE upc.usuario_id = :userId AND vip.sigla_asignatura = event.subject AND upc.activo = 1 AND upc.bimestre_id = :bimestreId
+          )
+          OR
+          -- Verificar permisos por categoría INICIO
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_categoria upcat
+            WHERE upcat.usuario_id = :userId AND upcat.categoria = 'INICIO' AND upcat.activo = 1 AND upcat.bimestre_id = :bimestreId
+          )
+        )`, { userId, bimestreId })
+        .orderBy('event.start_date', 'ASC');
+
+      const result = await queryBuilder.getRawAndEntities();
+      const events = result.entities;
+      const raw = result.raw;
+      const eventDtos = events.map(event => {
+        const academicData = raw.find(r => r.event_id === event.id);
+        if (academicData) {
+          (event as any).academic_name = academicData.academic_name;
+          (event as any).academic_school_prog = academicData.academic_school_prog;
+          (event as any).academic_code = academicData.academic_code;
+        }
+        return ScheduleEventDto.fromEntity(event);
+      });
+
+      this.logger.log(`Se encontraron ${events.length} eventos del bimestre ${bimestreId} con permisos para usuario ${userId}`);
+      return eventDtos;
+    } catch (error) {
+      this.logger.error(`Error al obtener eventos del bimestre ${bimestreId} con permisos`, error);
+      throw error;
+    }
+  }
+
   async findByBimestre(bimestreId: number): Promise<ScheduleEventDto[]> {
     try {
       const events = await this.eventRepository.find({
