@@ -297,11 +297,6 @@ Se asegurará que solo los usuarios autenticados puedan acceder a ciertas rutas/
 
 ---
 
-*(Continuación del plan de acción para las demás funcionalidades principales...)*
-*(Este es un ejemplo de cómo continuar. Se deben detallar los Bloques 2, 3, 4 y 5 con el mismo nivel de granularidad)*
-
----
-
 ## Tarea 2: Carga y Validación Inicial de Datos Maestros
 
 ### Paso 2.1: Diseño e Implementación de Esquema de BD para Datos Maestros

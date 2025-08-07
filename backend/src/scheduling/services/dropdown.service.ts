@@ -339,7 +339,7 @@ export class DropdownService {
         )
     `;
     
-    const params = [userId, userId];
+    let params = [userId, userId];
     
     // Si se proporciona bimestre_id, filtrar por bimestre
     if (bimestreId) {
@@ -353,7 +353,8 @@ export class DropdownService {
         'WHERE upcat.usuario_id = ? AND upcat.categoria = \'INICIO\' AND upcat.activo = 1',
         'WHERE upcat.usuario_id = ? AND upcat.categoria = \'INICIO\' AND upcat.activo = 1 AND upcat.bimestre_id = ?'
       );
-      params.push(bimestreId, bimestreId, bimestreId);
+      // Reemplazar completamente el array de parámetros con el orden correcto
+      params = [userId, bimestreId, userId, bimestreId, bimestreId];
     }
     
     query += ` ORDER BY v.sigla_asignatura ASC`;
