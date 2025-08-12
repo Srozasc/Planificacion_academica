@@ -16,6 +16,7 @@ export interface CreateBimestreDto {
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
+  factor?: number;
 }
 
 export interface UpdateBimestreDto {
@@ -28,6 +29,7 @@ export interface UpdateBimestreDto {
   fechaPago2Inicio?: string;
   fechaPago2Fin?: string;
   descripcion?: string;
+  factor?: number;
 }
 
 @Injectable()
