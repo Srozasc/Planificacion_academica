@@ -593,10 +593,10 @@ export class UploadService {
     const records: StagingDol[] = [];
 
     try {
-      // Limpiar todos los datos existentes en la tabla staging
-      this.logger.log('Eliminando todos los registros existentes de la tabla staging_dol...');
-      await this.stagingDolRepository.clear();
-      this.logger.log('Tabla staging_dol limpiada completamente');
+      // Limpiar solo los datos del bimestre actual en la tabla staging
+      this.logger.log(`Eliminando registros existentes del bimestre ${bimestreId} en la tabla staging_dol...`);
+      await this.stagingDolRepository.delete({ id_bimestre: bimestreId });
+      this.logger.log(`Registros del bimestre ${bimestreId} eliminados de staging_dol`);
 
       this.logger.log('Iniciando inserción de nuevos registros...');
       for (let i = 0; i < data.length; i++) {
@@ -604,24 +604,46 @@ export class UploadService {
         this.logger.log(`Procesando registro ${i + 1}/${data.length}:`, JSON.stringify(row));
         
         const record = new StagingDol();
-        record.plan = row.PLAN || row.plan || null;
+        record.plan = String(row.PLAN || row.plan || '').trim();
         record.sigla = row.SIGLA || row.sigla;
         record.descripcion = row.DESCRIPCION || row.descripcion;
         record.id_bimestre = bimestreId;
         
         this.logger.log(`Entidad creada:`, {
           plan: record.plan,
+          planType: typeof record.plan,
           sigla: record.sigla,
           descripcion: record.descripcion,
           id_bimestre: record.id_bimestre
         });
         
         try {
+          // Verificar si ya existe un registro con esta clave primaria compuesta
+          const existingRecord = await this.stagingDolRepository.findOne({
+            where: { sigla: record.sigla, plan: record.plan }
+          });
+          
+          this.logger.log(`Registro existente para ${record.sigla}-${record.plan}:`, existingRecord ? 'SÍ' : 'NO');
+          
+          // Usar upsert para manejar la clave primaria compuesta (sigla, plan)
           const savedRecord = await this.stagingDolRepository.save(record);
-           this.logger.log(`Registro ${i + 1} guardado exitosamente - SIGLA: ${savedRecord.sigla}, Bimestre: ${savedRecord.id_bimestre}`);
-           records.push(savedRecord);
+          this.logger.log(`Registro ${i + 1} guardado exitosamente - PLAN: ${savedRecord.plan}, SIGLA: ${savedRecord.sigla}, Bimestre: ${savedRecord.id_bimestre}`);
+          this.logger.log(`Detalles completos del registro guardado:`, {
+            plan: savedRecord.plan,
+            planType: typeof savedRecord.plan,
+            sigla: savedRecord.sigla,
+            descripcion: savedRecord.descripcion,
+            id_bimestre: savedRecord.id_bimestre
+          });
+          records.push(savedRecord);
         } catch (saveError) {
           this.logger.error(`Error guardando registro ${i + 1}:`, saveError.message);
+          this.logger.error(`Datos del registro con error:`, {
+            plan: record.plan,
+            sigla: record.sigla,
+            descripcion: record.descripcion,
+            id_bimestre: record.id_bimestre
+          });
           throw saveError;
         }
       }
@@ -632,6 +654,14 @@ export class UploadService {
       // Verificar que los datos se guardaron
       const countAfter = await this.stagingDolRepository.count({ where: { id_bimestre: bimestreId } });
       this.logger.log(`Verificación: registros en BD para bimestre ${bimestreId}: ${countAfter}`);
+      
+      // Verificar registros únicos por combinación sigla-plan
+      const uniqueCombinations = await this.stagingDolRepository
+        .createQueryBuilder('staging_dol')
+        .select('COUNT(DISTINCT CONCAT(staging_dol.sigla, "-", staging_dol.plan))', 'unique_combinations')
+        .where('staging_dol.id_bimestre = :bimestreId', { bimestreId })
+        .getRawOne();
+      this.logger.log(`Verificación: combinaciones únicas sigla-plan para bimestre ${bimestreId}: ${uniqueCombinations.unique_combinations}`);
       
       return records;
     } catch (error) {
