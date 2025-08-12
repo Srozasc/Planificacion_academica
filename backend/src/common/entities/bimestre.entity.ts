@@ -39,7 +39,7 @@ export class Bimestre {
   @Column({ type: 'text', nullable: true })
   descripcion?: string;
 
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true, comment: 'Factor multiplicador para cálculos del bimestre' })
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true, comment: 'Factor multiplicador para cálculos del bimestre' })
   factor?: number;
 
   @CreateDateColumn()
