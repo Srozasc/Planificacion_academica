@@ -121,9 +121,10 @@ export class SchedulingController {
 
   @Post()
   @Roles('Maestro', 'Editor')
-  async create(@Body() createEventDto: CreateEventDto) {
+  async create(@Body() createEventDto: CreateEventDto, @Req() req: any) {
     try {
-      const event = await this.schedulingService.create(createEventDto);
+      const userEmail = req.user.email;
+      const event = await this.schedulingService.create(createEventDto, userEmail);
       return this.responseService.success(
         event.toFrontendFormat(),
         'Evento creado exitosamente'
@@ -138,10 +139,12 @@ export class SchedulingController {
   @Roles('Maestro', 'Editor')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateEventDto: UpdateEventDto
+    @Body() updateEventDto: UpdateEventDto,
+    @Req() req: any
   ) {
     try {
-      const event = await this.schedulingService.update(id, updateEventDto);
+      const userEmail = req.user.email;
+      const event = await this.schedulingService.update(id, updateEventDto, userEmail);
       return this.responseService.success(
         event.toFrontendFormat(),
         'Evento actualizado exitosamente'

@@ -43,6 +43,9 @@ export class ScheduleEvent {
   @Column({ type: 'boolean', default: true })
   active: boolean;
 
+  @Column({ type: 'varchar', length: 15, nullable: true, comment: 'Usuario que creó o modificó el evento' })
+  usuario?: string;
+
   @CreateDateColumn()
   created_at: Date;
 

@@ -14,6 +14,7 @@ export class ScheduleEventDto {
   background_color?: string;
   bimestre_id?: number;
   active: boolean;
+  usuario?: string; // Usuario que creó o modificó el evento
   created_at: Date;
   updated_at: Date;
   
@@ -46,6 +47,7 @@ export class ScheduleEventDto {
     dto.background_color = entity.background_color;
     dto.bimestre_id = entity.bimestre_id;
     dto.active = entity.active;
+    dto.usuario = entity.usuario;
     dto.created_at = entity.created_at;
     dto.updated_at = entity.updated_at;
 
@@ -112,6 +114,7 @@ export class ScheduleEventDto {
         course_name: this.course_name, // Nombre del curso
         section: this.section, // Sección
         plan_code: this.plan_code, // Código del plan
+        usuario: this.usuario, // Usuario que creó o modificó el evento
       },
     };
   }

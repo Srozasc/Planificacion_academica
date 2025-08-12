@@ -310,7 +310,7 @@ export class SchedulingService {
       throw error;
     }
   }
-  async create(createEventDto: CreateEventDto): Promise<ScheduleEventDto> {
+  async create(createEventDto: CreateEventDto, userEmail?: string): Promise<ScheduleEventDto> {
     try {
       this.logger.log(`Creating event with data: ${JSON.stringify(createEventDto)}`);
       this.logger.log(`Campo horas recibido: ${createEventDto.horas} (tipo: ${typeof createEventDto.horas})`);
@@ -360,11 +360,19 @@ export class SchedulingService {
 
       this.logger.log(`Valor de bimestreId antes de crear evento: ${bimestreId} (tipo: ${typeof bimestreId})`);
       
+      // Extraer usuario del email (substring antes del '@')
+      let usuario: string | undefined;
+      if (userEmail) {
+        usuario = userEmail.split('@')[0];
+        this.logger.log(`Usuario extraído del email ${userEmail}: ${usuario}`);
+      }
+      
       const event = this.eventRepository.create({
         ...createEventDto,
         start_date: startDate,
         end_date: endDate,
         bimestre_id: bimestreId, // Asignar el bimestre_id determinado automáticamente o proporcionado
+        usuario: usuario, // Asignar el usuario extraído del email
       });
       
       this.logger.log(`Evento creado con bimestre_id: ${event.bimestre_id}`);
@@ -388,7 +396,7 @@ export class SchedulingService {
     }
   }
 
-  async update(id: number, updateEventDto: UpdateEventDto): Promise<ScheduleEventDto> {
+  async update(id: number, updateEventDto: UpdateEventDto, userEmail?: string): Promise<ScheduleEventDto> {
     try {
       const existingEvent = await this.eventRepository.findOne({ where: { id } });
       
@@ -433,6 +441,12 @@ export class SchedulingService {
       }
       if (updateEventDto.end_date) {
         updateData.end_date = new Date(updateEventDto.end_date);
+      }
+      
+      // Actualizar usuario si se proporciona email
+      if (userEmail) {
+        updateData.usuario = userEmail.split('@')[0];
+        this.logger.log(`Usuario actualizado del email ${userEmail}: ${updateData.usuario}`);
       }
 
       await this.eventRepository.update(id, updateData);

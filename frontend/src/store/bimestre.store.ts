@@ -17,6 +17,8 @@ interface BimestreState {
   crearBimestre: (createDto: CreateBimestreDto) => Promise<Bimestre>;
   actualizarBimestre: (id: number, updateDto: UpdateBimestreDto) => Promise<Bimestre>;
   eliminarBimestre: (id: number) => Promise<void>;
+  eliminarBimestreConEventos: (id: number) => Promise<void>;
+  verificarDependencias: (id: number) => Promise<any>;
   
   // Utilidades
   clearError: () => void;
