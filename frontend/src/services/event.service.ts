@@ -38,6 +38,16 @@ class EventService {
     }
   }
 
+  async getEventsByBimestre(bimestreId: number): Promise<Event[]> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/bimestre/${bimestreId}`);
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching events by bimestre:', error);
+      return [];
+    }
+  }
+
   async getEventById(id: string): Promise<Event> {
     try {
       const response = await apiClient.get(`${this.baseUrl}/${id}`);

@@ -86,17 +86,13 @@ const DashboardPage: React.FC = () => {
         return;
       }
       
-      const startDate = bimestreSeleccionado.fechaInicio;
-      const endDate = bimestreSeleccionado.fechaFin;
       console.log('🔍 Cargando eventos para bimestre:', { 
         bimestreId: bimestreSeleccionado.id,
-        nombre: bimestreSeleccionado.nombre,
-        startDate, 
-        endDate 
+        nombre: bimestreSeleccionado.nombre
       });
       
-      console.log('📡 Llamando a eventService.getEvents con parámetros:', { startDate, endDate });
-      const fetchedEvents = await eventService.getEvents(startDate, endDate);
+      console.log('📡 Llamando a eventService.getEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
+      const fetchedEvents = await eventService.getEventsByBimestre(bimestreSeleccionado.id);
       console.log('✅ Eventos obtenidos del backend:', {
         cantidad: fetchedEvents.length,
         eventos: fetchedEvents.map(e => ({
