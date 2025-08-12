@@ -622,6 +622,44 @@ export class SchedulingService {
     }
   }
 
+  async findADOLEventsByBimestre(bimestreId: number, userEmail: string): Promise<ScheduleEventDto[]> {
+    try {
+      // Extraer el substring antes del '@' del email del usuario
+      const userSubstring = userEmail.split('@')[0];
+      
+      const queryBuilder = this.eventRepository.createQueryBuilder('event')
+        .leftJoinAndSelect('event.bimestre', 'bimestre')
+        .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+        .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .where('event.bimestre_id = :bimestreId', { bimestreId })
+        .andWhere('event.active = :active', { active: true })
+        .andWhere('event.title LIKE :adolPrefix', { adolPrefix: 'ADOL%' })
+        .andWhere('event.usuario = :userSubstring', { userSubstring })
+        .orderBy('event.start_date', 'ASC');
+
+      const result = await queryBuilder.getRawAndEntities();
+      const events = result.entities;
+      const raw = result.raw;
+      const eventDtos = events.map(event => {
+        const academicData = raw.find(r => r.event_id === event.id);
+        if (academicData) {
+          (event as any).academic_name = academicData.academic_name;
+          (event as any).academic_school_prog = academicData.academic_school_prog;
+          (event as any).academic_code = academicData.academic_code;
+        }
+        return ScheduleEventDto.fromEntity(event);
+      });
+
+      this.logger.log(`Se encontraron ${events.length} eventos ADOL del bimestre ${bimestreId} para usuario ${userSubstring}`);
+      return eventDtos;
+    } catch (error) {
+      this.logger.error(`Error al obtener eventos ADOL del bimestre ${bimestreId}`, error);
+      throw error;
+    }
+  }
+
   async findByBimestre(bimestreId: number): Promise<ScheduleEventDto[]> {
     try {
       const events = await this.eventRepository.find({

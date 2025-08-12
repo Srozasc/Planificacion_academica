@@ -102,6 +102,29 @@ export class SchedulingController {
     }
   }
 
+  @Get('adol/bimestre/:bimestreId')
+  async findADOLByBimestre(
+    @Param('bimestreId', ParseIntPipe) bimestreId: number,
+    @Req() req: any
+  ) {
+    try {
+      const userEmail = req.user.email;
+      const events = await this.schedulingService.findADOLEventsByBimestre(bimestreId, userEmail);
+      const frontendEvents = events.map(event => event.toFrontendFormat());
+      
+      return this.responseService.success(
+        frontendEvents,
+        `Eventos ADOL del bimestre ${bimestreId} obtenidos exitosamente`
+      );
+    } catch (error) {
+      this.logger.error(`Error al obtener eventos ADOL del bimestre ${bimestreId}`, error);
+      return this.responseService.error(
+        'Error al obtener eventos ADOL del bimestre',
+        [error.message]
+      );
+    }
+  }
+
   @Get(':id')
   async findById(@Param('id', ParseIntPipe) id: number) {
     try {

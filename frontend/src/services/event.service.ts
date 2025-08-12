@@ -48,6 +48,16 @@ class EventService {
     }
   }
 
+  async getADOLEventsByBimestre(bimestreId: number): Promise<Event[]> {
+    try {
+      const response = await apiClient.get(`${this.baseUrl}/adol/bimestre/${bimestreId}`);
+      return response.data.data || [];
+    } catch (error) {
+      console.error('Error fetching ADOL events by bimestre:', error);
+      return [];
+    }
+  }
+
   async getEventById(id: string): Promise<Event> {
     try {
       const response = await apiClient.get(`${this.baseUrl}/${id}`);

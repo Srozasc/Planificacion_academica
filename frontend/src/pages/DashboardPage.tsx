@@ -19,6 +19,7 @@ const DashboardPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [eventType, setEventType] = useState<'asignaturas' | 'adol'>('asignaturas');
   
   // Estados para filtros
   const [filters, setFilters] = useState({
@@ -88,11 +89,19 @@ const DashboardPage: React.FC = () => {
       
       console.log('🔍 Cargando eventos para bimestre:', { 
         bimestreId: bimestreSeleccionado.id,
-        nombre: bimestreSeleccionado.nombre
+        nombre: bimestreSeleccionado.nombre,
+        tipo: eventType
       });
       
-      console.log('📡 Llamando a eventService.getEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
-      const fetchedEvents = await eventService.getEventsByBimestre(bimestreSeleccionado.id);
+      let fetchedEvents;
+      if (eventType === 'adol') {
+        console.log('📡 Llamando a eventService.getADOLEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
+        fetchedEvents = await eventService.getADOLEventsByBimestre(bimestreSeleccionado.id);
+      } else {
+        console.log('📡 Llamando a eventService.getEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
+        fetchedEvents = await eventService.getEventsByBimestre(bimestreSeleccionado.id);
+      }
+      
       console.log('✅ Eventos obtenidos del backend:', {
         cantidad: fetchedEvents.length,
         eventos: fetchedEvents.map(e => ({
@@ -235,10 +244,10 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // Cargar datos cuando cambia el bimestre
+  // Cargar datos cuando cambia el bimestre o el tipo de evento
   useEffect(() => {
     loadEvents();
-  }, [bimestreSeleccionado]);
+  }, [bimestreSeleccionado, eventType]);
 
 
 
@@ -326,6 +335,34 @@ const DashboardPage: React.FC = () => {
             {/* Lista de eventos */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="font-semibold text-gray-900 mb-3">Eventos Programados ({filteredEvents.length})</h3>
+              
+              {/* Radio buttons para tipo de eventos */}
+              <div className="mb-4">
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="eventType"
+                      value="asignaturas"
+                      checked={eventType === 'asignaturas'}
+                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol')}
+                      className="mr-2 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Asignaturas</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="eventType"
+                      value="adol"
+                      checked={eventType === 'adol'}
+                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol')}
+                      className="mr-2 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">ADOL</span>
+                  </label>
+                </div>
+              </div>
               {events.length > 0 ? (
                 <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
                   <table className="min-w-full bg-white">
