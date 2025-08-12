@@ -11,6 +11,7 @@ import { StagingEstructuraAcademica } from '../estructura-academica/entities/est
 import { AcademicStructure } from '../academic/entities/academic-structure.entity';
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
+import { StagingOptativos } from '../optativos/entities/staging-optativos.entity';
 import { UploadLog } from './entities/upload-log.entity';
 import { ResponseService } from '../common/services/response.service';
 import { unlinkSync } from 'fs';
@@ -51,6 +52,7 @@ interface SystemStats {
   totalAcademicStructures: number;
   totalCourseReports: number;
   totalAdolPositions: number;
+  ramos_optativos: number;
   lastUploadDate: Date;
   systemHealth: string;
 }
@@ -78,6 +80,8 @@ export class UploadService {
     private stagingReporteCursablesRepository: Repository<StagingReporteCursables>,
     @InjectRepository(StagingNominaDocentes)
     private stagingNominaDocentesRepository: Repository<StagingNominaDocentes>,
+    @InjectRepository(StagingOptativos)
+    private stagingOptativosRepository: Repository<StagingOptativos>,
     @InjectRepository(UploadLog)
     private readonly uploadLogRepository: Repository<UploadLog>,
     private readonly responseService: ResponseService,
@@ -1175,6 +1179,7 @@ export class UploadService {
       const dolCount = await this.stagingDolRepository.count();
       const vacantesInicioCount = await this.stagingVacantesInicioRepository.count();
       const estructuraAcademicaCount = await this.stagingEstructuraAcademicaRepository.count();
+      const optativosCount = await this.stagingOptativosRepository.count();
 
       return {
         staging_adol_simple: adolCount,
@@ -1183,6 +1188,7 @@ export class UploadService {
         academic_structures: estructuraAcademicaCount,
         teachers: 0,
         course_reports: 0,
+        ramos_optativos: optativosCount,
       };
     } catch (error) {
       throw new Error(`Error obteniendo estadísticas: ${error.message}`);
@@ -2581,6 +2587,213 @@ export class UploadService {
     }
   }
 
+  async processAsignaturasOptativas(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
+    this.logger.log(`Iniciando procesamiento de asignaturas optativas: ${file.originalname}`);
+    
+    try {
+      // Leer el archivo Excel
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      if (data.length <= 1) {
+        await this.logUpload(
+          file.originalname,
+          'ASIGNATURAS_OPTATIVAS',
+          options.bimestreId,
+          'Error',
+          0,
+          1,
+          userId,
+          'El archivo está vacío o solo contiene encabezados'
+        );
+        return {
+          success: false,
+          message: 'El archivo está vacío o solo contiene encabezados'
+        };
+      }
+
+      // Convertir datos a objetos con nombres de columnas
+      const headers = data[0] as string[];
+      const rows = data.slice(1).map(row => {
+        const obj: any = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index];
+        });
+        return obj;
+      });
+
+      // Validar datos
+      const validation = this.validateAsignaturasOptativasData(rows);
+      
+      if (!validation.isValid) {
+        await this.logUpload(
+          file.originalname,
+          'ASIGNATURAS_OPTATIVAS',
+          options.bimestreId,
+          'Con errores',
+          rows.length,
+          validation.errors.length,
+          userId,
+          validation.errors.join('; ')
+        );
+        return {
+          success: false,
+          message: 'Errores de validación encontrados',
+          errors: validation.errors
+        };
+      }
+
+      if (options.validateOnly) {
+        return {
+          success: true,
+          message: 'Validación exitosa',
+          summary: {
+            totalRecords: rows.length,
+            validRecords: validation.validRecords.length,
+            invalidRecords: rows.length - validation.validRecords.length
+          }
+        };
+      }
+
+      // Limpiar datos existentes para este bimestre
+      await this.stagingOptativosRepository.delete({ id_bimestre: options.bimestreId });
+
+      // Guardar datos
+      const savedRecords = await this.saveAsignaturasOptativasData(validation.validRecords, options.bimestreId);
+
+      await this.logUpload(
+        file.originalname,
+        'ASIGNATURAS_OPTATIVAS',
+        options.bimestreId,
+        'Exitoso',
+        rows.length,
+        0,
+        userId
+      );
+
+      return {
+        success: true,
+        message: `Asignaturas optativas procesadas exitosamente. ${savedRecords.length} registros guardados.`,
+        summary: {
+          totalRecords: rows.length,
+          validRecords: savedRecords.length,
+          invalidRecords: 0
+        }
+      };
+
+    } catch (error) {
+      this.logger.error(`Error procesando asignaturas optativas: ${error.message}`, error.stack);
+      
+      await this.logUpload(
+        file.originalname,
+        'ASIGNATURAS_OPTATIVAS',
+        options.bimestreId,
+        'Error',
+        0,
+        1,
+        userId,
+        error.message
+      );
+
+      return {
+        success: false,
+        message: `Error procesando archivo: ${error.message}`
+      };
+    }
+  }
+
+  private validateAsignaturasOptativasData(data: any[]): { isValid: boolean; errors: string[]; validRecords: any[] } {
+    const errors: string[] = [];
+    const validRecords: any[] = [];
+
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      const rowNumber = i + 2; // +2 porque empezamos desde la fila 2 (después del header)
+
+      // Validar campos requeridos
+      if (!row['Plan']) {
+        errors.push(`Fila ${rowNumber}: Plan es requerido`);
+        continue;
+      }
+
+      if (!row['Descrip. Plan']) {
+        errors.push(`Fila ${rowNumber}: Descripción del Plan es requerida`);
+        continue;
+      }
+
+      if (!row['Nivel']) {
+        errors.push(`Fila ${rowNumber}: Nivel es requerido`);
+        continue;
+      }
+
+      if (!row['Grupo Asig.']) {
+        errors.push(`Fila ${rowNumber}: Grupo de Asignatura es requerido`);
+        continue;
+      }
+
+      if (!row['Jornada']) {
+        errors.push(`Fila ${rowNumber}: Jornada es requerida`);
+        continue;
+      }
+
+      if (!row['Asignatura']) {
+        errors.push(`Fila ${rowNumber}: Asignatura es requerida`);
+        continue;
+      }
+
+      if (!row['Descripción Asignatura']) {
+        errors.push(`Fila ${rowNumber}: Descripción de Asignatura es requerida`);
+        continue;
+      }
+
+      if (!row['Vacantes'] || isNaN(Number(row['Vacantes']))) {
+        errors.push(`Fila ${rowNumber}: Vacantes debe ser un número válido`);
+        continue;
+      }
+
+      validRecords.push(row);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      validRecords
+    };
+  }
+
+  private async saveAsignaturasOptativasData(data: any[], bimestreId: number): Promise<StagingOptativos[]> {
+    const savedRecords: StagingOptativos[] = [];
+
+    for (const row of data) {
+      try {
+        const stagingRecord = this.stagingOptativosRepository.create({
+          plan: String(row['Plan']),
+          descripcion_plan: String(row['Descrip. Plan']),
+          nivel: String(row['Nivel']),
+          grupo_asignatura: String(row['Grupo Asig.']),
+          jornada: String(row['Jornada']),
+          asignatura: String(row['Asignatura']),
+          descripcion_asignatura: String(row['Descripción Asignatura']),
+          vacantes: Number(row['Vacantes']),
+          id_bimestre: bimestreId,
+          status: 'pending',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        const saved = await this.stagingOptativosRepository.save(stagingRecord);
+        savedRecords.push(saved);
+      } catch (error) {
+        this.logger.error(`Error guardando registro de asignaturas optativas: ${error.message}`);
+        throw error;
+      }
+    }
+
+    return savedRecords;
+  }
+
   private formatUploadType(uploadType: string): string {
     const typeMap = {
       'ESTRUCTURA_ACADEMICA': 'Estructura Académica',
@@ -2589,10 +2802,10 @@ export class UploadService {
       'ADOL': 'ADOL',
       'DOL': 'DOL',
       'VACANTES_INICIO': 'Vacantes de Inicio',
-      'PAYMENT_CODES': 'Códigos de Pago'
+      'PAYMENT_CODES': 'Códigos de Pago',
+      'ASIGNATURAS_OPTATIVAS': 'Asignaturas Optativas'
     };
     
     return typeMap[uploadType] || uploadType;
   }
-
 }

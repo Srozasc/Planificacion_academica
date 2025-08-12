@@ -116,6 +116,15 @@ const DataUploadPage: React.FC = () => {
       format: '.xlsx',
       templateName: 'vacantes_inicio_template.xlsx',
       endpoint: 'vacantes-inicio'
+    },
+    {
+      id: 'ramos-optativos',
+      name: 'Asignaturas Optativas',
+      description: 'Información de asignaturas optativas disponibles para el período académico',
+      icon: '🎯',
+      format: '.xlsx',
+      templateName: 'ramos_optativos_template.xlsx',
+      endpoint: 'asignaturas-optativas'
     }
   ];
 
@@ -384,6 +393,10 @@ const DataUploadPage: React.FC = () => {
             <div className="flex items-center">
               <span className="mr-1">🏁</span>
               <span>Vacantes Inicio: {systemStats.staging_vacantes_inicio}</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">🎯</span>
+              <span>Asignaturas Optativas: {systemStats.ramos_optativos || 0}</span>
             </div>
           </div>
         )}

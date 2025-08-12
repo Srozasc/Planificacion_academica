@@ -639,4 +639,71 @@ export class UploadsController {
     }
   }
 
+  @Post('asignaturas-optativas')
+  @Roles('Maestro')
+  @UseInterceptors(FileInterceptor('file', multerConfig))
+  async uploadAsignaturasOptativas(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { mode?: string; validateOnly?: string; bimestreId: string },
+    @User() user: any,
+  ) {
+    try {
+      this.logger.log('=== INICIO PROCESO ASIGNATURAS OPTATIVAS ===');
+      this.logger.log(`Archivo recibido: ${file ? file.originalname : 'NO FILE'}`);
+      this.logger.log(`Tamaño archivo: ${file ? file.size : 'N/A'} bytes`);
+      this.logger.log(`Body completo recibido:`, JSON.stringify(body));
+      this.logger.log(`BimestreId recibido: '${body.bimestreId}' (tipo: ${typeof body.bimestreId})`);
+      
+      if (!file) {
+        this.logger.error('ERROR: No se ha proporcionado ningún archivo');
+        throw new BadRequestException('No se ha proporcionado ningún archivo');
+      }
+
+      if (!body.bimestreId) {
+        this.logger.error('ERROR: El ID del bimestre es requerido');
+        throw new BadRequestException('El ID del bimestre es requerido');
+      }
+
+      const bimestreIdNum = parseInt(body.bimestreId, 10);
+      this.logger.log(`BimestreId convertido a número: ${bimestreIdNum}`);
+      
+      if (isNaN(bimestreIdNum)) {
+        this.logger.error(`ERROR: BimestreId inválido: '${body.bimestreId}'`);
+        throw new BadRequestException('El ID del bimestre debe ser un número válido');
+      }
+
+      const validateOnly = body.validateOnly === 'true';
+      const mode = body.mode || 'UPSERT';
+      
+      this.logger.log(`Parámetros procesados - Mode: ${mode}, ValidateOnly: ${validateOnly}, BimestreId: ${bimestreIdNum}`);
+
+      const result = await this.uploadService.processAsignaturasOptativas(
+        file,
+        { mode, validateOnly, bimestreId: bimestreIdNum },
+        user.userId,
+      );
+
+      this.logger.log('=== RESULTADO PROCESO ASIGNATURAS OPTATIVAS ===');
+      this.logger.log(`Total registros: ${result.summary?.totalRecords || 'N/A'}`);
+      this.logger.log(`Registros válidos: ${result.summary?.validRecords || 'N/A'}`);
+      this.logger.log(`Registros inválidos: ${result.summary?.invalidRecords || 'N/A'}`);
+      this.logger.log('=== FIN PROCESO ASIGNATURAS OPTATIVAS ===');
+
+      return this.responseService.success(
+        result,
+        validateOnly
+          ? 'Archivo validado exitosamente'
+          : 'Asignaturas Optativas cargadas exitosamente',
+      );
+    } catch (error) {
+      this.logger.error('=== ERROR EN PROCESO ASIGNATURAS OPTATIVAS ===');
+      this.logger.error('Error al procesar Asignaturas Optativas:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      return this.responseService.error(
+        'Error al procesar Asignaturas Optativas',
+        [error.message],
+      );
+    }
+  }
+
 }

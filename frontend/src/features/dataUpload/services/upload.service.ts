@@ -38,6 +38,7 @@ export interface SystemStats {
   academic_structures: number;
   teachers: number;
   course_reports: number;
+  ramos_optativos: number;
 }
 
 // Types for data visualization
