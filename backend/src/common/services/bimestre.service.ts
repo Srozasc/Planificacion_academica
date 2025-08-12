@@ -132,6 +132,10 @@ export class BimestreService {
 
   async create(createBimestreDto: CreateBimestreDto): Promise<Bimestre> {
     try {
+      // Log para debuggear el campo factor
+      this.logger.log(`Datos recibidos para crear bimestre: ${JSON.stringify(createBimestreDto)}`);
+      this.logger.log(`Campo factor recibido: ${createBimestreDto.factor} (tipo: ${typeof createBimestreDto.factor})`);
+      
       // Convertir fechas de string a Date
       const fechaInicio = this.parseLocalDate(createBimestreDto.fechaInicio);
       const fechaFin = this.parseLocalDate(createBimestreDto.fechaFin);
@@ -152,8 +156,11 @@ export class BimestreService {
         fechaPago1Fin: createBimestreDto.fechaPago1Fin ? this.parseLocalDate(createBimestreDto.fechaPago1Fin) : null,
         fechaPago2Inicio: createBimestreDto.fechaPago2Inicio ? this.parseLocalDate(createBimestreDto.fechaPago2Inicio) : null,
         fechaPago2Fin: createBimestreDto.fechaPago2Fin ? this.parseLocalDate(createBimestreDto.fechaPago2Fin) : null,
-        activo: createBimestreDto.activo ?? true
+        activo: createBimestreDto.activo ?? true,
+        factor: createBimestreDto.factor
       });
+      
+      this.logger.log(`Bimestre creado con factor: ${bimestre.factor}`);
 
       const savedBimestre = await this.bimestreRepository.save(bimestre);
       this.logger.log(`Bimestre creado: ${savedBimestre.nombre}`);
@@ -166,10 +173,20 @@ export class BimestreService {
 
   async update(id: number, updateBimestreDto: UpdateBimestreDto): Promise<Bimestre> {
     try {
+      // Log para debuggear el campo factor en actualización
+      this.logger.log(`Datos recibidos para actualizar bimestre ${id}: ${JSON.stringify(updateBimestreDto)}`);
+      this.logger.log(`Campo factor recibido: ${updateBimestreDto.factor} (tipo: ${typeof updateBimestreDto.factor})`);
+      
       const bimestre = await this.findById(id);
       
       // Preparar datos de actualización
       const updateData: any = { ...updateBimestreDto };
+      
+      // Manejar explícitamente el campo factor
+      if (updateBimestreDto.hasOwnProperty('factor')) {
+        updateData.factor = updateBimestreDto.factor;
+        this.logger.log(`Campo factor será actualizado a: ${updateData.factor}`);
+      }
       
       // Convertir fechas si están presentes
       if (updateBimestreDto.fechaInicio) {
@@ -400,7 +417,7 @@ export class BimestreService {
       
       // Obtener encabezados (primera fila)
       const headers = data[0] as string[];
-      const expectedHeaders = ['Número', 'Año', 'Fecha_Inicio', 'Fecha_Fin', 'Pago1_Inicio', 'Pago1_Fin', 'Pago2_Inicio', 'Pago2_Fin', 'Descripción'];
+      const expectedHeaders = ['Número', 'Año', 'Fecha_Inicio', 'Fecha_Fin', 'Pago1_Inicio', 'Pago1_Fin', 'Pago2_Inicio', 'Pago2_Fin', 'Descripción', 'Factor'];
       
       // Validar encabezados
       for (let i = 0; i < expectedHeaders.length; i++) {
@@ -425,8 +442,8 @@ export class BimestreService {
         const numeroFila = i + 2; // +2 porque empezamos en fila 1 (índice 0) y saltamos encabezado
         
         // Validar que la fila tenga todos los campos requeridos
-        if (fila.length < 9) {
-          throw new BadRequestException(`Fila ${numeroFila}: Faltan datos. Se requieren 9 columnas.`);
+        if (fila.length < 10) {
+          throw new BadRequestException(`Fila ${numeroFila}: Faltan datos. Se requieren 10 columnas.`);
         }
         
         const numero = Number(fila[0]);
@@ -438,6 +455,28 @@ export class BimestreService {
         const pago2Inicio = this.formatearFecha(fila[6]);
         const pago2Fin = this.formatearFecha(fila[7]);
         const descripcion = fila[8] ? String(fila[8]).trim() : '';
+        // Procesar el campo factor manejando separadores decimales europeos (coma como decimal)
+        let factor = undefined;
+        if (fila[9]) {
+          const factorStr = String(fila[9]).trim();
+          this.logger.debug(`Procesando factor en fila ${numeroFila}: valor original='${factorStr}'`);
+          
+          // Si contiene coma, asumimos formato europeo (coma como decimal)
+          if (factorStr.includes(',')) {
+            factor = Number(factorStr.replace(',', '.'));
+            this.logger.debug(`Factor con coma convertido: '${factorStr}' -> ${factor}`);
+          } else {
+            factor = Number(factorStr);
+            this.logger.debug(`Factor sin coma convertido: '${factorStr}' -> ${factor}`);
+          }
+          
+          // Validar que el factor esté en un rango razonable para DECIMAL(10,6)
+          if (isNaN(factor) || factor < 0 || factor > 9999) {
+            throw new BadRequestException(`Fila ${numeroFila}: Factor inválido '${factorStr}'. Debe ser un número decimal entre 0 y 9999.`);
+          }
+          
+          this.logger.debug(`Factor final para fila ${numeroFila}: ${factor}`);
+        }
         
         // Validaciones
         if (!numero || numero !== i + 1) {
@@ -465,7 +504,8 @@ export class BimestreService {
           fechaPago2Fin: pago2Fin,
           anoAcademico: año,
           numeroBimestre: numero,
-          descripcion
+          descripcion,
+          factor
         });
       }
       
