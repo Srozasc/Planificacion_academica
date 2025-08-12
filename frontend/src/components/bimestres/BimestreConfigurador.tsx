@@ -40,7 +40,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
     fechaPago2Fin: '',
     anoAcademico: new Date().getFullYear(),
     numeroBimestre: 1,
-    descripcion: ''
+    descripcion: '',
+    factor: undefined
   });
 
   const [modoEdicion, setModoEdicion] = useState<{ activo: boolean; bimestre: Bimestre | null }>({
@@ -85,9 +86,17 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    let processedValue: any = value;
+    
+    if (name === 'anoAcademico' || name === 'numeroBimestre') {
+      processedValue = parseInt(value);
+    } else if (name === 'factor') {
+      processedValue = value === '' ? undefined : parseFloat(value);
+    }
+    
     const updatedFormData = {
       ...formData,
-      [name]: name === 'anoAcademico' || name === 'numeroBimestre' ? parseInt(value) : value
+      [name]: processedValue
     };
     
     // Generar nombre automáticamente cuando cambien año académico o número de bimestre
@@ -203,7 +212,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
         fechaPago2Fin: '',
         anoAcademico: currentYear,
         numeroBimestre: 1,
-        descripcion: ''
+        descripcion: '',
+        factor: undefined
       });
       setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
     } catch (error) {
@@ -241,7 +251,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       fechaPago2Fin: bimestre.fechaPago2Fin ? formatDateForInput(bimestre.fechaPago2Fin) : '',
       anoAcademico: bimestre.anoAcademico,
       numeroBimestre: bimestre.numeroBimestre,
-      descripcion: bimestre.descripcion || ''
+      descripcion: bimestre.descripcion || '',
+      factor: bimestre.factor
     });
     setModoEdicion({ activo: true, bimestre });
   };
@@ -259,7 +270,8 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       fechaPago2Fin: '',
       anoAcademico: currentYear,
       numeroBimestre: 1,
-      descripcion: ''
+      descripcion: '',
+      factor: undefined
     });
     setAdvertenciaSolapamiento({ mostrar: false, mensaje: '' });
     setErroresRangosFechas({ rangoPago1: '', rangoPago2: '' });
@@ -723,6 +735,25 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                   placeholder="Descripción del bimestre..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Factor (Opcional)
+                </label>
+                <input
+                  type="number"
+                  name="factor"
+                  value={formData.factor || ''}
+                  onChange={handleInputChange}
+                  step="0.000001"
+                  min="0"
+                  placeholder="Ej: 1.055556"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Factor multiplicador para cálculos del bimestre (hasta 6 decimales)
+                </p>
               </div>
 
               {/* Advertencia de solapamiento */}

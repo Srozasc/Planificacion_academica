@@ -14,6 +14,7 @@ export interface Bimestre {
   numeroBimestre: number;
   activo: boolean;
   descripcion?: string;
+  factor?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +31,7 @@ export interface CreateBimestreDto {
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
+  factor?: number;
 }
 
 export interface UpdateBimestreDto {
@@ -43,6 +45,7 @@ export interface UpdateBimestreDto {
   fechaPago2Fin?: string;
   activo?: boolean;
   descripcion?: string;
+  factor?: number;
 }
 
 export class BimestreService {
