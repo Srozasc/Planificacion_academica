@@ -114,7 +114,8 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
       'ADOL': 'ADOL',
       'DOL': 'DOL',
       'VACANTES_INICIO': 'Vacantes de Inicio',
-      'PAYMENT_CODES': 'Códigos de Pago'
+      'PAYMENT_CODES': 'Códigos de Pago',
+      'ASIGNATURAS_OPTATIVAS': 'Asignaturas Optativas'
     };
     return typeMap[type] || type;
   };
@@ -209,6 +210,7 @@ const UploadHistoryManager: React.FC<UploadHistoryManagerProps> = ({ onRefresh }
                   <option value="ADOL">ADOL</option>
                   <option value="DOL">DOL</option>
                   <option value="VACANTES_INICIO">Vacantes de Inicio</option>
+                  <option value="ASIGNATURAS_OPTATIVAS">Asignaturas Optativas</option>
                 </select>
               </div>
               <div>

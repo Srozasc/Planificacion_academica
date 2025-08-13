@@ -12,6 +12,7 @@ import { AcademicStructure } from '../academic/entities/academic-structure.entit
 import { StagingReporteCursables } from '../reporte-cursables/entities/reporte-cursables.entity';
 import { StagingNominaDocentes } from '../nomina-docentes/entities/nomina-docentes.entity';
 import { StagingOptativos } from '../optativos/entities/staging-optativos.entity';
+import { AsignaturasOptativasAprobadas } from '../optativos/entities/asignaturas-optativas-aprobadas.entity';
 import { UploadLog } from './entities/upload-log.entity';
 import { ResponseService } from '../common/services/response.service';
 import { unlinkSync } from 'fs';
@@ -82,6 +83,8 @@ export class UploadService {
     private stagingNominaDocentesRepository: Repository<StagingNominaDocentes>,
     @InjectRepository(StagingOptativos)
     private stagingOptativosRepository: Repository<StagingOptativos>,
+    @InjectRepository(AsignaturasOptativasAprobadas)
+    private asignaturasOptativasAprobadasRepository: Repository<AsignaturasOptativasAprobadas>,
     @InjectRepository(UploadLog)
     private readonly uploadLogRepository: Repository<UploadLog>,
     private readonly responseService: ResponseService,
@@ -2290,6 +2293,35 @@ export class UploadService {
         }
       }
 
+      // Si es una carga de ASIGNATURAS_OPTATIVAS, ejecutar el SP de migración
+      if (upload.uploadType === 'ASIGNATURAS_OPTATIVAS') {
+        this.logger.log('=== EJECUTANDO MIGRACIÓN PARA ASIGNATURAS OPTATIVAS ===');
+        try {
+          // Obtener el email del usuario aprobador
+          const approverUser = await this.dataSource.query(
+            'SELECT email_institucional FROM users WHERE id = ?',
+            [approvedByUserId]
+          );
+          
+          const approverEmail = approverUser.length > 0 ? approverUser[0].email_institucional : null;
+          this.logger.log(`Usuario aprobador: ${approverEmail || 'SISTEMA'}`);
+          
+          // Migrar datos de staging_optativos a asignaturas_optativas_aprobadas
+          this.logger.log('Iniciando migración de datos de staging_optativos a asignaturas_optativas_aprobadas...');
+          await this.migrateAsignaturasOptativas(approverEmail);
+          this.logger.log('Migración de asignaturas optativas completada exitosamente');
+          
+          // Marcar como procesado
+          upload.isProcessed = true;
+          upload.processedAt = new Date();
+          await this.uploadLogRepository.save(upload);
+        } catch (migrationError) {
+          this.logger.error('Error durante la migración de asignaturas optativas:', migrationError.message);
+          // No lanzamos el error para no interrumpir la aprobación
+          // pero registramos el problema
+        }
+      }
+
       this.logger.log('Carga aprobada exitosamente');
       return {
         id: upload.id,
@@ -2587,6 +2619,8 @@ export class UploadService {
     }
   }
 
+
+
   async processAsignaturasOptativas(file: Express.Multer.File, options: ProcessOptions, userId?: number): Promise<UploadResult> {
     this.logger.log(`Iniciando procesamiento de asignaturas optativas: ${file.originalname}`);
     
@@ -2792,6 +2826,50 @@ export class UploadService {
     }
 
     return savedRecords;
+  }
+
+  /**
+   * Migra datos de staging_optativos a asignaturas_optativas_aprobadas
+   */
+  private async migrateAsignaturasOptativas(approverEmail: string): Promise<void> {
+    try {
+      this.logger.log('=== INICIANDO MIGRACIÓN DE ASIGNATURAS OPTATIVAS CON SP ===');
+      
+      // Verificar conteo actual en staging_optativos
+      const stagingCount = await this.stagingOptativosRepository.count();
+      this.logger.log(`Registros en staging_optativos: ${stagingCount}`);
+      
+      if (stagingCount === 0) {
+        this.logger.log('No hay registros en staging_optativos para migrar');
+        return;
+      }
+
+      // Verificar conteo actual en asignaturas_optativas_aprobadas antes de la migración
+      const currentCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM asignaturas_optativas_aprobadas'
+      );
+      const currentCountValue = currentCount[0]?.count || 0;
+      this.logger.log(`Registros actuales en asignaturas_optativas_aprobadas antes de migración: ${currentCountValue}`);
+
+      // Ejecutar el procedimiento almacenado sp_migrate_staging_optativos_to_permanente
+      this.logger.log('Ejecutando procedimiento almacenado sp_migrate_staging_optativos_to_permanente...');
+      await this.dataSource.query('CALL sp_migrate_staging_optativos_to_permanente(?)', [approverEmail]);
+      this.logger.log('Procedimiento almacenado ejecutado exitosamente');
+      
+      // Verificar conteo final
+      const finalCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM asignaturas_optativas_aprobadas'
+      );
+      const finalCountValue = finalCount[0]?.count || 0;
+      this.logger.log(`Conteo final en asignaturas_optativas_aprobadas: ${finalCountValue}`);
+      
+      const migratedRecords = finalCountValue - currentCountValue;
+      this.logger.log(`=== MIGRACIÓN COMPLETADA: ${migratedRecords} registros procesados ===`);
+    } catch (error) {
+      this.logger.error('Error durante la migración de asignaturas optativas:', error.message);
+      this.logger.error('Stack trace:', error.stack);
+      throw error;
+    }
   }
 
   private formatUploadType(uploadType: string): string {

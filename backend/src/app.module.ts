@@ -15,6 +15,7 @@ import { CarrerasModule } from './carreras/carreras.module';
 import { AsignaturasModule } from './asignaturas/asignaturas.module';
 import { ReporteCursablesModule } from './reporte-cursables/reporte-cursables.module';
 import { TeachersModule } from './teachers/teachers.module';
+import { OptativosModule } from './optativos/optativos.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({  imports: [
@@ -35,6 +36,7 @@ import { ConfigModule } from '@nestjs/config';
     AsignaturasModule,    // Asignaturas management
     ReporteCursablesModule, // Reporte Cursables management
     TeachersModule,       // Teachers management
+    OptativosModule,      // Asignaturas Optativas management
   ],
   controllers: [AppController],
   providers: [AppService],
