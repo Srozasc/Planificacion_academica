@@ -27,6 +27,12 @@ class AsignaturasService {
     const response = await apiClient.get('/asignaturas/adol-aprobados', { params });
     return response.data;
   }
+
+  async getOptativosAprobados(bimestreId?: number): Promise<{ plan: string; descripcion_asignatura: string; nivel: string; asignatura: string }[]> {
+    const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+    const response = await apiClient.get('/asignaturas/optativos-aprobados', { params });
+    return response.data;
+  }
 }
 
 export const asignaturasService = new AsignaturasService();

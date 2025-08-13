@@ -112,4 +112,51 @@ export class AsignaturasService {
     
     return this.asignaturaRepository.query(query, params);
   }
+
+  async getOptativosAprobados(userId: number, bimestreId?: number): Promise<{ plan: string; descripcion_asignatura: string; nivel: string; asignatura: string }[]> {
+    let query = `
+      SELECT DISTINCT 
+        aoa.plan,
+        aoa.descripcion_asignatura,
+        aoa.nivel,
+        aoa.asignatura
+      FROM asignaturas_optativas_aprobadas aoa
+      WHERE aoa.activo = 1
+        AND aoa.plan IS NOT NULL AND aoa.plan != ''
+        AND aoa.descripcion_asignatura IS NOT NULL AND aoa.descripcion_asignatura != ''
+        AND aoa.nivel IS NOT NULL AND aoa.nivel != ''
+        AND (
+          -- Verificar permisos por carrera (código de plan)
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_carrera upc
+            JOIN carreras c ON upc.carrera_id = c.id
+            WHERE upc.usuario_id = ? AND c.codigo_plan = aoa.plan AND upc.activo = 1
+          )
+          OR
+          -- Verificar permisos por categoría OPTATIVO
+          EXISTS (
+            SELECT 1 FROM usuario_permisos_categoria upcat
+            WHERE upcat.usuario_id = ? AND upcat.categoria = 'OPTATIVO' AND upcat.activo = 1
+          )
+        )
+    `;
+    
+    const params = [userId, userId];
+    
+    if (bimestreId) {
+      query += ` AND aoa.id_bimestre = ?`;
+      params.push(bimestreId);
+    } else {
+      // Si no se especifica bimestre, usar el bimestre activo actual
+      const bimestreActual = await this.bimestreService.findBimestreActual();
+      if (bimestreActual) {
+        query += ` AND aoa.id_bimestre = ?`;
+        params.push(bimestreActual.id);
+      }
+    }
+    
+    query += ` ORDER BY aoa.plan ASC, aoa.descripcion_asignatura ASC`;
+    
+    return this.asignaturaRepository.query(query, params);
+  }
 }

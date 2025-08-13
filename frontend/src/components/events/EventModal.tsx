@@ -38,7 +38,7 @@ export interface CreateEventData {
   subject?: string;
   students?: number;
   horas?: number; // Campo para cantidad de horas (solo para ADOL)
-  tipoEvento?: 'inicio' | 'continuidad' | 'adol'; // Nuevo campo para tipo de evento
+  tipoEvento?: 'inicio' | 'continuidad' | 'adol' | 'optativo'; // Nuevo campo para tipo de evento
 }
 
 const EventModal: React.FC<EventModalProps> = ({
@@ -250,6 +250,31 @@ const EventModal: React.FC<EventModalProps> = ({
         // Para ADOL no necesitamos planes ni niveles
         plansData = [];
         levelsData = [];
+      } else if (formData.tipoEvento === 'optativo') {
+        // Cargar datos de optativos aprobados
+        console.log('Cargando datos de OPTATIVOS desde asignaturas_optativas_aprobadas...');
+        const optativosData = await asignaturasService.getOptativosAprobados(bimestreId);
+        
+        // Convertir datos de optativos al formato Subject esperado
+        subjectsData = optativosData.map((item, index) => ({
+          id: index + 1,
+          code: item.asignatura,
+          name: item.descripcion_asignatura,
+          category: 'OPTATIVO',
+          acronym: item.asignatura,
+          course: item.descripcion_asignatura,
+          plan_code: item.plan,
+          level: item.nivel
+        }));
+        
+        // Extraer planes y niveles únicos de los datos de optativos
+        const uniquePlans = [...new Set(optativosData.map(item => item.plan))]
+          .map(plan => ({ value: plan, label: plan }));
+        const uniqueLevels = [...new Set(optativosData.map(item => item.nivel))]
+          .map(nivel => ({ value: nivel, label: nivel }));
+        
+        plansData = uniquePlans;
+        levelsData = uniqueLevels;
       } else {
         // Cargar datos desde academic_structures filtrados por permisos
         console.log('Cargando datos de CONTINUIDAD desde academic_structures con permisos...');
@@ -784,6 +809,20 @@ const EventModal: React.FC<EventModalProps> = ({
                   className="border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">ADOL</span>
+              </label>
+              
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tipoEvento"
+                  value="optativo"
+                  checked={formData.tipoEvento === 'optativo'}
+                  onChange={(e) => {
+                    setFormData(prev => ({ ...prev, tipoEvento: 'optativo' }));
+                  }}
+                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">Optativos</span>
               </label>
             </div>
           </div>

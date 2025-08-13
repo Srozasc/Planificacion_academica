@@ -1,6 +1,7 @@
-import { Controller, Get, Query, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Query, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { AsignaturasService } from './asignaturas.service';
 import { Asignatura } from './entities/asignatura.entity';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('asignaturas')
 export class AsignaturasController {
@@ -36,5 +37,15 @@ export class AsignaturasController {
   async getAdolAprobados(@Query('bimestreId') bimestreId?: string): Promise<{ sigla: string; descripcion: string }[]> {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
     return this.asignaturasService.getAdolAprobados(bimestreIdNum);
+  }
+
+  @Get('optativos-aprobados')
+  @UseGuards(JwtAuthGuard)
+  async getOptativosAprobados(
+    @Request() req,
+    @Query('bimestreId') bimestreId?: string
+  ): Promise<{ plan: string; descripcion_asignatura: string; nivel: string; asignatura: string }[]> {
+    const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
+    return this.asignaturasService.getOptativosAprobados(req.user.userId, bimestreIdNum);
   }
 }
