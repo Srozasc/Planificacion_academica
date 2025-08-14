@@ -19,7 +19,7 @@ const DashboardPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [isCreatingEvent, setIsCreatingEvent] = useState(false);
-  const [eventType, setEventType] = useState<'asignaturas' | 'adol'>('asignaturas');
+  const [eventType, setEventType] = useState<'asignaturas' | 'adol' | 'optativas'>('asignaturas');
   
   // Estados para filtros
   const [filters, setFilters] = useState({
@@ -60,8 +60,9 @@ const DashboardPage: React.FC = () => {
 
   // Función para filtrar eventos
   const filteredEvents = events.filter(event => {
-    // Para el filtro de plan, considerar tanto plan_code como 'ADOL' para eventos que comienzan con 'ADOL'
-    const planText = event.extendedProps?.plan_code || 
+    // Para el filtro de plan, considerar plan_code, plan (para optativas) y 'ADOL' para eventos que comienzan con 'ADOL'
+    const planText = event.extendedProps?.plan || 
+      event.extendedProps?.plan_code || 
       (!event.extendedProps?.plan_code && event.title.startsWith('ADOL') ? 'ADOL' : '');
     const planMatch = !filters.plan || planText.toLowerCase().includes(filters.plan.toLowerCase());
     
@@ -97,6 +98,9 @@ const DashboardPage: React.FC = () => {
       if (eventType === 'adol') {
         console.log('📡 Llamando a eventService.getADOLEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
         fetchedEvents = await eventService.getADOLEventsByBimestre(bimestreSeleccionado.id);
+      } else if (eventType === 'optativas') {
+        console.log('📡 Llamando a eventService.getOptativasEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
+        fetchedEvents = await eventService.getOptativasEventsByBimestre(bimestreSeleccionado.id);
       } else {
         console.log('📡 Llamando a eventService.getEventsByBimestre con bimestreId:', bimestreSeleccionado.id);
         fetchedEvents = await eventService.getEventsByBimestre(bimestreSeleccionado.id);
@@ -345,7 +349,7 @@ const DashboardPage: React.FC = () => {
                       name="eventType"
                       value="asignaturas"
                       checked={eventType === 'asignaturas'}
-                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol')}
+                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol' | 'optativas')}
                       className="mr-2 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">Asignaturas</span>
@@ -356,10 +360,21 @@ const DashboardPage: React.FC = () => {
                       name="eventType"
                       value="adol"
                       checked={eventType === 'adol'}
-                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol')}
+                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol' | 'optativas')}
                       className="mr-2 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm font-medium text-gray-700">ADOL</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="eventType"
+                      value="optativas"
+                      checked={eventType === 'optativas'}
+                      onChange={(e) => setEventType(e.target.value as 'asignaturas' | 'adol' | 'optativas')}
+                      className="mr-2 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Optativas</span>
                   </label>
                 </div>
               </div>
@@ -455,7 +470,9 @@ const DashboardPage: React.FC = () => {
                       {filteredEvents.map(event => (
                         <tr key={event.id} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-sm text-gray-600">
-                            {(!event.extendedProps?.plan_code && event.title.startsWith('ADOL')) ? 'ADOL' : (event.extendedProps?.plan_code || '-')}
+                            {event.extendedProps?.plan || 
+                             event.extendedProps?.plan_code || 
+                             (!event.extendedProps?.plan_code && event.title.startsWith('ADOL') ? 'ADOL' : '-')}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-900">{event.title}</td>
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.teacher_names || event.extendedProps?.teacher || '-'}</td>

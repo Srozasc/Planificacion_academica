@@ -23,6 +23,7 @@ export class ScheduleEventDto {
   section?: string; // school_prog de academic_structures
   plan_code?: string; // code de academic_structures
   teacher_names?: string; // nombres de docentes desde event_teachers
+  plan?: string; // plan desde asignaturas_optativas_aprobadas
 
   // Información adicional del bimestre si está disponible
   bimestre?: {
@@ -89,6 +90,11 @@ export class ScheduleEventDto {
     if (entity.academic_code) {
       dto.plan_code = entity.academic_code;
     }
+    
+    // Incluir plan desde asignaturas_optativas_aprobadas si está disponible
+    if (entity.plan) {
+      dto.plan = entity.plan;
+    }
 
     return dto;
   }
@@ -114,6 +120,7 @@ export class ScheduleEventDto {
         course_name: this.course_name, // Nombre del curso
         section: this.section, // Sección
         plan_code: this.plan_code, // Código del plan
+        plan: this.plan, // Plan desde asignaturas_optativas_aprobadas
         usuario: this.usuario, // Usuario que creó o modificó el evento
       },
     };

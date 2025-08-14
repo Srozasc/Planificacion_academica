@@ -660,6 +660,43 @@ export class SchedulingService {
     }
   }
 
+  async findOptativasEventsByBimestre(bimestreId: number): Promise<ScheduleEventDto[]> {
+    try {
+      const queryBuilder = this.eventRepository.createQueryBuilder('event')
+        .leftJoinAndSelect('event.bimestre', 'bimestre')
+        .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
+        .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .innerJoin('asignaturas_optativas_aprobadas', 'optativas', 
+          'TRIM(SUBSTRING(event.title, 1, LOCATE(\' - \', event.title) - 1)) = TRIM(optativas.asignatura)')
+        .addSelect('optativas.plan', 'optativas_plan')
+        .where('event.bimestre_id = :bimestreId', { bimestreId })
+        .andWhere('event.active = :active', { active: true })
+        .orderBy('event.start_date', 'ASC');
+
+      const result = await queryBuilder.getRawAndEntities();
+      const events = result.entities;
+      const raw = result.raw;
+      const eventDtos = events.map(event => {
+        const academicData = raw.find(r => r.event_id === event.id);
+        if (academicData) {
+          (event as any).academic_name = academicData.academic_name;
+          (event as any).academic_school_prog = academicData.academic_school_prog;
+          (event as any).academic_code = academicData.academic_code;
+          (event as any).plan = academicData.optativas_plan;
+        }
+        return ScheduleEventDto.fromEntity(event);
+      });
+
+      this.logger.log(`Se encontraron ${events.length} eventos optativas del bimestre ${bimestreId}`);
+      return eventDtos;
+    } catch (error) {
+      this.logger.error(`Error al obtener eventos optativas del bimestre ${bimestreId}`, error);
+      throw error;
+    }
+  }
+
   async findByBimestre(bimestreId: number): Promise<ScheduleEventDto[]> {
     try {
       const events = await this.eventRepository.find({

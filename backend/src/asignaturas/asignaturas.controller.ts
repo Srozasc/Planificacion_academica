@@ -42,10 +42,9 @@ export class AsignaturasController {
   @Get('optativos-aprobados')
   @UseGuards(JwtAuthGuard)
   async getOptativosAprobados(
-    @Request() req,
     @Query('bimestreId') bimestreId?: string
   ): Promise<{ plan: string; descripcion_asignatura: string; nivel: string; asignatura: string }[]> {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
-    return this.asignaturasService.getOptativosAprobados(req.user.userId, bimestreIdNum);
+    return this.asignaturasService.getOptativosAprobados(null, bimestreIdNum);
   }
 }

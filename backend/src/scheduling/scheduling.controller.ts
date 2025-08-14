@@ -110,6 +110,8 @@ export class SchedulingController {
     try {
       const userEmail = req.user.email;
       const events = await this.schedulingService.findADOLEventsByBimestre(bimestreId, userEmail);
+      
+      // Convertir al formato esperado por el frontend
       const frontendEvents = events.map(event => event.toFrontendFormat());
       
       return this.responseService.success(
@@ -117,10 +119,33 @@ export class SchedulingController {
         `Eventos ADOL del bimestre ${bimestreId} obtenidos exitosamente`
       );
     } catch (error) {
-      this.logger.error(`Error al obtener eventos ADOL del bimestre ${bimestreId}`, error);
+      this.logger.error(`Error al obtener eventos ADOL del bimestre ${bimestreId}:`, error);
       return this.responseService.error(
-        'Error al obtener eventos ADOL del bimestre',
-        [error.message]
+        'Error al obtener eventos ADOL',
+        error.message
+      );
+    }
+  }
+
+  @Get('optativas/bimestre/:bimestreId')
+  async findOptativasByBimestre(
+    @Param('bimestreId', ParseIntPipe) bimestreId: number
+  ) {
+    try {
+      const events = await this.schedulingService.findOptativasEventsByBimestre(bimestreId);
+      
+      // Convertir al formato esperado por el frontend
+      const frontendEvents = events.map(event => event.toFrontendFormat());
+      
+      return this.responseService.success(
+        frontendEvents,
+        `Eventos optativas del bimestre ${bimestreId} obtenidos exitosamente`
+      );
+    } catch (error) {
+      this.logger.error(`Error al obtener eventos optativas del bimestre ${bimestreId}:`, error);
+      return this.responseService.error(
+        'Error al obtener eventos optativas',
+        error.message
       );
     }
   }
