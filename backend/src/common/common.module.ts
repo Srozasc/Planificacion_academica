@@ -78,14 +78,18 @@ import { User } from '../users/entities/user.entity';
       provide: 'DATABASE_CONNECTION',
       useFactory: (configService: ConfigService) => {
         return createPool({
-          host: configService.get('DATABASE_HOST') || 'localhost',
-          port: configService.get('DATABASE_PORT') || 3306,
-          user: configService.get('DATABASE_USERNAME'),
-          password: configService.get('DATABASE_PASSWORD'),
-          database: configService.get('DATABASE_NAME') || 'planificacion_academica',
+          host: configService.get('DB_HOST') || 'localhost',
+          port: configService.get('DB_PORT') || 3306,
+          user: configService.get('DB_USERNAME'),
+          password: configService.get('DB_PASSWORD'),
+          database: configService.get('DB_NAME') || 'planificacion_academica',
           waitForConnections: true,
           connectionLimit: 10,
           queueLimit: 0,
+          authPlugins: {
+            mysql_native_password: () => () => Buffer.alloc(0),
+            sha256_password: () => () => Buffer.alloc(0),
+          },
         });
       },
       inject: [ConfigService],

@@ -106,7 +106,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         
         const [carrerasData, categoriasData] = await Promise.all([
           carrerasService.getCarreras(),
-          asignaturasService.getCategorias()
+          asignaturasService.getCategorias(bimestreSeleccionado?.id)
         ]);
         
         setCarreras(carrerasData);

@@ -99,7 +99,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         
         const [carrerasData, categoriasData] = await Promise.all([
           carrerasService.getCarreras(),
-          asignaturasService.getCategorias()
+          asignaturasService.getCategorias(bimestreSeleccionado?.id)
         ]);
         
         setCarreras(carrerasData);

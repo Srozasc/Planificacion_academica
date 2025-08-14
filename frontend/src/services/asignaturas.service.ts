@@ -17,8 +17,9 @@ class AsignaturasService {
     return response.data;
   }
 
-  async getCategorias(): Promise<string[]> {
-    const response = await apiClient.get('/asignaturas/categorias');
+  async getCategorias(bimestreId?: number): Promise<string[]> {
+    const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+    const response = await apiClient.get('/asignaturas/categorias', { params });
     return response.data;
   }
 
