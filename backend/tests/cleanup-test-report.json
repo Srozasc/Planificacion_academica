@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-08-17T00:40:33.146Z",
+  "summary": {
+    "totalTests": 6,
+    "passedTests": 6,
+    "failedTests": 0
+  },
+  "results": [
+    {
+      "test": "SP_EXISTS",
+      "success": true,
+      "message": "Stored Procedure encontrado",
+      "timestamp": "2025-08-17T00:40:33.053Z"
+    },
+    {
+      "test": "LOGS_TABLE",
+      "success": true,
+      "message": "Tabla y estructura correctas",
+      "timestamp": "2025-08-17T00:40:33.062Z"
+    },
+    {
+      "test": "TEST_DATA",
+      "success": true,
+      "message": "15 bimestres creados",
+      "timestamp": "2025-08-17T00:40:33.097Z"
+    },
+    {
+      "test": "SP_EXECUTION",
+      "success": true,
+      "message": "Debug mode OK - Simularía eliminar 0 bimestres",
+      "timestamp": "2025-08-17T00:40:33.117Z"
+    },
+    {
+      "test": "API_ENDPOINT",
+      "success": true,
+      "message": "Servidor disponible",
+      "timestamp": "2025-08-17T00:40:33.142Z"
+    },
+    {
+      "test": "CRON_CONFIG",
+      "success": true,
+      "message": "Configuración encontrada",
+      "timestamp": "2025-08-17T00:40:33.143Z"
+    }
+  ]
+}

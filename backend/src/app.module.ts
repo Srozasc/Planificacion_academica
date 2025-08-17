@@ -18,11 +18,14 @@ import { TeachersModule } from './teachers/teachers.module';
 import { OptativosModule } from './optativos/optativos.module';
 import { ReportsModule } from './reports/reports.module';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 
-@Module({  imports: [
+@Module({
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(), // Enable task scheduling
     CommonModule,     // Global module providing shared resources
     AuthModule,       // Login and authentication
     BimestresModule,  // Academic semester configuration
