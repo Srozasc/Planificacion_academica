@@ -166,7 +166,7 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow max-w-none w-full">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">Cargas Recientes</h3>
@@ -200,31 +200,31 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
         </div>
         
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Archivo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tipo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fecha
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bimestre
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Aprobación
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Registros
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -232,46 +232,46 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
             <tbody className="bg-white divide-y divide-gray-200">
               {uploads.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={8} className="px-3 py-3 text-center text-gray-500 text-sm">
                     No hay cargas recientes
                   </td>
                 </tr>
               ) : (
                 uploads.map((upload) => (
                   <tr key={upload.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 text-xs text-gray-900 max-w-xs truncate" title={upload.file_name}>
                       {upload.file_name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-900">
                       {formatUploadType(upload.upload_type)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-900">
                       {formatDate(upload.upload_date)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-900">
                       {upload.bimestre || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(upload.status)}`}>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full ${getStatusBadge(upload.status)}`}>
                         {upload.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getApprovalStatusBadge(upload.approval_status)}`}>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <span className={`inline-flex px-1.5 py-0.5 text-xs font-semibold rounded-full ${getApprovalStatusBadge(upload.approval_status)}`}>
                         {upload.approval_status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-900">
                       {upload.error_count > 0 
                         ? `${upload.total_records} (${upload.error_count} errores)`
                         : upload.total_records
                       }
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <td className="px-3 py-3 whitespace-nowrap text-xs font-medium space-x-1">
                       <button
                         onClick={() => handleViewData(upload)}
                         disabled={upload.approval_status === 'Aprobado'}
-                        className={`${
+                        className={`text-xs ${
                           upload.approval_status === 'Aprobado'
                             ? 'text-gray-400 cursor-not-allowed'
                             : 'text-blue-600 hover:text-blue-900'
@@ -283,19 +283,19 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
                         <button
                           onClick={() => handleApprovalAction(upload, 'approve')}
                           disabled={processingId === upload.id}
-                          className="text-green-600 hover:text-green-900 disabled:opacity-50"
+                          className="text-xs text-green-600 hover:text-green-900 disabled:opacity-50"
                         >
                           {processingId === upload.id ? 'Procesando...' : 'Aprobar'}
                         </button>
                       )}
                       {upload.approval_status === 'Aprobado' && (
-                        <span className="text-green-600 font-medium">Aprobado</span>
+                        <span className="text-green-600 font-medium text-xs">Aprobado</span>
                       )}
                       {upload.approval_status === 'Rechazado' && (
-                        <span className="text-red-600 font-medium">Rechazado</span>
+                        <span className="text-red-600 font-medium text-xs">Rechazado</span>
                       )}
                       {upload.is_processed && (
-                        <span className="text-gray-500 font-medium">Procesado</span>
+                        <span className="text-gray-500 font-medium text-xs">Procesado</span>
                       )}
                     </td>
                   </tr>
@@ -317,6 +317,19 @@ const RecentUploadsManager: React.FC<RecentUploadsManagerProps> = ({ onRefresh }
               <p className="text-sm text-gray-600 mb-4">
                 ¿Estás seguro de que deseas {approvalAction === 'approve' ? 'aprobar' : 'rechazar'} la carga del archivo <strong>{selectedUpload.file_name}</strong>?
               </p>
+              {approvalAction === 'approve' && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700 font-medium flex items-center">
+                    <svg className="w-4 h-4 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    ⚠️ ADVERTENCIA: Esta acción no se puede deshacer
+                  </p>
+                  <p className="text-xs text-red-600 mt-1 ml-6">
+                    Una vez aprobada, la carga será procesada automáticamente y los datos se migrarán de forma permanente.
+                  </p>
+                </div>
+              )}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Comentarios (opcional)

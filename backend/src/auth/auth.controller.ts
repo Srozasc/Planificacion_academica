@@ -36,7 +36,6 @@ export class AuthController {
       email: user.email,
       name: user.name,
       role: user.role,
-      permissions: user.permissions,
     };
   }
 
@@ -51,7 +50,6 @@ export class AuthController {
         email: req.user.email,
         name: req.user.name,
         role: req.user.role,
-        permissions: req.user.permissions,
       },
     };
   }

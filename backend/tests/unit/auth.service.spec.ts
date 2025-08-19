@@ -151,15 +151,6 @@ describe('AuthService', () => {
       expect(result.user.role).toBe('Editor'); // Verificar que el rol en el token es el revertido
     });
 
-    it('debería obtener los permisos del usuario', async () => {
-      const mockPermissions = [{ permission_name: 'read_data' }, { permission_name: 'write_data' }];
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true); // Asegurar que la contraseña es válida para esta prueba
-      mockEntityManager.query.mockResolvedValueOnce([mockUserDbResult]); // Primera query: usuario
-      mockEntityManager.query.mockResolvedValueOnce([mockPermissions]); // Segunda query: permisos
 
-      const result = await service.login(loginDto);
-
-      expect(result.user.permissions).toEqual(['read_data', 'write_data']);
-    });
   });
 });

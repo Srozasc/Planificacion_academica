@@ -53,16 +53,12 @@ export class AuthService {
       throw new UnauthorizedException('Error al obtener datos de usuario actualizados');
     }
 
-    // Obtener permisos del usuario con el rol actualizado
-    const permissions = await this.getUserPermissions(userResult.id);
-    
     // Crear payload del JWT con los datos actualizados
     const payload: TokenPayloadDto = {
       userId: userResult.id,
       email: userResult.emailInstitucional,
       name: userResult.name,
       role: userResult.roleName, // Usar el roleName actualizado
-      permissions: permissions.map(p => p.permission_name),
     };
 
     // Generar token
@@ -75,23 +71,11 @@ export class AuthService {
         email: userResult.emailInstitucional,
         name: userResult.name,
         role: userResult.roleName, // Usar el roleName actualizado
-        permissions: permissions.map(p => p.permission_name),
       },
     };
   }
 
-  async getUserPermissions(userId: number): Promise<Array<{permission_name: string, permission_description: string}>> {
-    const result = await this.entityManager.query('CALL sp_GetUserPermissions(?)', [userId]);
-    
-    // Los stored procedures pueden devolver arrays anidados en TypeORM
-    // Verificar si es un array de arrays
-    if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0])) {
-      return result[0];
-    }
-    
-    // Si es un array simple, usarlo directamente
-    return result;
-  }
+
 
   async validateUser(payload: TokenPayloadDto): Promise<any> {
     // Validar que el usuario sigue siendo válido
@@ -110,7 +94,6 @@ export class AuthService {
         email: user.email_institucional,
         name: user.name,
         role: payload.role,
-        permissions: payload.permissions,
       };
     } catch (error) {
       return null;

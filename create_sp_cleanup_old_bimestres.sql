@@ -35,6 +35,9 @@ sp_cleanup: BEGIN
     DECLARE v_rollback_needed BOOLEAN DEFAULT FALSE;
     
     -- Contadores por tabla
+    DECLARE v_permisos_pendientes_deleted INT DEFAULT 0;
+    DECLARE v_usuario_permisos_carrera_deleted INT DEFAULT 0;
+    DECLARE v_usuario_permisos_categoria_deleted INT DEFAULT 0;
     DECLARE v_schedule_events_deleted INT DEFAULT 0;
     DECLARE v_academic_structures_deleted INT DEFAULT 0;
     DECLARE v_vacantes_deleted INT DEFAULT 0;
@@ -42,19 +45,36 @@ sp_cleanup: BEGIN
     DECLARE v_upload_logs_deleted INT DEFAULT 0;
     DECLARE v_dol_aprobados_deleted INT DEFAULT 0;
     DECLARE v_asignaturas_optativas_deleted INT DEFAULT 0;
+    DECLARE v_reporte_cursables_deleted INT DEFAULT 0;
+    DECLARE v_adol_aprobados_deleted INT DEFAULT 0;
+    DECLARE v_usuario_asignaturas_permitidas_deleted INT DEFAULT 0;
+    DECLARE v_asignaturas_deleted INT DEFAULT 0;
+    DECLARE v_carreras_deleted INT DEFAULT 0;
+    DECLARE v_teachers_deleted INT DEFAULT 0;
     
     -- Variables de validación
     DECLARE v_cutoff_date DATE;
     DECLARE v_backup_path VARCHAR(500);
+    DECLARE v_total_bimestres INT DEFAULT 0;
     
-    -- Cursor para bimestres a eliminar
+    -- Cursor para bimestres a eliminar (mantiene siempre los 10 más recientes)
     DECLARE bimestre_cursor CURSOR FOR
         SELECT id 
-        FROM bimestres 
-        WHERE createdAt <= v_cutoff_date
-            AND activo = 0
-            AND fechaFin < CURDATE()
-        ORDER BY createdAt ASC, anoAcademico ASC, numeroBimestre ASC
+        FROM (
+            SELECT id, 
+                   ROW_NUMBER() OVER (
+                       ORDER BY createdAt DESC, anoAcademico DESC, numeroBimestre DESC
+                   ) as rn
+            FROM bimestres 
+            WHERE activo = 0 AND fechaFin < CURDATE()
+        ) ranked_bimestres
+        WHERE rn > 10  -- Mantener siempre los 10 más recientes
+            AND EXISTS (
+                SELECT 1 FROM bimestres b 
+                WHERE b.id = ranked_bimestres.id 
+                    AND b.createdAt <= v_cutoff_date
+            )
+        ORDER BY rn ASC  -- Eliminar primero los más antiguos
         LIMIT p_max_bimestres_per_execution;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_done = TRUE;
@@ -135,12 +155,40 @@ sp_cleanup: BEGIN
     
     SET v_log_id = LAST_INSERT_ID();
     
-    -- Contar bimestres candidatos
-    SELECT COUNT(*) INTO v_bimestre_count
+    -- Validación: Contar total de bimestres elegibles
+    SELECT COUNT(*) INTO v_total_bimestres
     FROM bimestres 
-    WHERE createdAt <= v_cutoff_date
-        AND activo = 0
-        AND fechaFin < CURDATE();
+    WHERE activo = 0 AND fechaFin < CURDATE();
+    
+    -- Si hay 10 o menos bimestres totales, no eliminar nada
+    IF v_total_bimestres <= 10 THEN
+        SET p_status = 'COMPLETED';
+        UPDATE cleanup_logs 
+        SET status = 'COMPLETED',
+            bimestres_identified = 0,
+            execution_end_date = NOW(),
+            execution_time_seconds = TIMESTAMPDIFF(SECOND, v_execution_start, NOW()),
+            notes = CONCAT('No se eliminaron bimestres: solo hay ', v_total_bimestres, ' bimestres elegibles (≤10)')
+        WHERE id = v_log_id;
+        LEAVE sp_cleanup;
+    END IF;
+    
+    -- Contar bimestres candidatos para eliminación (excluyendo los 10 más recientes)
+    SELECT COUNT(*) INTO v_bimestre_count
+    FROM (
+        SELECT id, 
+               ROW_NUMBER() OVER (
+                   ORDER BY createdAt DESC, anoAcademico DESC, numeroBimestre DESC
+               ) as rn
+        FROM bimestres 
+        WHERE activo = 0 AND fechaFin < CURDATE()
+    ) ranked_bimestres
+    WHERE rn > 10  -- Mantener siempre los 10 más recientes
+        AND EXISTS (
+            SELECT 1 FROM bimestres b 
+            WHERE b.id = ranked_bimestres.id 
+                AND b.createdAt <= v_cutoff_date
+        );
     
     -- Actualizar conteo identificado
     UPDATE cleanup_logs 
@@ -189,19 +237,29 @@ sp_cleanup: BEGIN
         
         -- Eliminar dependencias en orden correcto
         
-        -- 1. schedule_events
+        -- 1. Tablas de permisos (deben eliminarse primero por dependencias)
+        DELETE FROM permisos_pendientes WHERE bimestre_id = v_current_bimestre_id;
+        SET v_permisos_pendientes_deleted = v_permisos_pendientes_deleted + ROW_COUNT();
+        
+        DELETE FROM usuario_permisos_carrera WHERE bimestre_id = v_current_bimestre_id;
+        SET v_usuario_permisos_carrera_deleted = v_usuario_permisos_carrera_deleted + ROW_COUNT();
+        
+        DELETE FROM usuario_permisos_categoria WHERE bimestre_id = v_current_bimestre_id;
+        SET v_usuario_permisos_categoria_deleted = v_usuario_permisos_categoria_deleted + ROW_COUNT();
+        
+        -- 2. schedule_events
         DELETE FROM schedule_events WHERE bimestre_id = v_current_bimestre_id;
         SET v_schedule_events_deleted = v_schedule_events_deleted + ROW_COUNT();
         
-        -- 2. academic_structures
+        -- 3. academic_structures
         DELETE FROM academic_structures WHERE bimestre_id = v_current_bimestre_id;
         SET v_academic_structures_deleted = v_academic_structures_deleted + ROW_COUNT();
         
-        -- 3. vacantes_inicio_permanente
+        -- 4. vacantes_inicio_permanente
         DELETE FROM vacantes_inicio_permanente WHERE bimestre_id = v_current_bimestre_id;
         SET v_vacantes_deleted = v_vacantes_deleted + ROW_COUNT();
         
-        -- 4. event_teachers (si existe)
+        -- 5. event_teachers (si existe)
         IF EXISTS (SELECT 1 FROM information_schema.tables 
                   WHERE table_schema = 'planificacion_academica' 
                   AND table_name = 'event_teachers') THEN
@@ -209,15 +267,11 @@ sp_cleanup: BEGIN
             SET v_event_teachers_deleted = v_event_teachers_deleted + ROW_COUNT();
         END IF;
         
-        -- 5. upload_logs (si existe)
-        IF EXISTS (SELECT 1 FROM information_schema.tables 
-                  WHERE table_schema = 'planificacion_academica' 
-                  AND table_name = 'upload_logs') THEN
-            DELETE FROM upload_logs WHERE bimestre_id = v_current_bimestre_id;
-            SET v_upload_logs_deleted = v_upload_logs_deleted + ROW_COUNT();
-        END IF;
+        -- 6. upload_logs
+        DELETE FROM upload_logs WHERE bimestre_id = v_current_bimestre_id;
+        SET v_upload_logs_deleted = v_upload_logs_deleted + ROW_COUNT();
         
-        -- 6. dol_aprobados (si existe)
+        -- 7. dol_aprobados (si existe)
         IF EXISTS (SELECT 1 FROM information_schema.tables 
                   WHERE table_schema = 'planificacion_academica' 
                   AND table_name = 'dol_aprobados') THEN
@@ -225,13 +279,49 @@ sp_cleanup: BEGIN
             SET v_dol_aprobados_deleted = v_dol_aprobados_deleted + ROW_COUNT();
         END IF;
         
-        -- 7. asignaturas_optativas_aprobadas (si existe)
+        -- 8. asignaturas_optativas_aprobadas (si existe)
         IF EXISTS (SELECT 1 FROM information_schema.tables 
                   WHERE table_schema = 'planificacion_academica' 
                   AND table_name = 'asignaturas_optativas_aprobadas') THEN
             DELETE FROM asignaturas_optativas_aprobadas WHERE bimestre_id = v_current_bimestre_id;
             SET v_asignaturas_optativas_deleted = v_asignaturas_optativas_deleted + ROW_COUNT();
         END IF;
+        
+        -- 9. reporte_cursables_aprobados (si existe)
+        IF EXISTS (SELECT 1 FROM information_schema.tables 
+                  WHERE table_schema = 'planificacion_academica' 
+                  AND table_name = 'reporte_cursables_aprobados') THEN
+            DELETE FROM reporte_cursables_aprobados WHERE bimestre_id = v_current_bimestre_id;
+            SET v_reporte_cursables_deleted = v_reporte_cursables_deleted + ROW_COUNT();
+        END IF;
+        
+        -- 10. adol_aprobados (si existe)
+        IF EXISTS (SELECT 1 FROM information_schema.tables 
+                  WHERE table_schema = 'planificacion_academica' 
+                  AND table_name = 'adol_aprobados') THEN
+            DELETE FROM adol_aprobados WHERE bimestre_id = v_current_bimestre_id;
+            SET v_adol_aprobados_deleted = v_adol_aprobados_deleted + ROW_COUNT();
+        END IF;
+        
+        -- 11. usuario_asignaturas_permitidas (si existe)
+        IF EXISTS (SELECT 1 FROM information_schema.tables 
+                  WHERE table_schema = 'planificacion_academica' 
+                  AND table_name = 'usuario_asignaturas_permitidas') THEN
+            DELETE FROM usuario_asignaturas_permitidas WHERE bimestre_id = v_current_bimestre_id;
+            SET v_usuario_asignaturas_permitidas_deleted = v_usuario_asignaturas_permitidas_deleted + ROW_COUNT();
+        END IF;
+        
+        -- 12. asignaturas (eliminar después de sus dependencias)
+        DELETE FROM asignaturas WHERE bimestre_id = v_current_bimestre_id;
+        SET v_asignaturas_deleted = v_asignaturas_deleted + ROW_COUNT();
+        
+        -- 13. teachers (eliminar después de asignaturas)
+        DELETE FROM teachers WHERE id_bimestre = v_current_bimestre_id;
+        SET v_teachers_deleted = v_teachers_deleted + ROW_COUNT();
+        
+        -- 14. carreras (eliminar después de asignaturas y teachers)
+        DELETE FROM carreras WHERE bimestre_id = v_current_bimestre_id;
+        SET v_carreras_deleted = v_carreras_deleted + ROW_COUNT();
         
         -- 8. Finalmente, eliminar el bimestre
         DELETE FROM bimestres WHERE id = v_current_bimestre_id;
@@ -243,10 +333,14 @@ sp_cleanup: BEGIN
     CLOSE bimestre_cursor;
     
     -- Calcular total de registros eliminados
-    SET p_total_records_deleted = v_schedule_events_deleted + v_academic_structures_deleted + 
-                                 v_vacantes_deleted + v_event_teachers_deleted + 
-                                 v_upload_logs_deleted + v_dol_aprobados_deleted + 
-                                 v_asignaturas_optativas_deleted + p_bimestres_deleted;
+    SET p_total_records_deleted = v_permisos_pendientes_deleted + v_usuario_permisos_carrera_deleted + 
+                                 v_usuario_permisos_categoria_deleted + v_schedule_events_deleted + 
+                                 v_academic_structures_deleted + v_vacantes_deleted + 
+                                 v_event_teachers_deleted + v_upload_logs_deleted + 
+                                 v_dol_aprobados_deleted + v_asignaturas_optativas_deleted + 
+                                 v_reporte_cursables_deleted + v_adol_aprobados_deleted + 
+                                 v_usuario_asignaturas_permitidas_deleted + v_asignaturas_deleted + 
+                                 v_teachers_deleted + v_carreras_deleted + p_bimestres_deleted;
     
     -- Commit de la transacción
     COMMIT;
@@ -267,7 +361,16 @@ sp_cleanup: BEGIN
         dol_aprobados_deleted = v_dol_aprobados_deleted,
         asignaturas_optativas_aprobadas_deleted = v_asignaturas_optativas_deleted,
         execution_end_date = v_execution_end,
-        execution_time_seconds = TIMESTAMPDIFF(SECOND, v_execution_start, v_execution_end)
+        execution_time_seconds = TIMESTAMPDIFF(SECOND, v_execution_start, v_execution_end),
+        notes = CONCAT('Tablas adicionales procesadas: permisos_pendientes(', v_permisos_pendientes_deleted, 
+                      '), usuario_permisos_carrera(', v_usuario_permisos_carrera_deleted,
+                      '), usuario_permisos_categoria(', v_usuario_permisos_categoria_deleted,
+                      '), reporte_cursables_aprobados(', v_reporte_cursables_deleted,
+                      '), adol_aprobados(', v_adol_aprobados_deleted,
+                      '), usuario_asignaturas_permitidas(', v_usuario_asignaturas_permitidas_deleted,
+                      '), asignaturas(', v_asignaturas_deleted,
+                      '), teachers(', v_teachers_deleted,
+                      '), carreras(', v_carreras_deleted, ')')
     WHERE id = v_log_id;
     
 END//

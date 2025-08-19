@@ -9,8 +9,9 @@ export interface Carrera {
 }
 
 class CarrerasService {
-  async getCarreras(): Promise<Carrera[]> {
-    const response = await apiClient.get('/carreras');
+  async getCarreras(bimestreId?: number): Promise<Carrera[]> {
+    const params = bimestreId ? { bimestreId: bimestreId.toString() } : {};
+    const response = await apiClient.get('/carreras', { params });
     return response.data;
   }
 }

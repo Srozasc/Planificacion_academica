@@ -63,7 +63,7 @@ async generateProgramacionAcademicaReport(bimestreId: number): Promise<Buffer> {
 private async callStoredProcedure(bimestreId: number): Promise<any[]> {
   const result = await this.databaseService.executeStoredProcedure(
     'SP_ReporteProgramacionAcademica', 
-    [bimestreId, null]
+    [bimestreId]
   );
   return result.data || [];
 }
@@ -86,7 +86,7 @@ private async generateExcelFile(data: any[]): Promise<Buffer> {
 
 #### Stored Procedure
 ```sql
-SP_ReporteProgramacionAcademica(bimestreId, usuarioId)
+SP_ReporteProgramacionAcademica(bimestreId)
 ```
 
 **Datos retornados**:
@@ -228,7 +228,7 @@ const headers = [
 
 2. **Verificación Directa en Base de Datos**:
    ```sql
-   CALL SP_ReporteProgramacionAcademica(20, null);
+   CALL SP_ReporteProgramacionAcademica(20);
    ```
 
 3. **Análisis de Estructura de Datos**:

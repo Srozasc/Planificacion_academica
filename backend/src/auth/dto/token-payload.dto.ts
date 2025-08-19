@@ -3,7 +3,6 @@ export class TokenPayloadDto {
   email: string;
   name: string;
   role: string;
-  permissions: string[];
   iat?: number;
   exp?: number;
 }
@@ -15,6 +14,5 @@ export class LoginResponseDto {
     email: string;
     name: string;
     role: string;
-    permissions: string[];
   };
 }

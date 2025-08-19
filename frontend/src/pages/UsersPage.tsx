@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, UserPlusIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
-import { PencilIcon, EyeIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import usersService, { User, UsersListResponse } from '../services/users.service';
 import EditUserModal from '../components/users/EditUserModal';
 import CreateUserModal from '../components/users/CreateUserModal';
@@ -440,9 +440,6 @@ const UsersPage: React.FC = () => {
                             title="Editar usuario"
                           >
                             <PencilIcon className="h-4 w-4" />
-                          </button>
-                          <button className="text-green-600 hover:text-green-900 p-1" title="Ver detalles">
-                            <EyeIcon className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleDeleteUser(user)}

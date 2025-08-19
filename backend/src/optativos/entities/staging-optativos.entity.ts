@@ -30,6 +30,9 @@ export class StagingOptativos {
   @Column({ type: 'int', nullable: false, comment: 'Número de vacantes disponibles' })
   vacantes: number;
 
+  @Column({ type: 'int', nullable: false, default: 0, comment: 'Número de horas de la asignatura' })
+  horas: number;
+
   // Campo de control de bimestre
   @Column({ type: 'int', nullable: false, comment: 'ID del bimestre al que pertenece' })
   id_bimestre: number;

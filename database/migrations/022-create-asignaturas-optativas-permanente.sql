@@ -29,6 +29,7 @@ SET @sql = IF(@table_exists = 0,
         asignatura VARCHAR(20) NOT NULL COMMENT "Código de la asignatura",
         descripcion_asignatura VARCHAR(255) NOT NULL COMMENT "Descripción de la asignatura",
         vacantes INT NOT NULL COMMENT "Número de vacantes disponibles",
+        horas INT NOT NULL DEFAULT 0 COMMENT "Número de horas de la asignatura",
         
         -- Campo de control de bimestre
         id_bimestre INT NOT NULL COMMENT "ID del bimestre al que pertenece",
@@ -83,6 +84,7 @@ ESTRUCTURA DE LA TABLA:
 - asignatura: Código de asignatura (ej: CCG0027)
 - descripcion_asignatura: Nombre de asignatura (ej: EL LIDERAZGO EN EL TRABAJO EN EQUIPO)
 - vacantes: Número de vacantes (ej: 40)
+- horas: Número de horas de la asignatura (ej: 4)
 - id_bimestre: ID del bimestre para control
 
 CAMPOS DE AUDITORÍA:

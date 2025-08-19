@@ -2691,8 +2691,10 @@ export class UploadService {
         };
       }
 
-      // Limpiar datos existentes para este bimestre
-      await this.stagingOptativosRepository.delete({ id_bimestre: options.bimestreId });
+      // Limpiar datos existentes (todos los registros como en otras tablas staging)
+      this.logger.log('Eliminando todos los registros existentes de la tabla staging_optativos...');
+      await this.stagingOptativosRepository.clear();
+      this.logger.log('Tabla staging_optativos limpiada completamente');
 
       // Guardar datos
       const savedRecords = await this.saveAsignaturasOptativasData(validation.validRecords, options.bimestreId);
@@ -2787,6 +2789,12 @@ export class UploadService {
         continue;
       }
 
+      // Validar horas (opcional, si no está presente se asigna 0)
+      if (row['Horas'] && isNaN(Number(row['Horas']))) {
+        errors.push(`Fila ${rowNumber}: Horas debe ser un número válido`);
+        continue;
+      }
+
       validRecords.push(row);
     }
 
@@ -2811,6 +2819,7 @@ export class UploadService {
           asignatura: String(row['Asignatura']),
           descripcion_asignatura: String(row['Descripción Asignatura']),
           vacantes: Number(row['Vacantes']),
+          horas: Number(row['Horas']) || 0,
           id_bimestre: bimestreId,
           status: 'pending',
           created_at: new Date(),

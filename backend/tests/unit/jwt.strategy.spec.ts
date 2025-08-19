@@ -55,7 +55,6 @@ describe('JwtStrategy', () => {
       email: 'test@example.com',
       name: 'Test User',
       role: 'Admin',
-      permissions: [],
     };
 
     it('debería retornar el objeto de usuario si la validación en AuthService es exitosa', async () => {

@@ -16,7 +16,6 @@ const ProfilePage: React.FC = () => {
   const [profileData, setProfileData] = useState({
     nombreCompleto: '',
     email: '',
-    rol: '',
     departamento: '',
     ultimoAcceso: ''
   });
@@ -47,7 +46,6 @@ const ProfilePage: React.FC = () => {
     setProfileData({
       nombreCompleto,
       email: userData.email,
-      rol: userData.role || getRoleName(userData.roleId || 0),
       departamento: 'Ingeniería de Sistemas', // Por ahora hardcodeado
       ultimoAcceso: new Date().toLocaleDateString('es-ES', {
         year: 'numeric',
@@ -66,19 +64,7 @@ const ProfilePage: React.FC = () => {
     }
   }, [user, isLoading]);
 
-  // Función para obtener el nombre del rol
-  const getRoleName = (roleId: number): string => {
-    switch (roleId) {
-      case 1:
-        return 'Visualizador';
-      case 2:
-        return 'Editor';
-      case 3:
-        return 'Maestro';
-      default:
-        return 'Usuario';
-    }
-  };
+
 
   // Función para obtener las iniciales del usuario
   const getUserInitials = (): string => {
@@ -234,7 +220,6 @@ const ProfilePage: React.FC = () => {
                   {getUserInitials()}
                 </div>
                 <h3 className="font-semibold text-gray-900">{profileData.nombreCompleto}</h3>
-                <p className="text-sm text-gray-600">{profileData.rol}</p>
               </div>
 
               {/* Navigation */}
@@ -304,32 +289,9 @@ const ProfilePage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email
                       </label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          value={profileData.email}
-                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.email}</p>
-                      )}
+                      <p className="text-gray-900">{profileData.email}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Rol
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={profileData.rol}
-                          onChange={(e) => setProfileData({...profileData, rol: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.rol}</p>
-                      )}
-                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Departamento

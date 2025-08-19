@@ -98,7 +98,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
         setCategoriasLoading(true);
         
         const [carrerasData, categoriasData] = await Promise.all([
-          carrerasService.getCarreras(),
+          carrerasService.getCarreras(bimestreSeleccionado?.id),
           asignaturasService.getCategorias(bimestreSeleccionado?.id)
         ]);
         
@@ -116,7 +116,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
     if (isOpen) {
       loadCarrerasYCategorias();
     }
-  }, [isOpen]);
+  }, [isOpen, bimestreSeleccionado?.id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

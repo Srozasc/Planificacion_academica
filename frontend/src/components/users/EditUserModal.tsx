@@ -105,7 +105,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         setCategoriasLoading(true);
         
         const [carrerasData, categoriasData] = await Promise.all([
-          carrerasService.getCarreras(),
+          carrerasService.getCarreras(bimestreSeleccionado?.id),
           asignaturasService.getCategorias(bimestreSeleccionado?.id)
         ]);
         
@@ -123,7 +123,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     if (isOpen) {
       loadCarrerasYCategorias();
     }
-  }, [isOpen]);
+  }, [isOpen, bimestreSeleccionado?.id]);
 
   // Cargar permisos del usuario
   useEffect(() => {

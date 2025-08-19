@@ -1,12 +1,22 @@
 # Plan de Implementación: Limpieza Automática de Bimestres
 
 ## Objetivo
-Implementar un sistema automático que elimine bimestres antiguos, manteniendo solo los 10 más recientes, ejecutándose anualmente sin restricciones de estado activo.
+Implementar un sistema automático que elimine bimestres antiguos, **GARANTIZANDO que SIEMPRE se mantengan los 10 bimestres más recientes**, independientemente de su antigüedad. El sistema se ejecuta automáticamente y utiliza criterios de antigüedad solo para bimestres que excedan los 10 más recientes.
+
+## ⚠️ PROBLEMA IDENTIFICADO Y SOLUCIONADO
+
+**Problema original:** El stored procedure inicial eliminaba bimestres basándose únicamente en criterios de antigüedad (meses), sin garantizar que se mantuvieran los 10 más recientes. Esto causó que en las pruebas se eliminaran TODOS los bimestres cuando solo había 5.
+
+**Solución implementada:** 
+- ✅ **Protección absoluta**: NUNCA elimina los 10 bimestres más recientes
+- ✅ **Validación de seguridad**: Si hay ≤10 bimestres totales, no elimina nada
+- ✅ **Lógica combinada**: Solo elimina bimestres que sean >10° más reciente Y cumplan criterios de antigüedad
 
 ## Arquitectura de la Solución
-- **Stored Procedure**: `sp_cleanup_old_bimestres` en la base de datos
+- **Stored Procedure**: `sp_cleanup_old_bimestres` en la base de datos (CORREGIDO)
 - **Servicio NestJS**: `BimestreCleanupService` con cron job
 - **Controlador opcional**: Para ejecución manual
+- **Tests de protección**: Validación específica de la protección de bimestres recientes
 
 ---
 
@@ -27,23 +37,29 @@ Implementar un sistema automático que elimine bimestres antiguos, manteniendo s
 
 ## FASE 2: Desarrollo del Stored Procedure
 
-### Paso 2.1: Crear el Stored Procedure base
+### Paso 2.1: Crear el Stored Procedure base ✅ COMPLETADO
 ```sql
--- Archivo: create-sp-cleanup-bimestres.sql
-CREATE PROCEDURE sp_cleanup_old_bimestres
-    @bimestres_a_mantener INT = 10
-AS
-BEGIN
-    -- Implementación completa
-END
+-- Archivo: create_sp_cleanup_old_bimestres.sql
+CREATE PROCEDURE sp_cleanup_old_bimestres(
+    IN p_months_threshold INT,
+    IN p_max_bimestres_per_execution INT,
+    IN p_debug_mode BOOLEAN,
+    IN p_perform_backup BOOLEAN,
+    OUT p_execution_id VARCHAR(36),
+    OUT p_bimestres_deleted INT,
+    OUT p_total_records_deleted INT,
+    OUT p_status VARCHAR(50),
+    OUT p_error_message TEXT
+)
 ```
 
-**Tareas:**
-- [ ] Crear archivo SQL con el SP completo
-- [ ] Incluir validaciones de parámetros
-- [ ] Implementar lógica de selección (ROW_NUMBER)
-- [ ] Agregar manejo de transacciones
-- [ ] Incluir logging y manejo de errores
+**Características implementadas:**
+- ✅ **PROTECCIÓN GARANTIZADA**: Mantiene SIEMPRE los 10 bimestres más recientes
+- ✅ **Validación de seguridad**: Si hay ≤10 bimestres totales, NO elimina nada
+- ✅ **Lógica ROW_NUMBER()**: Usa ranking para identificar los más recientes
+- ✅ **Criterios combinados**: Solo elimina bimestres que sean >10° más reciente Y cumplan antigüedad
+- ✅ **Manejo completo de transacciones y errores**
+- ✅ **Logging detallado en tabla cleanup_logs**
 
 ### Paso 2.2: Probar el Stored Procedure
 - [ ] Ejecutar en modo de prueba (SELECT sin DELETE)
