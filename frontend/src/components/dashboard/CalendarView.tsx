@@ -22,6 +22,7 @@ interface CalendarEvent {
 interface CalendarViewProps {
   events?: CalendarEvent[];
   bimestreSeleccionado?: Bimestre | null;
+  currentEventType?: 'asignaturas' | 'adol' | 'optativas';
   onEventCreate?: (eventData: CreateEventData) => void;
   onEventUpdate?: (id: string, eventData: CreateEventData) => void;
   onEventDelete?: (id: string) => void;
@@ -30,6 +31,7 @@ interface CalendarViewProps {
 const CalendarView: React.FC<CalendarViewProps> = ({ 
   events = [], 
   bimestreSeleccionado,
+  currentEventType,
   onEventCreate,
   onEventUpdate,
   onEventDelete
@@ -378,6 +380,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
         selectedDate={selectedDate}
         onSave={editingEvent ? handleEventUpdate : handleEventCreate}
         isLoading={isCreatingEvent}
+        currentEventType={currentEventType}
         editingEvent={editingEvent}
         onMultipleEventsCreated={async () => {
           // Recargar eventos cuando se crean múltiples eventos

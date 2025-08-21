@@ -1,0 +1,114 @@
+¡Excelente idea! Consolidar todo lo que aprendimos en una guía cohesiva es la mejor manera de asegurar que el proceso sea repetible y claro para el futuro.
+
+Aquí tienes el manual completo, destilado de nuestra conversación y experiencia.
+
+---
+
+### **Manual Definitivo: Migración de una Base de Datos MySQL a AWS RDS**
+
+Este documento detalla el proceso completo para migrar una base de datos MySQL desde un entorno local a una instancia gestionada en Amazon RDS, incluyendo la solución a los problemas más comunes que pueden surgir.
+
+#### **Paso 1: Preparar el Script de Volcado (Dump)**
+
+El objetivo es crear un único archivo `.sql` que contenga la estructura y los datos de tu base de datos local.
+
+1.  **Generar el Archivo de Volcado:** Utiliza tu herramienta preferida (MySQL Workbench, DBeaver, `mysqldump` en la línea de comandos) para exportar tu base de datos completa. Asegúrate de incluir tanto la estructura (`CREATE TABLE`) como los datos (`INSERT`).
+
+2.  **Limpiar el Script (Paso Crítico de Preparación):** Antes de usar el archivo, es crucial eliminar las cláusulas `DEFINER` que causan conflictos de permisos en RDS.
+    *   Abre el archivo `.sql` en un editor de texto (como VS Code).
+    *   Usa la función "Buscar y Reemplazar" (`Ctrl + H`):
+        *   **Buscar:** `DEFINER=`tu_usuario_local`@`localhost` (reemplaza `tu_usuario_local` con el usuario que aparezca en tu script, usualmente `root`).
+        *   **Reemplazar con:** (deja este campo **completamente vacío**).
+    *   Haz clic en "Reemplazar todo" y guarda el archivo. Esto eliminará todas las cláusulas problemáticas.
+
+#### **Paso 2: Crear y Configurar la Instancia en AWS RDS**
+
+Provisionaremos el servidor en la nube que alojará nuestra base de datos.
+
+1.  **Navega a AWS RDS:** En la consola de AWS, ve al servicio **RDS**.
+2.  **Crear Base de Datos:** Haz clic en `Create database`.
+3.  **Configuración Inicial:**
+    *   Método de creación: **`Standard create`**.
+    *   Motor: **`MySQL`**.
+    *   Plantilla: Selecciona **`Free tier`** para empezar sin costos, o **`Production` / `Dev/Test`** si necesitas más potencia (esto habilitará opciones adicionales).
+4.  **Credenciales:**
+    *   **DB instance identifier:** Dale un nombre a tu instancia (ej. `mi-aplicacion-db`).
+    *   **Master username:** Define un nombre de usuario administrador (ej. `admin`).
+    *   **Master password:** Crea una contraseña fuerte y **guárdala en un lugar seguro**.
+5.  **Conectividad:**
+    *   **Public access:** Selecciona **`Yes`**.
+        *   **Nota:** Esto es necesario para que puedas conectarte desde tu computadora y cargar el script. Por seguridad, lo desactivaremos después del despliegue.
+    *   **VPC security group:** Elige `Create new` y dale un nombre (ej. `mi-app-rds-sg`).
+6.  **Configuración Adicional:**
+    *   **Initial database name:** Escribe el nombre de tu base de datos (ej. `planificacion_db`). Esto nos ahorrará un paso más tarde.
+7.  Haz clic en **`Create database`** y espera a que el estado cambie de "Creating" a **"Available"** (puede tardar varios minutos).
+
+#### **Paso 3: Configurar el Firewall (Grupo de Seguridad)**
+
+Necesitamos abrir un puerto para permitir la conexión desde tu computadora.
+
+1.  **Obtén tu IP Actual:** Busca en Google "¿cuál es mi IP?" y copia tu dirección IP pública.
+2.  **Navega al Grupo de Seguridad:** En los detalles de tu instancia de RDS (pestaña `Connectivity & security`), haz clic en el enlace del `VPC security group`.
+3.  **Edita las Reglas de Entrada:**
+    *   Ve a la pestaña `Inbound rules` y haz clic en `Edit inbound rules`.
+    *   Verifica si ya existe una regla para el puerto `3306`.
+        *   **Si existe:** Asegúrate de que la IP en `Source` coincida con tu IP actual. Si no, edítala.
+        *   **Si no existe:** Haz clic en `Add rule` y configúrala:
+            *   **Type:** `MYSQL/Aurora`.
+            *   **Source:** Selecciona `My IP` (AWS la detectará) o pega tu IP manualmente y añade `/32` al final.
+    *   Haz clic en `Save rules`.
+
+#### **Paso 4: Conectar y Restaurar la Base de Datos**
+
+Ahora cargaremos tu script `.sql` en la nueva base de datos de RDS.
+
+1.  **Obtén el Endpoint:** En la pestaña `Connectivity & security` de tu instancia RDS, copia el `Endpoint`.
+2.  **Configura tu Cliente de BD (DBeaver/MySQL Workbench):**
+    *   Crea una nueva conexión.
+    *   **Host:** Pega el `Endpoint`.
+    *   **Port:** `3306`.
+    *   **User:** El `Master username` que creaste.
+    *   **Password:** La `Master password` que guardaste.
+    *   **Database:** El `Initial database name` que definiste.
+    *   **Configuración del Driver (Solución a error común):** Ve a las propiedades del driver de la conexión y añade:
+        *   **Propiedad:** `allowPublicKeyRetrieval`
+        *   **Valor:** `true`
+3.  **Prueba la Conexión:** Debería conectar exitosamente.
+4.  **Restaura el Script:**
+    *   Usa la herramienta de "Restore" de tu cliente de base de datos.
+    *   Selecciona tu archivo `.sql` (el que limpiaste en el Paso 1).
+    *   **Recomendación:** Marca la opción `Disable foreign key checks` si está disponible, para acelerar el proceso.
+    *   Inicia la restauración y espera a que finalice.
+
+#### **Paso 5: Verificación y Limpieza**
+
+1.  **Verifica:** En tu cliente de base de datos, refresca la conexión. Despliega las tablas y ejecuta un `SELECT` en una de ellas para confirmar que los datos se cargaron correctamente.
+2.  **(Opcional pero Recomendado) Aumentar la Seguridad:**
+    *   Una vez que tu backend esté desplegado en EC2 y se conecte a la BD, puedes volver a la configuración de tu instancia de RDS.
+    *   Haz clic en **`Modificar`**.
+    *   En `Conectividad`, cambia **`Public access`** de `Yes` a **`No`**.
+    *   Guarda los cambios. Esto asegurará que tu base de datos solo sea accesible desde dentro de tu red de AWS.
+
+---
+
+### **Apéndice: Problemas Comunes y Soluciones**
+
+*   **Error: `Connect timed out` (Tiempo de conexión agotado)**
+    *   **Causa 1:** El **Acceso Público** de la instancia de RDS está en `No`.
+        *   **Solución:** Modifica la instancia y ponlo temporalmente en `Sí`.
+    *   **Causa 2:** Tu dirección IP pública **actual** no está en la regla de entrada del Grupo de Seguridad.
+        *   **Solución:** Verifica tu IP actual y corrígela en la regla del firewall.
+    *   **Causa 3:** El firewall de tu red local (oficina, universidad) bloquea el puerto `3306`.
+        *   **Solución:** Intenta conectar desde otra red (como el hotspot de tu teléfono).
+
+*   **Error: `Public Key Retrieval is not allowed`**
+    *   **Causa:** El driver de MySQL moderno requiere permiso explícito para un intercambio de claves seguro.
+    *   **Solución:** En la configuración de la conexión de tu cliente de BD, añade la propiedad del driver `allowPublicKeyRetrieval` con el valor `true`.
+
+*   **Error: `ERROR 1419 ... You do not have the SUPER privilege`**
+    *   **Causa:** Tu script intenta crear Procedimientos Almacenados/Funciones, pero RDS no concede el privilegio `SUPER`.
+    *   **Solución:** Crea un "Grupo de Parámetros" personalizado en RDS, cambia el valor del parámetro `log_bin_trust_function_creators` a `1`, aplica este grupo a tu instancia y reiníciala.
+
+*   **Error: `ERROR 1227 ... Access denied; you need ... aLLoW_NONEXISTENT_DEFINER privilege`**
+    *   **Causa:** Tu script `.sql` contiene cláusulas `DEFINER` que apuntan a usuarios que no existen en RDS.
+    *   **Solución:** Edita tu archivo `.sql` y usa "Buscar y Reemplazar" para eliminar por completo todas las cláusulas `DEFINER=...`.

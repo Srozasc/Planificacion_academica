@@ -190,16 +190,7 @@ const LoginPageFixed: React.FC = () => {
           </p>
         </div>
 
-        <div className="mt-4 text-center">
-          <div className="bg-white border border-gray-200 rounded-md p-4 shadow-sm">
-            <p className="text-sm text-blue-600 mb-1">
-              <strong>Email de prueba:</strong> admin@planificacion.edu
-            </p>
-            <p className="text-sm text-blue-600">
-              <strong>Contraseña:</strong> admin123
-            </p>
-          </div>
-        </div>
+
       </div>
     </div>
   );

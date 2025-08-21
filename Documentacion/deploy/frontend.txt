@@ -1,0 +1,94 @@
+¡Entendido perfectamente! Disculpa la confusión.
+
+Aquí tienes la guía depurada y enfocada exclusivamente en el despliegue del frontend, reflejando el proceso exacto que seguimos y que funcionó.
+
+---
+
+### **Guía Definitiva para Desplegar un Frontend de React en AWS (S3 + CloudFront)**
+
+Este documento detalla el proceso completo para alojar una aplicación de React como un sitio web estático en Amazon S3 y distribuirlo globalmente a través de Amazon CloudFront, asegurando alto rendimiento, seguridad y correcto funcionamiento del enrutamiento.
+
+#### **Paso 1: Preparar la Aplicación para Producción**
+
+Antes de subir cualquier cosa a AWS, necesitas generar una versión optimizada de tu aplicación.
+
+1.  **Abre una terminal** en tu computadora.
+2.  Navega hasta el directorio raíz de tu proyecto de frontend (ej. `cd Planificacion_academica/frontend`).
+3.  Ejecuta el comando de compilación (build):
+    ```bash
+    npm run build
+    ```
+4.  **Verificación:** Este comando creará una nueva carpeta llamada `dist` en tu proyecto. Esta carpeta contiene todos los archivos estáticos (HTML, CSS, JavaScript) que desplegaremos.
+
+#### **Paso 2: Crear y Configurar el Bucket de Amazon S3**
+
+S3 será el "disco duro" en la nube donde vivirán los archivos de tu sitio.
+
+1.  **Inicia sesión en la Consola de AWS** y navega al servicio **S3**.
+2.  Haz clic en el botón **`Crear bucket`**.
+3.  **Configuración General:**
+    *   **Nombre del bucket:** Introduce un nombre que sea único a nivel mundial (ej. `mi-app-planificacion-academica-frontend`). No puede contener mayúsculas ni espacios.
+    *   **Región de AWS:** Mantén la región que te sugiera o elige una cercana.
+4.  **Propiedad de Objetos:**
+    *   Selecciona la opción **`ACL deshabilitadas (recomendado)`**.
+5.  **Configuración de bloqueo de acceso público para este bucket:**
+    *   Mantén la casilla **`Bloquear todo el acceso público`** marcada. Esta es la configuración más segura; permitiremos el acceso solo a través de CloudFront.
+6.  **Opciones restantes:** Deja el resto de las opciones (control de versiones, etiquetas, cifrado) con sus valores por defecto.
+7.  Haz clic en **`Crear bucket`** al final de la página.
+
+#### **Paso 3: Subir los Archivos del Sitio Web a S3**
+
+1.  En la lista de buckets, haz clic en el nombre del bucket que acabas de crear.
+2.  Haz clic en el botón naranja **`Cargar`**.
+3.  **Acción Clave:** Arrastra y suelta el **CONTENIDO** de tu carpeta `dist` local a la ventana de carga de S3. Esto significa que debes arrastrar el archivo `index.html`, la carpeta `assets/`, etc., pero **NO** la carpeta `dist` en sí misma.
+4.  Una vez listados los archivos, haz clic en **`Cargar`**.
+
+#### **Paso 4: Crear y Configurar la Distribución de CloudFront**
+
+CloudFront es la CDN que entregará tu sitio a los usuarios de forma rápida y segura.
+
+1.  Navega al servicio **CloudFront** en la consola de AWS.
+2.  Haz clic en **`Crear una distribución`**.
+3.  **Utilizar la Interfaz Clásica (Importante):** Si la consola te muestra un asistente de varios pasos, busca un banner en la parte superior con un enlace que diga **"Go back to the previous Create Distribution page"** (o en español: "Volver a la página de creación de distribuciones anterior"). Haz clic en ese enlace para acceder a la página de configuración completa.
+4.  **Configurar la sección `Origin`:**
+    *   **Origin Domain:** Haz clic en el campo y selecciona tu bucket de S3 de la lista desplegable.
+    *   **S3 bucket access:** Selecciona **`Yes, use OAI (bucket can restrict access to only CloudFront)`**.
+    *   **Origin Access Identity:** Haz clic en el botón **`Create new OAI`**. En la ventana emergente, simplemente haz clic en `Create`.
+    *   **Bucket Policy:** Selecciona **`Yes, update the bucket policy`**. CloudFront configurará los permisos automáticamente.
+5.  **Configurar la sección `Default cache behavior`:**
+    *   **Compress objects automatically:** Selecciona **`Yes`**.
+    *   **Viewer protocol policy:** Selecciona **`Redirect HTTP to HTTPS`**.
+6.  **Configurar la sección `Settings` (casi al final de la página):**
+    *   **Default root object:** Escribe **`index.html`**.
+7.  Haz clic en el botón naranja **`Create distribution`** al final de la página.
+
+#### **Paso 5: Configurar las Páginas de Error para el Enrutamiento de React**
+
+Este paso es **crítico** para que las rutas de tu aplicación (ej. `/login`) funcionen correctamente al recargar la página.
+
+1.  Después de crear la distribución, serás llevado a la lista de distribuciones. El estado de tu nueva distribución será "Deploying".
+2.  Haz clic en el **ID** de tu distribución para abrir sus detalles.
+3.  Navega a la pestaña **`Error pages`**.
+4.  Haz clic en **`Create custom error response`**.
+5.  **Crea la Regla para el Error 403:**
+    *   HTTP error code: **`403: Forbidden`**
+    *   Customize error response: **`Yes`**
+    *   Response page path: **`/index.html`**
+    *   HTTP Response code: **`200: OK`**
+    *   Haz clic en `Create`.
+6.  **Crea la Regla para el Error 404:** Haz clic de nuevo en `Create custom error response` y repite el proceso para el código de error `404: Not Found`, con la misma configuración.
+
+#### **Paso 6: Probar el Sitio Web**
+
+1.  Espera a que el estado de la distribución cambie de "Deploying" a la fecha de la última modificación (esto puede tardar de 5 a 15 minutos).
+2.  Ve a la pestaña `General` de tu distribución.
+3.  Copia el valor del campo **`Distribution domain name`** (ej. `d123abcd.cloudfront.net`).
+4.  Pega esa URL en tu navegador. ¡Tu sitio web debería estar en vivo!
+
+---
+
+### **Cómo Actualizar el Sitio Web (Desplegar Nuevos Cambios)**
+
+1.  **Local:** Realiza los cambios en tu código y ejecuta `npm run build` de nuevo.
+2.  **S3:** Borra el contenido antiguo del bucket de S3 y sube el nuevo contenido de la carpeta `dist`.
+3.  **CloudFront:** Ve a tu distribución -> Pestaña `Invalidations` -> `Create Invalidation` -> Escribe `/*` como ruta y haz clic en `Create invalidation`. Esto purgará la caché y mostrará la nueva versión a todos los usuarios en pocos minutos.

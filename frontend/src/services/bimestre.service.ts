@@ -5,11 +5,11 @@ export interface Bimestre {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  // Campos para rangos de fechas de pago
-  fechaPago1Inicio?: string;
-  fechaPago1Fin?: string;
-  fechaPago2Inicio?: string;
-  fechaPago2Fin?: string;
+  // Campos para rangos de fechas de pago (ahora obligatorios)
+  fechaPago1Inicio: string;
+  fechaPago1Fin: string;
+  fechaPago2Inicio: string;
+  fechaPago2Fin: string;
   anoAcademico: number;
   numeroBimestre: number;
   activo: boolean;
@@ -23,11 +23,11 @@ export interface CreateBimestreDto {
   nombre: string;
   fechaInicio: string;
   fechaFin: string;
-  // Campos para rangos de fechas de pago
-  fechaPago1Inicio?: string;
-  fechaPago1Fin?: string;
-  fechaPago2Inicio?: string;
-  fechaPago2Fin?: string;
+  // Campos para rangos de fechas de pago (ahora obligatorios)
+  fechaPago1Inicio: string;
+  fechaPago1Fin: string;
+  fechaPago2Inicio: string;
+  fechaPago2Fin: string;
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;

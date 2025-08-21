@@ -248,11 +248,7 @@ const LoginPage: React.FC = () => {
           </div>          <div className="text-center">
             <p className="text-xs text-gray-500">
               Sistema de Planificación Académica v1.0
-            </p>            <div className="mt-4 p-3 bg-blue-50 rounded-md">              <p className="text-xs text-blue-600">
-                <strong>Email de prueba:</strong> admin@planificacion.edu<br />
-                <strong>Contraseña:</strong> admin123
-              </p>
-            </div>
+            </p>
           </div>
         </form>
       </div>

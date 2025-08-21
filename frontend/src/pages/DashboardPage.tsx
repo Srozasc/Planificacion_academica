@@ -534,6 +534,7 @@ const DashboardPage: React.FC = () => {
         selectedDate={selectedDate}
         onSave={handleEventSave}
         isLoading={isCreatingEvent}
+        currentEventType={eventType}
         editingEvent={editingEvent}
         onMultipleEventsCreated={async () => {
           // Recargar eventos cuando se crean múltiples eventos

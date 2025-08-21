@@ -92,11 +92,7 @@ const SimpleLogin: React.FC = () => {
           {error}
         </div>
       )}
-      <div style={{ marginTop: '20px', fontSize: '12px', color: '#666' }}>
-        <p>Credenciales de prueba:</p>
-        <p>Email: admin@planificacion.edu</p>
-        <p>Password: admin123</p>
-      </div>
+
     </div>
   );
 };

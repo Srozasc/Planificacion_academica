@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { User, Edit, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/auth.store';
 import { authService } from '../services/auth.service';
 
 const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('perfil');
-  const [isEditing, setIsEditing] = useState(false);
+  // Removed editing functionality
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -16,7 +16,6 @@ const ProfilePage: React.FC = () => {
   const [profileData, setProfileData] = useState({
     nombreCompleto: '',
     email: '',
-    departamento: '',
     ultimoAcceso: ''
   });
 
@@ -46,7 +45,6 @@ const ProfilePage: React.FC = () => {
     setProfileData({
       nombreCompleto,
       email: userData.email,
-      departamento: 'Ingeniería de Sistemas', // Por ahora hardcodeado
       ultimoAcceso: new Date().toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
@@ -97,21 +95,7 @@ const ProfilePage: React.FC = () => {
 
 
 
-  const handleProfileSave = async () => {
-    try {
-      setIsEditing(false);
-      // TODO: Implementar endpoint para actualizar perfil de usuario
-      // await authService.updateProfile(profileData);
-      console.log('Guardando perfil:', profileData);
-      
-      // Por ahora solo mostramos un mensaje de éxito
-      alert('Perfil actualizado correctamente');
-    } catch (error) {
-      console.error('Error al guardar perfil:', error);
-      alert('Error al actualizar el perfil');
-      setIsEditing(true); // Volver al modo edición si hay error
-    }
-  };
+  // Removed profile save functionality
 
   const handlePasswordChange = async () => {
     // Validaciones
@@ -257,16 +241,7 @@ const ProfilePage: React.FC = () => {
             {activeTab === 'perfil' && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">Información Personal</h2>
-                    <button
-                      onClick={() => isEditing ? handleProfileSave() : setIsEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-uc-yellow text-white rounded-lg hover:bg-yellow-600 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                      {isEditing ? 'Guardar' : 'Editar'}
-                    </button>
-                  </div>
+                  <h2 className="text-xl font-semibold text-gray-900">Información Personal</h2>
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -274,16 +249,7 @@ const ProfilePage: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Nombre Completo
                       </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={profileData.nombreCompleto}
-                          onChange={(e) => setProfileData({...profileData, nombreCompleto: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.nombreCompleto}</p>
-                      )}
+                      <p className="text-gray-900">{profileData.nombreCompleto}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -291,23 +257,6 @@ const ProfilePage: React.FC = () => {
                       </label>
                       <p className="text-gray-900">{profileData.email}</p>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Departamento
-                      </label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={profileData.departamento}
-                          onChange={(e) => setProfileData({...profileData, departamento: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-uc-blue focus:border-transparent"
-                        />
-                      ) : (
-                        <p className="text-gray-900">{profileData.departamento}</p>
-                      )}
-                    </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Último Acceso

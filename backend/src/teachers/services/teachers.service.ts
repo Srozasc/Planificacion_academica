@@ -30,10 +30,10 @@ export class TeachersService {
       }
       
       const result = await this.teacherRepository.query(`
-        SELECT COALESCE(ROUND(SUM(vbr.Horas_a_pago), 0), 0) as total_horas 
-        FROM Vw_Base_Reportes vbr
-        WHERE vbr.ID_Docente = ? 
-        AND vbr.bimestre_id = ?
+        SELECT COALESCE(ROUND(SUM(vth.Horas_a_pago), 0), 0) as total_horas 
+        FROM vw_total_horas vth
+        WHERE vth.ID_Docente = ? 
+        AND vth.bimestre_id = ?
       `, [teacher.id_docente, bimestreId]);
 
       const totalHoras = result.length > 0 ? parseFloat(result[0].total_horas) || 0 : 0;
@@ -86,12 +86,12 @@ export class TeachersService {
       const placeholders = validIdDocentes.map(() => '?').join(',');
       const result = await this.teacherRepository.query(`
         SELECT 
-          vbr.ID_Docente as id_docente,
-          COALESCE(ROUND(SUM(vbr.Horas_a_pago), 0), 0) as total_horas 
-        FROM Vw_Base_Reportes vbr
-        WHERE vbr.ID_Docente IN (${placeholders})
-        AND vbr.bimestre_id = ? 
-        GROUP BY vbr.ID_Docente
+          vth.ID_Docente as id_docente,
+          COALESCE(ROUND(SUM(vth.Horas_a_pago), 0), 0) as total_horas 
+        FROM vw_total_horas vth
+        WHERE vth.ID_Docente IN (${placeholders})
+        AND vth.bimestre_id = ? 
+        GROUP BY vth.ID_Docente
       `, [...validIdDocentes, bimestreId]);
 
       const horasMap: Record<number, number> = {};

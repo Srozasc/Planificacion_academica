@@ -74,6 +74,10 @@ describe('BimestreService', () => {
       nombre: 'Nuevo Bimestre',
       fechaInicio: '2025-01-01',
       fechaFin: '2025-03-31',
+      fechaPago1Inicio: '2025-01-15',
+      fechaPago1Fin: '2025-01-31',
+      fechaPago2Inicio: '2025-02-15',
+      fechaPago2Fin: '2025-02-28',
       anoAcademico: 2025,
       numeroBimestre: 1,
     };
@@ -118,6 +122,10 @@ describe('BimestreService', () => {
       nombre: 'Bimestre Original',
       fechaInicio: new Date('2025-01-01'),
       fechaFin: new Date('2025-03-31'),
+      fechaPago1Inicio: new Date('2025-01-15'),
+      fechaPago1Fin: new Date('2025-01-31'),
+      fechaPago2Inicio: new Date('2025-02-15'),
+      fechaPago2Fin: new Date('2025-02-28'),
       anoAcademico: 2025,
       numeroBimestre: 1,
       activo: true,
@@ -174,8 +182,8 @@ describe('BimestreService', () => {
   describe('findBimestreByFecha', () => {
     it('debería retornar el bimestre que contiene la fecha', async () => {
       const mockBimestres = [
-        { id: 1, nombre: 'Bimestre 1', fechaInicio: new Date('2025-01-01'), fechaFin: new Date('2025-03-31'), activo: true, contieneFecha: (date: Date) => date >= new Date('2025-01-01') && date <= new Date('2025-03-31') },
-        { id: 2, nombre: 'Bimestre 2', fechaInicio: new Date('2025-04-01'), fechaFin: new Date('2025-06-30'), activo: true, contieneFecha: (date: Date) => date >= new Date('2025-04-01') && date <= new Date('2025-06-30') },
+        { id: 1, nombre: 'Bimestre 1', fechaInicio: new Date('2025-01-01'), fechaFin: new Date('2025-03-31'), fechaPago1Inicio: new Date('2025-01-15'), fechaPago1Fin: new Date('2025-01-31'), fechaPago2Inicio: new Date('2025-02-15'), fechaPago2Fin: new Date('2025-02-28'), activo: true, contieneFecha: (date: Date) => date >= new Date('2025-01-01') && date <= new Date('2025-03-31') },
+        { id: 2, nombre: 'Bimestre 2', fechaInicio: new Date('2025-04-01'), fechaFin: new Date('2025-06-30'), fechaPago1Inicio: new Date('2025-04-15'), fechaPago1Fin: new Date('2025-04-30'), fechaPago2Inicio: new Date('2025-05-15'), fechaPago2Fin: new Date('2025-05-31'), activo: true, contieneFecha: (date: Date) => date >= new Date('2025-04-01') && date <= new Date('2025-06-30') },
       ];
       mockBimestreRepository.find.mockResolvedValue(mockBimestres); // Para findActivos
 
@@ -187,7 +195,7 @@ describe('BimestreService', () => {
 
     it('debería retornar null si ninguna bimestre contiene la fecha', async () => {
       const mockBimestres = [
-        { id: 1, nombre: 'Bimestre 1', fechaInicio: new Date('2025-01-01'), fechaFin: new Date('2025-03-31'), activo: true, contieneFecha: (date: Date) => false },
+        { id: 1, nombre: 'Bimestre 1', fechaInicio: new Date('2025-01-01'), fechaFin: new Date('2025-03-31'), fechaPago1Inicio: new Date('2025-01-15'), fechaPago1Fin: new Date('2025-01-31'), fechaPago2Inicio: new Date('2025-02-15'), fechaPago2Fin: new Date('2025-02-28'), activo: true, contieneFecha: (date: Date) => false },
       ];
       mockBimestreRepository.find.mockResolvedValue(mockBimestres);
 

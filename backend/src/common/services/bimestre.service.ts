@@ -9,10 +9,10 @@ export interface CreateBimestreDto {
   fechaInicio: string; // Cambiado a string para manejar conversión manual
   fechaFin: string;    // Cambiado a string para manejar conversión manual
   activo?: boolean;
-  fechaPago1Inicio?: string;
-  fechaPago1Fin?: string;
-  fechaPago2Inicio?: string;
-  fechaPago2Fin?: string;
+  fechaPago1Inicio: string; // Ahora obligatorio
+  fechaPago1Fin: string;    // Ahora obligatorio
+  fechaPago2Inicio: string; // Ahora obligatorio
+  fechaPago2Fin: string;    // Ahora obligatorio
   anoAcademico: number;
   numeroBimestre: number;
   descripcion?: string;
@@ -24,10 +24,12 @@ export interface UpdateBimestreDto {
   fechaInicio?: string; // Cambiado a string para manejar conversión manual
   fechaFin?: string;    // Cambiado a string para manejar conversión manual
   activo?: boolean;
-  fechaPago1Inicio?: string;
-  fechaPago1Fin?: string;
-  fechaPago2Inicio?: string;
-  fechaPago2Fin?: string;
+  fechaPago1Inicio?: string; // Opcional en actualizaciones
+  fechaPago1Fin?: string;    // Opcional en actualizaciones
+  fechaPago2Inicio?: string; // Opcional en actualizaciones
+  fechaPago2Fin?: string;    // Opcional en actualizaciones
+  anoAcademico?: number;
+  numeroBimestre?: number;
   descripcion?: string;
   factor?: number;
 }
@@ -42,8 +44,20 @@ export class BimestreService {
   ) {}
 
   private parseLocalDate(dateString: string): Date {
-    const [day, month, year] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
+    // Intenta parsear como DD-MM-YYYY
+    let parts = dateString.split('-');
+    if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+      const [day, month, year] = parts.map(Number);
+      return new Date(year, month - 1, day);
+    }
+    // Intenta parsear como YYYY-MM-DD
+    parts = dateString.split('-');
+    if (parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2) {
+      const [year, month, day] = parts.map(Number);
+      return new Date(year, month - 1, day);
+    }
+    // Si ninguno coincide, intenta con el constructor de Date directamente (puede fallar si el formato es inválido)
+    return new Date(dateString);
   }
 
   async findAll(): Promise<Bimestre[]> {
@@ -136,6 +150,20 @@ export class BimestreService {
       this.logger.log(`Datos recibidos para crear bimestre: ${JSON.stringify(createBimestreDto)}`);
       this.logger.log(`Campo factor recibido: ${createBimestreDto.factor} (tipo: ${typeof createBimestreDto.factor})`);
       
+      // Validar que no exista un bimestre con el mismo año académico y número de bimestre
+      const existingBimestre = await this.bimestreRepository.findOne({
+        where: {
+          anoAcademico: createBimestreDto.anoAcademico,
+          numeroBimestre: createBimestreDto.numeroBimestre
+        }
+      });
+      
+      if (existingBimestre) {
+        throw new BadRequestException(
+          `Ya existe un bimestre para el año ${createBimestreDto.anoAcademico} con el número ${createBimestreDto.numeroBimestre}. No se pueden crear bimestres duplicados.`
+        );
+      }
+      
       // Convertir fechas de string a Date
       const fechaInicio = this.parseLocalDate(createBimestreDto.fechaInicio);
       const fechaFin = this.parseLocalDate(createBimestreDto.fechaFin);
@@ -145,17 +173,41 @@ export class BimestreService {
         throw new BadRequestException('La fecha de inicio debe ser anterior a la fecha de fin');
       }
 
+      // Validar que las fechas de pago obligatorias estén presentes
+      if (!createBimestreDto.fechaPago1Inicio || !createBimestreDto.fechaPago1Fin) {
+        throw new BadRequestException('Las fechas de pago 1 (inicio y fin) son obligatorias');
+      }
+      
+      if (!createBimestreDto.fechaPago2Inicio || !createBimestreDto.fechaPago2Fin) {
+        throw new BadRequestException('Las fechas de pago 2 (inicio y fin) son obligatorias');
+      }
+
       // Validar solapamiento de fechas
       await this.validateDateOverlap(fechaInicio, fechaFin, createBimestreDto.anoAcademico);
+
+      // Convertir fechas de pago
+      const fechaPago1Inicio = this.parseLocalDate(createBimestreDto.fechaPago1Inicio);
+      const fechaPago1Fin = this.parseLocalDate(createBimestreDto.fechaPago1Fin);
+      const fechaPago2Inicio = this.parseLocalDate(createBimestreDto.fechaPago2Inicio);
+      const fechaPago2Fin = this.parseLocalDate(createBimestreDto.fechaPago2Fin);
+
+      // Validar que las fechas de pago sean coherentes
+      if (fechaPago1Inicio >= fechaPago1Fin) {
+        throw new BadRequestException('La fecha de inicio de pago 1 debe ser anterior a la fecha de fin de pago 1');
+      }
+      
+      if (fechaPago2Inicio >= fechaPago2Fin) {
+        throw new BadRequestException('La fecha de inicio de pago 2 debe ser anterior a la fecha de fin de pago 2');
+      }
 
       const bimestre = this.bimestreRepository.create({
         ...createBimestreDto,
         fechaInicio,
         fechaFin,
-        fechaPago1Inicio: createBimestreDto.fechaPago1Inicio ? this.parseLocalDate(createBimestreDto.fechaPago1Inicio) : null,
-        fechaPago1Fin: createBimestreDto.fechaPago1Fin ? this.parseLocalDate(createBimestreDto.fechaPago1Fin) : null,
-        fechaPago2Inicio: createBimestreDto.fechaPago2Inicio ? this.parseLocalDate(createBimestreDto.fechaPago2Inicio) : null,
-        fechaPago2Fin: createBimestreDto.fechaPago2Fin ? this.parseLocalDate(createBimestreDto.fechaPago2Fin) : null,
+        fechaPago1Inicio,
+        fechaPago1Fin,
+        fechaPago2Inicio,
+        fechaPago2Fin,
         activo: createBimestreDto.activo ?? true,
         factor: createBimestreDto.factor
       });
@@ -178,6 +230,26 @@ export class BimestreService {
       this.logger.log(`Campo factor recibido: ${updateBimestreDto.factor} (tipo: ${typeof updateBimestreDto.factor})`);
       
       const bimestre = await this.findById(id);
+      
+      // Validar que no exista otro bimestre con el mismo año académico y número de bimestre
+      if (updateBimestreDto.anoAcademico !== undefined || updateBimestreDto.numeroBimestre !== undefined) {
+        const anoAcademico = updateBimestreDto.anoAcademico ?? bimestre.anoAcademico;
+        const numeroBimestre = updateBimestreDto.numeroBimestre ?? bimestre.numeroBimestre;
+        
+        const existingBimestre = await this.bimestreRepository.findOne({
+          where: {
+            anoAcademico,
+            numeroBimestre,
+            id: Not(id) // Excluir el bimestre actual
+          }
+        });
+        
+        if (existingBimestre) {
+          throw new BadRequestException(
+            `Ya existe un bimestre para el año ${anoAcademico} con el número ${numeroBimestre}. No se pueden crear bimestres duplicados.`
+          );
+        }
+      }
       
       // Preparar datos de actualización
       const updateData: any = { ...updateBimestreDto };
@@ -285,8 +357,15 @@ export class BimestreService {
         { name: 'staging_vacantes', column: 'id_bimestre' },
         
         // Tablas finales
+        { name: 'asignaturas_optativas_aprobadas', column: 'id_bimestre' },
+        { name: 'dol_aprobados', column: 'id_bimestre' },
+        { name: 'adol_aprobados', column: 'bimestre_id' },
+        { name: 'reporte_cursables_aprobados', column: 'bimestre_id' },
         { name: 'asignaturas', column: 'bimestre_id' },
-        { name: 'carreras', column: 'bimestre_id' }
+        { name: 'carreras', column: 'bimestre_id' },
+        
+        // Tablas de logs
+        { name: 'upload_logs', column: 'bimestre_id' }
       ];
 
       for (const table of relatedTables) {
@@ -344,8 +423,15 @@ export class BimestreService {
         { name: 'schedule_events', column: 'bimestre_id' },
         
         // Tablas finales (eliminar después de staging)
+        { name: 'asignaturas_optativas_aprobadas', column: 'id_bimestre' },
+        { name: 'dol_aprobados', column: 'id_bimestre' },
+        { name: 'adol_aprobados', column: 'bimestre_id' },
+        { name: 'reporte_cursables_aprobados', column: 'bimestre_id' },
         { name: 'asignaturas', column: 'bimestre_id' },
-        { name: 'carreras', column: 'bimestre_id' }
+        { name: 'carreras', column: 'bimestre_id' },
+        
+        // Tablas de logs (eliminar al final)
+        { name: 'upload_logs', column: 'bimestre_id' }
       ];
       
       let totalDeleted = 0;

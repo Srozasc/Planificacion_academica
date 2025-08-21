@@ -12,7 +12,7 @@ SELECT 'Estructura ANTES de la migración:' AS info;
 DESCRIBE event_teachers;
 
 -- Ejecutar la migración
-SOURCE 020-add-bimestre-id-to-event-teachers.sql;
+SOURCE 018-add-bimestre-id-to-event-teachers.sql;
 
 -- Verificar que la migración se ejecutó correctamente
 SELECT 'Estructura DESPUÉS de la migración:' AS info;

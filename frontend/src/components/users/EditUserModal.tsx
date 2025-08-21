@@ -157,6 +157,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
     }
   }, [isOpen, user, bimestreSeleccionado]);
 
+  // Resetear el estado de contraseña cada vez que se abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      setPasswordData({
+        newPassword: '',
+        confirmPassword: '',
+        adminPassword: '',
+        changePassword: false,
+      });
+      setPasswordError(null);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (user && roles.length > 0) {
       const visualizadorId = getVisualizadorRoleId();
@@ -164,7 +177,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         name: user.name,
         emailInstitucional: user.emailInstitucional,
         roleId: user.roleId,
-        roleExpiresAt: user.roleExpiresAt ? new Date(user.roleExpiresAt).toISOString().slice(0, 16) : '',
+        roleExpiresAt: user.roleExpiresAt ? new Date(user.roleExpiresAt).toISOString().slice(0, 10) : '',
         previousRoleId: user.previousRoleId || visualizadorId,
         isActive: user.isActive
       });

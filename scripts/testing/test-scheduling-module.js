@@ -20,8 +20,8 @@ async function testSchedulingModule() {
     console.log('🔐 1. Probando autenticación...');
     // Aquí deberías usar credenciales reales de tu sistema
     const loginResponse = await axios.post(`${API_BASE_URL}/auth/login`, {
-      email_institucional: 'admin@planificacion.edu',
-      password: 'admin123'
+      email_institucional: process.env.TEST_EMAIL || '',
+    password: process.env.TEST_PASSWORD || ''
     }).catch(err => {
       console.log('   ⚠️ Login falló:', err.response?.data?.message || err.message);
       return null;

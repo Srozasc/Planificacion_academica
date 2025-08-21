@@ -13,6 +13,7 @@ interface EventModalProps {
   onSave: (eventData: CreateEventData) => void;
   isLoading?: boolean;
   onMultipleEventsCreated?: () => Promise<void> | void;
+  currentEventType?: 'asignaturas' | 'adol' | 'optativas'; // Nuevo prop para el tipo de evento seleccionado
   editingEvent?: {
     id: string;
     title: string;
@@ -25,6 +26,10 @@ interface EventModalProps {
       room?: string;
       students?: number;
       subject?: string;
+      horas?: number;
+      plan?: string;
+      level?: string;
+      type?: string;
     };
   } | null;
 }
@@ -48,6 +53,7 @@ const EventModal: React.FC<EventModalProps> = ({
   onSave,
   isLoading = false,
   onMultipleEventsCreated,
+  currentEventType,
   editingEvent
 }) => {
   const { bimestreSeleccionado } = useBimestreStore();
@@ -139,7 +145,7 @@ const EventModal: React.FC<EventModalProps> = ({
   const [showLevelDropdown, setShowLevelDropdown] = useState(false);
   const [filteredPlans, setFilteredPlans] = useState<{value: string, label: string}[]>([]);
   const [filteredLevels, setFilteredLevels] = useState<{value: string, label: string}[]>([]);
-  const [enableDateEditing, setEnableDateEditing] = useState(false);
+  // Fechas siempre deshabilitadas - no se permite edición
   const [enableMultipleEvents, setEnableMultipleEvents] = useState(false);
   const [eventQuantity, setEventQuantity] = useState(1);
   const [vacantesRequeridas, setVacantesRequeridas] = useState<VacantesRequeridas | null>(null);
@@ -161,6 +167,17 @@ const EventModal: React.FC<EventModalProps> = ({
       loadDropdownData();
     }
   }, [bimestreSeleccionado, isOpen]);
+
+  // Recargar datos cuando cambie el tipo de evento
+  useEffect(() => {
+    if (isOpen && formData.tipoEvento && (formData.tipoEvento === 'optativo' || formData.tipoEvento === 'adol' || formData.tipoEvento === 'inicio')) {
+      console.log('Tipo de evento cambió a tipo específico, recargando datos del dropdown...', formData.tipoEvento);
+      // Usar setTimeout para asegurar que el estado se haya actualizado completamente
+      setTimeout(() => {
+        loadDropdownData();
+      }, 100);
+    }
+  }, [formData.tipoEvento, isOpen]);
 
   // Actualizar fechas cuando cambie el bimestre seleccionado o se abra el modal
   useEffect(() => {
@@ -318,9 +335,10 @@ const EventModal: React.FC<EventModalProps> = ({
     return `${subjectDisplay} - ${paddedCounter}`;
   };
 
-  // Actualizar título cuando cambie la asignatura
+  // Actualizar título cuando cambie la asignatura (solo para eventos nuevos)
   useEffect(() => {
     const updateTitle = async () => {
+      // Solo generar título automáticamente para eventos nuevos
       if (formData.subject && !editingEvent) {
         try {
           const nextCorrelative = await eventService.getNextCorrelativeForSubject(formData.subject);
@@ -338,7 +356,7 @@ const EventModal: React.FC<EventModalProps> = ({
     };
     
     updateTitle();
-  }, [formData.subject]);
+  }, [formData.subject, editingEvent]);
 
   // Cargar vacantes requeridas cuando cambie la asignatura
   useEffect(() => {
@@ -461,16 +479,119 @@ const EventModal: React.FC<EventModalProps> = ({
       console.log('Tipo de evento cambió a:', formData.tipoEvento, '- Recargando datos...');
       loadDropdownData();
       
-      // Limpiar selecciones cuando cambie el tipo
-      setSelectedPlan('');
-      setSelectedLevel('');
-      setFormData(prev => ({ 
-        ...prev, 
-        subject: '', 
-        title: '' 
-      }));
+      // Solo limpiar selecciones si NO estamos editando un evento
+      if (!editingEvent) {
+        setSelectedPlan('');
+        setSelectedLevel('');
+        setFormData(prev => ({ 
+          ...prev, 
+          subject: '', 
+          title: '' 
+        }));
+      }
     }
-  }, [formData.tipoEvento]);
+  }, [formData.tipoEvento, editingEvent]);
+
+  // Efecto para restaurar el término de búsqueda después de cargar dropdowns cuando se edita
+  useEffect(() => {
+    console.log('🔄 useEffect restaurar término - Condiciones:', {
+      isOpen,
+      hasEditingEvent: !!editingEvent,
+      isLoadingDropdowns,
+      hasSubject: !!editingEvent?.extendedProps?.subject,
+      subjectValue: editingEvent?.extendedProps?.subject
+    });
+    
+    if (isOpen && editingEvent && !isLoadingDropdowns && editingEvent.extendedProps?.subject) {
+      console.log('🔤 Restaurando término de búsqueda después de cargar dropdowns:', editingEvent.extendedProps.subject);
+      console.log('📊 Estado actual:', {
+        formDataSubject: formData.subject,
+        subjectsLength: subjects.length,
+        isLoadingDropdowns,
+        currentSearchTerm: subjectSearchTerm
+      });
+      setSubjectSearchTerm(editingEvent.extendedProps.subject);
+      console.log('✅ Término de búsqueda establecido a:', editingEvent.extendedProps.subject);
+    }
+  }, [isOpen, editingEvent, isLoadingDropdowns, formData.subject, subjects.length]);
+
+  // Debug: Efecto para monitorear cambios en formData.subject
+  useEffect(() => {
+    if (editingEvent) {
+      console.log('🎯 FormData.subject cambió:', {
+        subject: formData.subject,
+        subjectSearchTerm,
+        subjectsAvailable: subjects.length,
+        matchingSubjects: subjects.filter(s => s.acronym === formData.subject)
+      });
+    }
+  }, [formData.subject, subjectSearchTerm, subjects, editingEvent]);
+
+
+
+  // Función helper para determinar el tipo de evento basándose en los datos del evento
+  const determineEventType = (event: any): 'inicio' | 'continuidad' | 'adol' | 'optativo' => {
+    console.log('DEBUG determineEventType - Entrada:', {
+      currentEventType,
+      eventTitle: event.title,
+      backgroundColor: event.backgroundColor,
+      extendedProps: event.extendedProps
+    });
+    
+    // Si tenemos currentEventType, usarlo para determinar el tipo correcto
+    if (currentEventType) {
+      console.log('DEBUG determineEventType - Usando currentEventType:', currentEventType);
+      switch (currentEventType) {
+        case 'asignaturas':
+          return 'continuidad';
+        case 'adol':
+          return 'adol';
+        case 'optativas':
+          return 'optativo';
+        default:
+          break;
+      }
+    }
+    
+    // Si el título comienza con 'ADOL', es un evento ADOL
+    if (event.title && event.title.startsWith('ADOL')) {
+      console.log('DEBUG determineEventType - Detectado como ADOL por título');
+      return 'adol';
+    }
+    
+    // Si el evento tiene backgroundColor específico para optativos
+    if (event.backgroundColor === '#10B981') {
+      console.log('DEBUG determineEventType - Detectado como optativo por backgroundColor');
+      return 'optativo';
+    }
+    
+    // Si tiene plan en extendedProps, probablemente es optativo
+    if (event.extendedProps?.plan) {
+      console.log('DEBUG determineEventType - Detectado como optativo por plan en extendedProps');
+      return 'optativo';
+    }
+    
+    // Si viene marcado explícitamente como optativo
+    if (event.extendedProps?.type === 'optativo') {
+      console.log('DEBUG determineEventType - Detectado como optativo por type explícito');
+      return 'optativo';
+    }
+    
+    // Si el título contiene patrones típicos de optativos (código de asignatura seguido de descripción)
+    const titlePattern = /^[A-Z]{3}\d{3}\s*-/.test(event.title);
+    console.log('DEBUG determineEventType - Patrón de título optativo:', {
+      title: event.title,
+      matches: titlePattern
+    });
+    if (event.title && titlePattern) {
+      console.log('DEBUG determineEventType - Detectado como optativo por patrón de título');
+      return 'optativo';
+    }
+    
+    // Por defecto, asumir continuidad
+    console.log('DEBUG determineEventType - Usando valor por defecto: continuidad');
+    return 'continuidad';
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -489,7 +610,23 @@ const EventModal: React.FC<EventModalProps> = ({
         const titleMatch = editingEvent.title.match(/ - (\d{3})$/);
         const existingCounter = titleMatch ? parseInt(titleMatch[1]) : 1;
         
-        setFormData({
+        // Determinar el tipo de evento automáticamente
+        const eventType = determineEventType(editingEvent);
+        console.log('🔍 Evento detectado:', {
+          title: editingEvent.title,
+          backgroundColor: editingEvent.backgroundColor,
+          extendedProps: editingEvent.extendedProps,
+          tipoEventoDeterminado: eventType
+        });
+        
+        console.log('📝 Configurando formData con:', {
+          title: editingEvent.title,
+          subject: editingEvent.extendedProps?.subject,
+          teacher: editingEvent.extendedProps?.teacher,
+          tipoEvento: eventType
+        });
+        
+        const newFormData = {
           title: editingEvent.title,
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
@@ -497,11 +634,35 @@ const EventModal: React.FC<EventModalProps> = ({
           teacher_ids: editingEvent.extendedProps?.teacher_ids || [], // Cargar los IDs de docentes
           subject: editingEvent.extendedProps?.subject || '',
           students: editingEvent.extendedProps?.students || 0,
-          horas: 0,
-          tipoEvento: undefined
-        });
+          horas: editingEvent.extendedProps?.horas || 0,
+          tipoEvento: eventType
+        };
+        
+        console.log('✅ FormData establecido:', newFormData);
+        setFormData(newFormData);
         
         setEventCounter(existingCounter);
+        
+        // Si es un evento optativo, también establecer el plan y nivel si están disponibles
+        if (eventType === 'optativo') {
+          console.log('📋 Configurando evento optativo:', {
+            plan: editingEvent.extendedProps?.plan,
+            level: editingEvent.extendedProps?.level,
+            subject: editingEvent.extendedProps?.subject
+          });
+          
+          if (editingEvent.extendedProps?.plan) {
+            setSelectedPlan(editingEvent.extendedProps.plan);
+            setPlanSearchTerm(editingEvent.extendedProps.plan);
+          }
+          if (editingEvent.extendedProps?.level) {
+            setSelectedLevel(editingEvent.extendedProps.level.toString());
+            setLevelSearchTerm(editingEvent.extendedProps.level.toString());
+          }
+        }
+        
+        // NOTA: No establecer subjectSearchTerm aquí para evitar problemas de timing.
+        // El useEffect separado se encargará de restaurarlo después de que los dropdowns se carguen.
       } else if (selectedDate) {
         // Crear nuevo evento con fecha seleccionada
         const dateString = selectedDate.toISOString().split('T')[0];
@@ -537,6 +698,11 @@ const EventModal: React.FC<EventModalProps> = ({
     
     // Validaciones
     const newErrors: Record<string, string> = {};
+    
+    // Solo validar título para eventos nuevos, no para edición
+    if (!editingEvent && (!formData.title || !formData.title.trim())) {
+      newErrors.title = 'El título es requerido';
+    }
     
     if (!formData.subject || !formData.subject.trim()) {
       newErrors.subject = 'La asignatura es requerida';
@@ -654,11 +820,19 @@ const EventModal: React.FC<EventModalProps> = ({
     setEventCounter(1);
     setTeacherSearchTerm(''); // Limpiar búsqueda de docentes
     setSubjectSearchTerm(''); // Limpiar búsqueda de asignaturas
-    setEnableDateEditing(false); // Resetear checkbox de edición de fechas
+    setPlanSearchTerm(''); // Limpiar búsqueda de planes
+    setLevelSearchTerm(''); // Limpiar búsqueda de niveles
+    setSelectedPlan(''); // Limpiar plan seleccionado
+    setSelectedLevel(''); // Limpiar nivel seleccionado
+    setShowPlanDropdown(false); // Cerrar dropdown de planes
+    setShowLevelDropdown(false); // Cerrar dropdown de niveles
+    // Las fechas siempre están deshabilitadas
     setEnableMultipleEvents(false); // Resetear checkbox de eventos múltiples
     setEventQuantity(1); // Resetear cantidad de eventos
     setVacantesRequeridas(null); // Limpiar vacantes requeridas
     setIsLoadingVacantes(false); // Resetear estado de carga de vacantes
+    setTeachersHours({}); // Limpiar horas de docentes
+    setIsLoadingTeachersHours(false); // Resetear estado de carga de horas
     onClose();
   };
 
@@ -685,38 +859,31 @@ const EventModal: React.FC<EventModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Título generado automáticamente */}
-          {formData.title && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Título del Evento (Generado automáticamente)
-              </label>
-              <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
-                {formData.title}
-              </div>
-              <p className="text-gray-500 text-sm mt-1">El título se genera automáticamente basado en la asignatura seleccionada</p>
-            </div>
-          )}
-
-
-
-          {/* Checkbox para habilitar edición de fechas */}
-          <div className="mb-4">
-            <label className="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableDateEditing}
-                onChange={(e) => setEnableDateEditing(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Permitir edición de fechas
-              </span>
+          {/* Título del evento */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {editingEvent ? 'Título del Evento (Solo lectura)' : 'Título del Evento (Generado automáticamente)'} *
             </label>
-            <p className="text-gray-500 text-xs mt-1 ml-6">
-              Por defecto, las fechas se establecen según el bimestre actual
+            {editingEvent ? (
+              <div className="w-full px-3 py-2 border rounded-md bg-gray-50 text-gray-700 border-gray-200">
+                {editingEvent.title}
+              </div>
+            ) : (
+              <div className={`w-full px-3 py-2 border rounded-md bg-gray-50 text-gray-700 ${
+                errors.title ? 'border-red-500' : 'border-gray-200'
+              }`}>
+                {formData.title || 'Selecciona una asignatura para generar el título'}
+              </div>
+            )}
+            {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
+            <p className="text-gray-500 text-sm mt-1">
+              {editingEvent ? 'El título no se puede modificar al editar un evento existente' : 'El título se genera automáticamente basado en la asignatura seleccionada'}
             </p>
           </div>
+
+
+
+          {/* Las fechas se establecen automáticamente según el bimestre */}
 
           {/* Fechas */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -728,17 +895,15 @@ const EventModal: React.FC<EventModalProps> = ({
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                disabled={!enableDateEditing}
+                disabled={true}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.startDate ? 'border-red-500' : 'border-gray-300'
-                } ${!enableDateEditing ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                } bg-gray-100 text-gray-500 cursor-not-allowed`}
               />
               {errors.startDate && <p className="text-red-500 text-sm mt-1">{errors.startDate}</p>}
-              {!enableDateEditing && (
-                <p className="text-gray-500 text-xs mt-1">
-                  Fecha establecida automáticamente según el bimestre
-                </p>
-              )}
+              <p className="text-gray-500 text-xs mt-1">
+                Fecha establecida automáticamente según el bimestre
+              </p>
             </div>
 
             <div>
@@ -749,170 +914,173 @@ const EventModal: React.FC<EventModalProps> = ({
                 type="date"
                 value={formData.endDate}
                 onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                disabled={!enableDateEditing}
+                disabled={true}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.endDate ? 'border-red-500' : 'border-gray-300'
-                } ${!enableDateEditing ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                } bg-gray-100 text-gray-500 cursor-not-allowed`}
               />
               {errors.endDate && <p className="text-red-500 text-sm mt-1">{errors.endDate}</p>}
-              {!enableDateEditing && (
-                <p className="text-gray-500 text-xs mt-1">
-                  Fecha establecida automáticamente según el bimestre
-                </p>
-              )}
+              <p className="text-gray-500 text-xs mt-1">
+                Fecha establecida automáticamente según el bimestre
+              </p>
             </div>
           </div>
 
-          {/* Radio buttons de Tipo de Evento */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Tipo de Evento
-            </label>
-            <div className="flex space-x-6">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipoEvento"
-                  value="inicio"
-                  checked={formData.tipoEvento === 'inicio'}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
-                  }}
-                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Inicio</span>
-              </label>
-              
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipoEvento"
-                  value="continuidad"
-                  checked={formData.tipoEvento === 'continuidad'}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
-                  }}
-                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Continuidad</span>
-              </label>
-              
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipoEvento"
-                  value="adol"
-                  checked={formData.tipoEvento === 'adol'}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, tipoEvento: 'adol' }));
-                  }}
-                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">ADOL</span>
-              </label>
-              
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="tipoEvento"
-                  value="optativo"
-                  checked={formData.tipoEvento === 'optativo'}
-                  onChange={(e) => {
-                    setFormData(prev => ({ ...prev, tipoEvento: 'optativo' }));
-                  }}
-                  className="border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">Optativos</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Detalles adicionales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Plan */}
-            <div className="relative">
+          {/* Tipo de Evento - Solo para creación */}
+          {!editingEvent && (
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Plan
+                Tipo de Evento *
               </label>
-              <input
-                type="text"
-                value={planSearchTerm}
-                onChange={(e) => {
-                  setPlanSearchTerm(e.target.value);
-                  setShowPlanDropdown(true);
-                }}
-                onFocus={() => setShowPlanDropdown(true)}
-                onBlur={() => setTimeout(() => setShowPlanDropdown(false), 200)}
-                placeholder="Buscar plan..."
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  formData.tipoEvento === 'adol' || isLoadingDropdowns
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
-                    : 'border-gray-300'
-                }`}
-                disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
-              />
-              {showPlanDropdown && filteredPlans.length > 0 && formData.tipoEvento !== 'adol' && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {filteredPlans.map((plan) => (
-                    <div
-                      key={plan.value}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setSelectedPlan(plan.value);
-                        setPlanSearchTerm(plan.label);
-                        setShowPlanDropdown(false);
-                      }}
-                    >
-                      {plan.label}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoEvento"
+                    value="inicio"
+                    checked={formData.tipoEvento === 'inicio'}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
+                    }}
+                    className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Inicio</span>
+                </label>
+                
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoEvento"
+                    value="continuidad"
+                    checked={formData.tipoEvento === 'continuidad'}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
+                    }}
+                    className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Continuidad</span>
+                </label>
+                
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoEvento"
+                    value="adol"
+                    checked={formData.tipoEvento === 'adol'}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'adol' }));
+                    }}
+                    className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">ADOL</span>
+                </label>
+                
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="tipoEvento"
+                    value="optativo"
+                    checked={formData.tipoEvento === 'optativo'}
+                    onChange={(e) => {
+                      setFormData(prev => ({ ...prev, tipoEvento: 'optativo' }));
+                    }}
+                    className="border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Optativos</span>
+                </label>
+              </div>
             </div>
+          )}
 
-            {/* Nivel */}
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nivel
-              </label>
-              <input
-                type="text"
-                value={levelSearchTerm}
-                onChange={(e) => {
-                  setLevelSearchTerm(e.target.value);
-                  setShowLevelDropdown(true);
-                }}
-                onFocus={() => setShowLevelDropdown(true)}
-                onBlur={() => setTimeout(() => setShowLevelDropdown(false), 200)}
-                placeholder="Buscar nivel..."
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  formData.tipoEvento === 'adol' || isLoadingDropdowns
-                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
-                    : 'border-gray-300'
-                }`}
-                disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
-              />
-              {showLevelDropdown && filteredLevels.length > 0 && formData.tipoEvento !== 'adol' && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                  {filteredLevels.map((level) => (
-                    <div
-                      key={level.value}
-                      className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                      onClick={() => {
-                        setSelectedLevel(level.value);
-                        setLevelSearchTerm(level.label);
-                        setShowLevelDropdown(false);
-                      }}
-                    >
-                      {level.label}
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Plan y Nivel - Solo para creación */}
+          {!editingEvent && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Plan */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Plan
+                </label>
+                <input
+                  type="text"
+                  value={planSearchTerm}
+                  onChange={(e) => {
+                    setPlanSearchTerm(e.target.value);
+                    setShowPlanDropdown(true);
+                  }}
+                  onFocus={() => setShowPlanDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPlanDropdown(false), 200)}
+                  placeholder="Buscar plan..."
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formData.tipoEvento === 'adol' || isLoadingDropdowns
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                      : 'border-gray-300'
+                  }`}
+                  disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
+                />
+                {showPlanDropdown && filteredPlans.length > 0 && formData.tipoEvento !== 'adol' && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {filteredPlans.map((plan) => (
+                      <div
+                        key={plan.value}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setSelectedPlan(plan.value);
+                          setPlanSearchTerm(plan.label);
+                          setShowPlanDropdown(false);
+                        }}
+                      >
+                        {plan.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Nivel */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nivel
+                </label>
+                <input
+                  type="text"
+                  value={levelSearchTerm}
+                  onChange={(e) => {
+                    setLevelSearchTerm(e.target.value);
+                    setShowLevelDropdown(true);
+                  }}
+                  onFocus={() => setShowLevelDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowLevelDropdown(false), 200)}
+                  placeholder="Buscar nivel..."
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formData.tipoEvento === 'adol' || isLoadingDropdowns
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                      : 'border-gray-300'
+                  }`}
+                  disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
+                />
+                {showLevelDropdown && filteredLevels.length > 0 && formData.tipoEvento !== 'adol' && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {filteredLevels.map((level) => (
+                      <div
+                        key={level.value}
+                        className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          setSelectedLevel(level.value);
+                          setLevelSearchTerm(level.label);
+                          setShowLevelDropdown(false);
+                        }}
+                      >
+                        {level.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Asignatura - Solo para creación */}
+          {!editingEvent && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Asignatura *
@@ -1006,18 +1174,17 @@ const EventModal: React.FC<EventModalProps> = ({
                             )}
                           </div>
                         ) : (
-                          <p className="text-sm text-blue-700">
-                            No se encontraron datos de vacantes para esta asignatura en el bimestre actual
-                          </p>
+                          <p className="text-sm text-blue-700">No se encontró información de vacantes para esta asignatura</p>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
               )}
-              {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
             </div>
+          )}
 
+          <div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Docentes

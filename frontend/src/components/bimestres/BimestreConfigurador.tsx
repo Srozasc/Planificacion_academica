@@ -160,18 +160,18 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
   const validarRangosFechasPago = (data: CreateBimestreDto) => {
     const errores = { rangoPago1: '', rangoPago2: '' };
     
-    // Validar rango de pago 1
-    if (data.fechaPago1Inicio && data.fechaPago1Fin) {
-      if (new Date(data.fechaPago1Inicio) > new Date(data.fechaPago1Fin)) {
-        errores.rangoPago1 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
-      }
+    // Validar que los campos obligatorios de pago 1 estén presentes
+    if (!data.fechaPago1Inicio || !data.fechaPago1Fin) {
+      errores.rangoPago1 = 'Las fechas de pago 1 (inicio y fin) son obligatorias';
+    } else if (new Date(data.fechaPago1Inicio) > new Date(data.fechaPago1Fin)) {
+      errores.rangoPago1 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
     }
     
-    // Validar rango de pago 2
-    if (data.fechaPago2Inicio && data.fechaPago2Fin) {
-      if (new Date(data.fechaPago2Inicio) > new Date(data.fechaPago2Fin)) {
-        errores.rangoPago2 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
-      }
+    // Validar que los campos obligatorios de pago 2 estén presentes
+    if (!data.fechaPago2Inicio || !data.fechaPago2Fin) {
+      errores.rangoPago2 = 'Las fechas de pago 2 (inicio y fin) son obligatorias';
+    } else if (new Date(data.fechaPago2Inicio) > new Date(data.fechaPago2Fin)) {
+      errores.rangoPago2 = 'La fecha de inicio debe ser anterior o igual a la fecha de fin';
     }
     
     setErroresRangosFechas(errores);
@@ -244,11 +244,11 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
       nombre: `Bimestre ${bimestre.anoAcademico} ${bimestre.numeroBimestre}`,
       fechaInicio: formatDateForInput(bimestre.fechaInicio),
       fechaFin: formatDateForInput(bimestre.fechaFin),
-      // Campos para rangos de fechas de pago
-      fechaPago1Inicio: bimestre.fechaPago1Inicio ? formatDateForInput(bimestre.fechaPago1Inicio) : '',
-      fechaPago1Fin: bimestre.fechaPago1Fin ? formatDateForInput(bimestre.fechaPago1Fin) : '',
-      fechaPago2Inicio: bimestre.fechaPago2Inicio ? formatDateForInput(bimestre.fechaPago2Inicio) : '',
-      fechaPago2Fin: bimestre.fechaPago2Fin ? formatDateForInput(bimestre.fechaPago2Fin) : '',
+      // Campos para rangos de fechas de pago (ahora obligatorios)
+      fechaPago1Inicio: formatDateForInput(bimestre.fechaPago1Inicio),
+      fechaPago1Fin: formatDateForInput(bimestre.fechaPago1Fin),
+      fechaPago2Inicio: formatDateForInput(bimestre.fechaPago2Inicio),
+      fechaPago2Fin: formatDateForInput(bimestre.fechaPago2Fin),
       anoAcademico: bimestre.anoAcademico,
       numeroBimestre: bimestre.numeroBimestre,
       descripcion: bimestre.descripcion || '',
@@ -659,27 +659,29 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                 {/* Rango de Pago 1 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Pago 1 (Rango)
+                    Fecha de Pago 1 (Rango) *
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                      <label className="block text-xs text-gray-500 mb-1">Desde *</label>
                       <input
                         type="date"
                         name="fechaPago1Inicio"
                         value={formData.fechaPago1Inicio}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                      <label className="block text-xs text-gray-500 mb-1">Hasta *</label>
                       <input
                         type="date"
                         name="fechaPago1Fin"
                         value={formData.fechaPago1Fin}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
                       />
                     </div>
                   </div>
@@ -693,27 +695,29 @@ const BimestreConfigurador: React.FC<BimestreConfiguradorProps> = ({ isOpen, onC
                 {/* Rango de Pago 2 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Pago 2 (Rango)
+                    Fecha de Pago 2 (Rango) *
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                      <label className="block text-xs text-gray-500 mb-1">Desde *</label>
                       <input
                         type="date"
                         name="fechaPago2Inicio"
                         value={formData.fechaPago2Inicio}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                      <label className="block text-xs text-gray-500 mb-1">Hasta *</label>
                       <input
                         type="date"
                         name="fechaPago2Fin"
                         value={formData.fechaPago2Fin}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
                       />
                     </div>
                   </div>

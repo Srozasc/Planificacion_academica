@@ -14,18 +14,18 @@ export class Bimestre {
   @Column({ type: 'date' })
   fechaFin: Date;
 
-  // Campos para rangos de fechas de pago
-  @Column({ type: 'date', nullable: true })
-  fechaPago1Inicio?: Date;
+  // Campos para rangos de fechas de pago (ahora obligatorios)
+  @Column({ type: 'date' })
+  fechaPago1Inicio: Date;
 
-  @Column({ type: 'date', nullable: true })
-  fechaPago1Fin?: Date;
+  @Column({ type: 'date' })
+  fechaPago1Fin: Date;
 
-  @Column({ type: 'date', nullable: true })
-  fechaPago2Inicio?: Date;
+  @Column({ type: 'date' })
+  fechaPago2Inicio: Date;
 
-  @Column({ type: 'date', nullable: true })
-  fechaPago2Fin?: Date;
+  @Column({ type: 'date' })
+  fechaPago2Fin: Date;
 
   @Column({ type: 'int' })
   anoAcademico: number;

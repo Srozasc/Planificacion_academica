@@ -18,6 +18,7 @@ export interface Event {
     course_name?: string;
     section?: string;
     plan_code?: string;
+    plan?: string; // Plan desde asignaturas_optativas_aprobadas
   };
 }
 
