@@ -1,7 +1,7 @@
--- planificacion_academica.vw_base_reportes source
+-- planificacion_academica.vw_total_horas source
 
 CREATE OR REPLACE
-ALGORITHM = UNDEFINED VIEW `vw_base_reportes` AS
+ALGORITHM = UNDEFINED VIEW `vw_total_horas` AS
 select
     distinct `se`.`bimestre_id` AS `bimestre_id`,
     `b`.`anoAcademico` AS `anno`,

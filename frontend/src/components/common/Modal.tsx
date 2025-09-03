@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -15,6 +15,30 @@ export const Modal: React.FC<ModalProps> = ({
   children, 
   size = 'md' 
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Asegurar visibilidad del modal cuando se abre
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // Usar setTimeout para asegurar que el DOM esté completamente renderizado
+      setTimeout(() => {
+        if (modalRef.current) {
+          // Intentar scrollIntoView primero (más preciso)
+          modalRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'center'
+          });
+          
+          // Fallback: scroll al top si scrollIntoView no funciona
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
+        }
+      }, 10);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -33,7 +57,7 @@ export const Modal: React.FC<ModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="flex items-center justify-center min-h-screen p-4">
+      <div ref={modalRef} className="flex items-center justify-center min-h-screen p-4">
         <div className={`
           relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]}
           transform transition-all

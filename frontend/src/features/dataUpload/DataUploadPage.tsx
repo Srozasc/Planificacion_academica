@@ -84,7 +84,7 @@ const DataUploadPage: React.FC = () => {
     {
       id: 'nomina-docentes',
       name: 'Nómina de Docentes',
-      description: 'Información de profesores con DOCENTE, ID DOCENTE y RUT DOCENTE',
+      description: 'Información de docentes',
       icon: '👨‍🏫',
       format: '.xlsx',
       templateName: 'nomina_docentes_template.xlsx',
@@ -102,7 +102,7 @@ const DataUploadPage: React.FC = () => {
     {
       id: 'dol',
       name: 'DOL - Cargos Docentes',
-      description: 'Cargos que se pueden asignar a docentes y sus siglas identificadoras',
+      description: 'Conceptos que categorizan planes y asignaturas',
       icon: '📋',
       format: '.xlsx',
       templateName: 'dol_template.xlsx',
@@ -111,7 +111,7 @@ const DataUploadPage: React.FC = () => {
     {
       id: 'vacantes-inicio',
       name: 'Vacantes Inicio',
-      description: 'En construcción - Módulo para cargar información de vacantes de inicio',
+      description: 'información de vacantes de inicio',
       icon: '🏁',
       format: '.xlsx',
       templateName: 'vacantes_inicio_template.xlsx',
@@ -372,31 +372,31 @@ const DataUploadPage: React.FC = () => {
           <div className="mt-4 flex items-center space-x-6 text-sm text-gray-600">
             <div className="flex items-center">
               <span className="mr-1">🏛️</span>
-              <span>Estructuras académicas: {systemStats.academic_structures}</span>
+              <span>Estructuras académicas</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">👨‍🏫</span>
-              <span>Docentes: {systemStats.teachers}</span>
+              <span>Docentes</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">📚</span>
-              <span>Reportes de curso: {systemStats.course_reports}</span>
+              <span>Reportes de curso</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">👔</span>
-              <span>ADOL: {systemStats.staging_adol_simple}</span>
+              <span>ADOL</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">📋</span>
-              <span>DOL: {systemStats.staging_dol}</span>
+              <span>DOL</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">🏁</span>
-              <span>Vacantes Inicio: {systemStats.staging_vacantes_inicio}</span>
+              <span>Vacantes Inicio</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">🎯</span>
-              <span>Asignaturas Optativas: {systemStats.ramos_optativos || 0}</span>
+              <span>Asignaturas Optativas</span>
             </div>
           </div>
         )}
@@ -420,9 +420,6 @@ const DataUploadPage: React.FC = () => {
                 <div className="text-3xl mb-3">{type.icon}</div>
                 <h3 className="font-semibold text-gray-900 mb-2">{type.name}</h3>
                 <p className="text-sm text-gray-600 mb-3">{type.description}</p>
-                <div className="text-xs text-gray-500">
-                  Formato: <span className="font-medium">{type.format}</span>
-                </div>
               </div>
             </div>
           ))}

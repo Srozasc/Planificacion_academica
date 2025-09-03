@@ -42,6 +42,12 @@ async function bootstrap() {
   // Set global prefix
   app.setGlobalPrefix('api');
   
-  await app.listen(3001);
+  // Use HOST and PORT from environment variables with fallbacks
+  const host = process.env.HOST || 'localhost';
+  const port = process.env.PORT || 3001;
+  await app.listen(port, host);
+  
+  logger.log(`Application is running on http://${host}:${port}`);
+  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 bootstrap();

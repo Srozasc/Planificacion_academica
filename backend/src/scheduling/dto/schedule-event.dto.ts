@@ -22,6 +22,7 @@ export class ScheduleEventDto {
   course_name?: string; // name de academic_structures
   section?: string; // school_prog de academic_structures
   plan_code?: string; // code de academic_structures
+  nivel?: string; // level de academic_structures
   teacher_names?: string; // nombres de docentes desde event_teachers
   plan?: string; // plan desde asignaturas_optativas_aprobadas
 
@@ -49,6 +50,7 @@ export class ScheduleEventDto {
     dto.bimestre_id = entity.bimestre_id;
     dto.active = entity.active;
     dto.usuario = entity.usuario;
+    dto.plan = entity.plan; // Plan académico asociado al evento
     dto.created_at = entity.created_at;
     dto.updated_at = entity.updated_at;
 
@@ -90,6 +92,9 @@ export class ScheduleEventDto {
     if (entity.academic_code) {
       dto.plan_code = entity.academic_code;
     }
+    if (entity.academic_level) {
+      dto.nivel = entity.academic_level;
+    }
     
     // Incluir plan desde asignaturas_optativas_aprobadas si está disponible
     if (entity.plan) {
@@ -120,6 +125,7 @@ export class ScheduleEventDto {
         course_name: this.course_name, // Nombre del curso
         section: this.section, // Sección
         plan_code: this.plan_code, // Código del plan
+        nivel: this.nivel, // Nivel académico
         plan: this.plan, // Plan desde asignaturas_optativas_aprobadas
         usuario: this.usuario, // Usuario que creó o modificó el evento
       },

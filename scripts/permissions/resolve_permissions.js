@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Cargar variables de entorno desde el backend
-require('dotenv').config({ path: path.join(__dirname, '../../backend/.env') });
+require('dotenv').config();
 
 // Configuración de la base de datos
 const dbConfig = {

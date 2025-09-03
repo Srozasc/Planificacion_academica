@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches, IsArray, IsNumber, IsDecimal } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, IsInt, Min, Max, Matches, IsArray, IsNumber } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class CreateEventDto {
@@ -51,15 +51,15 @@ export class CreateEventDto {
   students?: number;
 
   @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'horas must be a decimal number with at most 2 decimal places' })
-  @Min(0.01, { message: 'horas must be greater than 0 if provided' })
-  @Max(99.99, { message: 'horas must not exceed 99.99' })
+  @IsInt({ message: 'horas must be an integer' })
+  @Min(1, { message: 'horas must be at least 1 if provided' })
+  @Max(999, { message: 'horas must not exceed 999' })
   @Transform(({ value }) => {
     // Si el valor es undefined, null, o string vacío, retornar undefined
     if (value === undefined || value === null || value === '') {
       return undefined;
     }
-    const parsed = parseFloat(value);
+    const parsed = parseInt(value);
     // Si el valor parseado es 0 o NaN, retornar undefined para que sea tratado como opcional
     return (parsed === 0 || isNaN(parsed)) ? undefined : parsed;
   })
@@ -77,4 +77,8 @@ export class CreateEventDto {
   @Transform(({ value }) => parseInt(value))
   @IsOptional()
   bimestre_id?: number;
+
+  @IsString()
+  @IsOptional()
+  plan?: string; // Plan académico asociado al evento
 }

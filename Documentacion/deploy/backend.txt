@@ -1,0 +1,162 @@
+### **Manual de Despliegue: Contenedor Docker de Backend en AWS EC2 con Nginx y HTTPS**
+
+Esta guía detalla el proceso completo para desplegar una aplicación de backend, ya empaquetada en una imagen de Docker, sobre una instancia de Amazon EC2. La aplicación se expondrá de forma segura a través de HTTPS utilizando Nginx como proxy inverso y un certificado SSL de Let's Encrypt.
+
+**Prerrequisitos:**
+*   Una imagen de Docker de la aplicación ya construida y subida a un registro de contenedores (Amazon ECR).
+*   Una cuenta de AWS.
+*   Conocimiento de las variables de entorno que necesita la aplicación para ejecutarse (ej. `PORT`, `JWT_SECRET`, credenciales de base de datos, etc.).
+
+---
+
+### **Paso 1: Aprovisionar el Servidor (Amazon EC2)**
+
+**Objetivo:** Crear una máquina virtual Linux que alojará y ejecutará el contenedor Docker.
+
+1.  **Lanzar Instancia EC2:**
+    *   Navega al servicio **EC2** en la consola de AWS y haz clic en `Lanzar la instancia`.
+    *   **Configuración:**
+        *   **Nombre:** Dale un nombre descriptivo al servidor (ej. `mi-app-backend-server`).
+        *   **AMI (Sistema Operativo):** Selecciona **`Amazon Linux 2023`** (asegúrate de que sea apta para la capa gratuita).
+        *   **Tipo de instancia:** **`t3.micro`** o **`t2.micro`** (la que esté marcada como "Apto para la capa gratuita" en tu región).
+    *   **Par de Claves (Key Pair):**
+        *   Crea un nuevo par de claves, dale un nombre y selecciona el formato **`.pem`**.
+        *   **¡Descarga y guarda el archivo `.pem` en un lugar seguro!** Es tu única llave de acceso al servidor.
+    *   **Configuración de Red (Security Group):**
+        *   Elige `Crear un grupo de seguridad` y dale un nombre (ej. `backend-sg`).
+        *   **Añade estas 3 reglas de entrada:**
+            1.  **Tipo `SSH`**, Origen **`Mi IP`** (para tu acceso administrativo).
+            2.  **Tipo `HTTP`**, Origen **`Cualquier lugar (0.0.0.0/0)`**.
+            3.  **Tipo `HTTPS`**, Origen **`Cualquier lugar (0.0.0.0/0)`**.
+    *   **Almacenamiento:** Deja el valor por defecto (8 GB).
+    *   **Lanza la instancia** y espera a que el estado cambie a **"En ejecución"**.
+
+---
+
+### **Paso 2: Configuración del Servidor y Despliegue**
+
+**Objetivo:** Instalar el software necesario, configurar un dominio con HTTPS y ejecutar el contenedor de la aplicación.
+
+1.  **Conectar al Servidor EC2:**
+    *   Copia el `DNS de IPv4 público` de tu instancia desde la consola de EC2.
+    *   Abre una terminal en la carpeta donde guardaste tu archivo `.pem`.
+    *   Conéctate usando el siguiente comando SSH:
+      ```bash
+      ssh -i "tu-llave.pem" ec2-user@TU_DNS_PUBLICO
+      ```
+    *   La primera vez, acepta la huella digital escribiendo `yes`.
+
+2.  **Instalar Software en EC2:**
+    *   Ejecuta los siguientes comandos uno por uno en la terminal de tu servidor:
+      ```bash
+      # Actualizar el sistema operativo
+      sudo dnf update -y
+      # Instalar Docker (motor de contenedores) y Nginx (servidor web/proxy)
+      sudo dnf install docker nginx -y
+      # Iniciar y habilitar los servicios para que arranquen con el sistema
+      sudo systemctl start docker
+      sudo systemctl enable docker
+      sudo systemctl start nginx
+      sudo systemctl enable nginx
+      # Añadir tu usuario al grupo 'docker' para poder ejecutar comandos sin 'sudo'
+      sudo usermod -a -G docker ec2-user
+      # Salir de la sesión para que los cambios de grupo se apliquen
+      exit
+      ```
+    *   **Vuelve a conectarte** con el mismo comando `ssh`.
+
+3.  **Configurar Dominio y Certificado SSL (HTTPS):**
+    *   **DNS:** Consigue un nombre de dominio (puedes usar un servicio gratuito como DuckDNS) y crea un registro `A` que apunte tu dominio (ej. `mi-api.duckdns.org`) a la **Dirección IPv4 pública** de tu instancia EC2.
+    *   **Instalar Certbot (Herramienta de Let's Encrypt):**
+      ```bash
+      sudo dnf install certbot python3-certbot-nginx -y
+      ```
+    *   **Obtener el Certificado:**
+      ```bash
+      sudo certbot --nginx -d tu-dominio.com
+      ```
+      *Sigue las instrucciones que aparecen en pantalla (introduce tu email, acepta los términos). Si Certbot falla porque no encuentra un "server block", no te preocupes, lo configuraremos manualmente en el siguiente paso.*
+
+4.  **Configurar Nginx como Proxy Inverso:**
+    *   Crea (o edita) un archivo de configuración para tu sitio: `sudo nano /etc/nginx/conf.d/tu-dominio.com.conf`
+    *   Pega el siguiente contenido, reemplazando `tu-dominio.com` y el puerto `3001` si tu aplicación usa otro:
+      ```nginx
+      # Redirige todo el tráfico HTTP (puerto 80) a HTTPS
+      server {
+          listen 80;
+          server_name tu-dominio.com;
+          location / { return 301 https://$host$request_uri; }
+      }
+      # Maneja el tráfico HTTPS (puerto 443)
+      server {
+          listen 443 ssl;
+          server_name tu-dominio.com;
+          # Carga los certificados SSL generados por Certbot
+          ssl_certificate /etc/letsencrypt/live/tu-dominio.com/fullchain.pem;
+          ssl_certificate_key /etc/letsencrypt/live/tu-dominio.com/privkey.pem;
+          include /etc/letsencrypt/options-ssl-nginx.conf;
+          ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+          location / {
+              # Redirige las peticiones al contenedor Docker que corre en el puerto 3001
+              proxy_pass http://localhost:3001;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+          }
+      }
+      ```
+    *   Guarda el archivo (`Ctrl+X`, `Y`, `Enter`).
+    *   Verifica la sintaxis y reinicia Nginx: `sudo nginx -t` y luego `sudo systemctl restart nginx`.
+
+5.  **Desplegar el Contenedor Docker:**
+    *   **Asociar Rol de IAM:**
+        *   En la consola de **IAM**, crea un nuevo rol.
+        *   Tipo de entidad de confianza: `Servicio de AWS`, Caso de uso: `EC2`.
+        *   Adjunta la política de permisos: **`AmazonEC2ContainerRegistryReadOnly`**.
+        *   Dale un nombre al rol (ej. `EC2-ECR-Access-Role`).
+        *   En la configuración de tu **instancia EC2**, ve a `Acciones` -> `Seguridad` -> `Modificar rol de IAM` y asocia el rol que acabas de crear.
+    *   **Autenticar Docker en EC2:**
+      ```bash
+      aws ecr get-login-password --region tu-region | docker login --username AWS --password-stdin TU_URI_DE_ECR_SIN_IMAGEN
+      ```
+    *   **Ejecutar el Contenedor:**
+      *   Prepara el comando `docker run` con todas las variables de entorno que tu aplicación necesita. **Usa comillas simples (`' '`) para variables con caracteres especiales como `$`**.
+        ```bash
+        docker run \
+          -d \
+          -p 3001:3001 \
+          --name mi-backend-prod \
+          --restart always \
+          -e PORT=3001 \
+          -e HOST="0.0.0.0" \
+          -e JWT_SECRET='UN_SECRETO_DE_PRODUCCION' \
+          -e CORS_ORIGINS="https://URL_DEL_FRONTEND" \
+          # ...otras variables de entorno necesarias...
+          TU_URI_DE_LA_IMAGEN_EN_ECR:latest
+        ```
+
+¡Tu backend está desplegado! La API debería ser accesible a través de tu dominio HTTPS (`https://tu-dominio.com`).
+
+---
+
+### **Apéndice: Guía de Solución de Problemas Comunes**
+
+*   **Problema: Error `Permission denied (publickey)` al conectar por SSH.**
+    *   **Causa:** El nombre de usuario en el comando `ssh` es incorrecto.
+    *   **Solución:** Asegúrate de usar `ec2-user@` antes de la dirección del servidor. El comando debe ser `ssh -i "tu-llave.pem" ec2-user@...`.
+
+*   **Problema: Error `Unable to locate credentials` al intentar usar `aws` en el servidor EC2.**
+    *   **Causa:** La instancia EC2 no tiene permisos para acceder a otros servicios de AWS.
+    *   **Solución:** Crea un **Rol de IAM** con la política `AmazonEC2ContainerRegistryReadOnly` y asócialo a tu instancia EC2. Esto es más seguro que usar `aws configure` en el servidor.
+
+*   **Problema: El contenedor falla al iniciar con un error `Access denied for user ... (using password: NO)`.**
+    *   **Causa:** La variable de entorno de la contraseña de la base de datos no se está pasando correctamente al contenedor. A menudo, esto se debe a caracteres especiales (como `$`) que son interpretados por la terminal.
+    *   **Solución:** En el comando `docker run`, encierra el valor de la contraseña en **comillas simples (`' '`)** en lugar de comillas dobles. Ejemplo: `-e DB_PASSWORD='$MiContrasena123'`.
+
+*   **Problema: El frontend muestra un error `net::ERR_CONNECTION_TIMED_OUT` al llamar a la API.**
+    *   **Causa:** El firewall (Grupo de Seguridad) de la instancia EC2 no permite el tráfico entrante en el puerto necesario.
+    *   **Solución:** Asegúrate de que tu Grupo de Seguridad tenga reglas de entrada que permitan el tráfico `HTTPS` (puerto 443) desde `Cualquier lugar (0.0.0.0/0)`.
+
+*   **Problema: El frontend muestra un error `404 Not Found` de la API, pero el endpoint existe.**
+    *   **Causa:** La aplicación NestJS puede tener un prefijo global de rutas (ej. `/api`) que no se está incluyendo en la URL de la API en el frontend.
+    *   **Solución:** Verifica tu archivo `main.ts` en el código del backend. Si existe un `app.setGlobalPrefix('api');`, asegúrate de que la URL de la API en la configuración de tu frontend sea `https://tu-dominio.com/api`.

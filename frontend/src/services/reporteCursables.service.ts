@@ -17,12 +17,19 @@ export interface EstadisticasVacantes {
 class ReporteCursablesService {
   /**
    * Obtiene el total de vacantes requeridas para una sigla específica
+   * @param sigla - Sigla de la asignatura
+   * @param bimestreId - ID del bimestre (opcional)
+   * @param plan - Código del plan (opcional, para filtrar asignaturas que existen en múltiples planes)
+   * @returns Promise con la información de vacantes requeridas
    */
-  async getVacantesRequeridas(sigla: string, bimestreId?: number): Promise<VacantesRequeridas | null> {
+  async getVacantesRequeridas(sigla: string, bimestreId?: number, plan?: string): Promise<VacantesRequeridas | null> {
     try {
       const params = new URLSearchParams();
       if (bimestreId) {
         params.append('bimestreId', bimestreId.toString());
+      }
+      if (plan) {
+        params.append('plan', plan);
       }
       
       const url = `/reporte-cursables/vacantes/${encodeURIComponent(sigla)}${params.toString() ? `?${params.toString()}` : ''}`;

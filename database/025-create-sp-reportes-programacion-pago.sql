@@ -105,7 +105,7 @@ BEGIN
         Nivel AS Nivel,
         horas_Asignatura_Base AS Horas_Asig,
         Dol,
-        Horas_a_pago AS Horas_a_Pago,
+        ROUND(Horas_a_pago,0) AS Horas_a_Pago,
         ID_Docente AS ID_Docente,
         Docente AS Docente,
         NULL AS Tipo_Docente,

@@ -12,8 +12,8 @@ USE planificacion_academica;
 -- Vista para el obtener datos para generacion de reportes
 -- =====================================================
 
-DROP VIEW IF EXISTS Vw_Base_Reportes;
-CREATE VIEW Vw_Base_Reportes AS
+DROP VIEW IF EXISTS vw_base_reportes;
+CREATE VIEW vw_base_reportes AS
 SELECT DISTINCT
         
     -- =====================================================
@@ -25,7 +25,7 @@ SELECT DISTINCT
     b.fechaInicio AS fecha_inicio_bimestre,
     b.fechaFin AS fecha_fin_bimestre,
     se.usuario,
-	acs.code AS Codigo_Plan,
+	se.plan AS Codigo_Plan,
     acs.name AS nombre_carrera,
     TRIM(SUBSTRING(se.title,LOCATE('-',se.title)+1,LOCATE('-',se.title, LOCATE('-',se.title)+1)-LOCATE('-',se.title)-1)) AS Nombre_asignatura,
     se.subject AS SIGLA,
@@ -50,22 +50,22 @@ SELECT DISTINCT
     -- =====================================================
     -- CALCULO DE HORAS A PAGO (SUMA DE AMBOS EVENTOS)
     -- =====================================================
-	(CASE 
+	ROUND(((CASE 
 		WHEN se.horas is null 
-		THEN ROUND( -- Horas_Evento_1 + Horas_Evento_2
+		THEN ( -- Horas_Evento_1 + Horas_Evento_2
 	         -- Horas_Evento_1
-			 (COALESCE(acs.hours, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			 ((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)) +
+			 (COALESCE(acs.hours, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			 (((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin)) +
 			 -- Horas evento 2
-			 (COALESCE(acs.hours, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2) 
+			 (COALESCE(acs.hours, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin)) 
 		ELSE
-			ROUND( -- Horas_Evento_1 + Horas_Evento_2
+			( -- Horas_Evento_1 + Horas_Evento_2
 	         -- Horas_Evento_1
-			 (COALESCE(se.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			 ((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)) +
+			 (COALESCE(se.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			 (((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin)) +
 			 -- Horas evento 2
-			 (COALESCE(se.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2) 
-	END) * COALESCE(b.factor,0) 	AS Horas_a_pago,
+			 (COALESCE(se.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin)) 
+	END) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END)), 0) AS Horas_a_pago,
  
     -- =====================================================
     -- FECHA EVENTO 1 (fecha inicio y fin evento 1)
@@ -76,15 +76,15 @@ SELECT DISTINCT
     -- =====================================================
     -- HORAS EVENTO 1 
     -- =====================================================
-    (CASE 
+    ROUND(((CASE 
 		WHEN se.horas IS NULL
 		THEN
-			ROUND((COALESCE(acs.hours, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)), 2) 
+			(COALESCE(acs.hours, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			(((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin)) 
 		ELSE
-			ROUND((COALESCE(se.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)), 2) 
-	END) * COALESCE(b.factor,0)  AS Horas_Evento_1,
+			(COALESCE(se.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			(((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin)) 
+	END) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END)), 0) AS Horas_Evento_1,
     
   
     -- =====================================================
@@ -95,19 +95,13 @@ SELECT DISTINCT
     -- =====================================================
     -- HORAS EVENTO 2 
     -- =====================================================
-    (CASE 
+    ROUND(((CASE 
 		WHEN se.horas IS NULL
 		THEN
-			ROUND((COALESCE(acs.hours, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2) 
+			(COALESCE(acs.hours, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin) 
 		ELSE 
-			ROUND((COALESCE(se.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2)
-	END)* COALESCE(b.factor,0) 	AS Horas_Evento2,
-    
-    -- Campos de verificacion de calculos
-	COALESCE(b.factor,0) ,
-    DATEDIFF(b.fechaFin, b.fechaInicio) + 1 AS cantidad_total_dias,
-    DAY(b.fechaFin) AS dias_evento_2,
-    (DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin) AS dias_evento_1
+			(COALESCE(se.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin)
+	END) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END)), 0) AS Horas_Evento2
     
 FROM schedule_events  se -- Universo de Asignaturas y Adol
 
@@ -122,6 +116,7 @@ LEFT JOIN  bimestres b
 LEFT JOIN academic_structures acs 
     ON acs.id_bimestre = se.bimestre_id
     AND acs.acronym = se.subject
+    AND acs.code = se.plan
 
 -- relación eventos-docentes
 LEFT JOIN event_teachers et 
@@ -142,6 +137,7 @@ LEFT JOIN dol_aprobados da
 LEFT JOIN asignaturas_optativas_aprobadas apo 
     ON apo.id_bimestre = se.bimestre_id
     AND apo.asignatura = se.subject
+    AND apo.plan = se.plan
 WHERE apo.asignatura is NULL
 
 UNION
@@ -177,12 +173,12 @@ SELECT DISTINCT
     -- =====================================================
     -- CALCULO DE HORAS A PAGO (SUMA DE AMBOS EVENTOS)
     -- =====================================================
-	(ROUND( -- Horas_Evento_1 + Horas_Evento_2
+	ROUND((( -- Horas_Evento_1 + Horas_Evento_2
 	         -- Horas_Evento_1
-			 (COALESCE(apo.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			 ((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)) +
+			 (COALESCE(apo.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			 (((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin)) +
 			 -- Horas evento 2
-			 (COALESCE(apo.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2) * COALESCE(b.factor,0) ) 	AS Horas_a_pago,
+			 (COALESCE(apo.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin)) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END)), 0) AS Horas_a_pago,
  
     -- =====================================================
     -- FECHA EVENTO 1 (fecha inicio y fin evento 1)
@@ -193,8 +189,8 @@ SELECT DISTINCT
     -- =====================================================
     -- HORAS EVENTO 1 
     -- =====================================================
-    (ROUND((COALESCE(apo.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * 
-			((DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin)), 2) * COALESCE(b.factor,0) ) AS Horas_Evento_1,
+    ROUND(((COALESCE(apo.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * 
+			(((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1) - DAYOFMONTH(b.fechaFin))) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END), 0) AS Horas_Evento_1,
 
     -- =====================================================
     -- FECHA EVENTO 2
@@ -204,13 +200,7 @@ SELECT DISTINCT
     -- =====================================================
     -- HORAS EVENTO 2 
     -- =====================================================
-    (ROUND((COALESCE(apo.horas, 0) / (DATEDIFF(b.fechaFin, b.fechaInicio) + 1)) * DAY(b.fechaFin), 2) * COALESCE(b.factor,0) ) AS Horas_Evento2,
-    
-    -- Campos de verificacion de calculos
-	COALESCE(b.factor,0) ,
-    DATEDIFF(b.fechaFin, b.fechaInicio) + 1 AS cantidad_total_dias,
-    DAY(b.fechaFin) AS dias_evento_2,
-    (DATEDIFF(b.fechaFin, b.fechaInicio) + 1) - DAY(b.fechaFin) AS dias_evento_1
+    ROUND(((COALESCE(apo.horas, 0) / ((TO_DAYS(b.fechaFin) - TO_DAYS(b.fechaInicio)) + 1)) * DAYOFMONTH(b.fechaFin)) * (CASE WHEN SUBSTRING(se.subject, 1, 4) = 'ADOL' THEN 1 ELSE COALESCE(b.factor, 1) END), 0) AS Horas_Evento2
 
 FROM schedule_events  se -- Universo de Asignaturas y Adol
 

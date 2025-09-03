@@ -49,8 +49,8 @@ export class SchedulingService {
           .leftJoinAndSelect('event.bimestre', 'bimestre')
           .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
           .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-          .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+          .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
           .where('(event.start_date <= :endFilter AND event.end_date >= :startFilter)', {
             startFilter,
             endFilter
@@ -102,6 +102,7 @@ export class SchedulingService {
             (event as any).academic_name = academicData.academic_name;
             (event as any).academic_school_prog = academicData.academic_school_prog;
             (event as any).academic_code = academicData.academic_code;
+            (event as any).academic_level = academicData.academic_level;
           }
           return ScheduleEventDto.fromEntity(event);
         });
@@ -116,8 +117,8 @@ export class SchedulingService {
         .leftJoinAndSelect('event.bimestre', 'bimestre')
         .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
         .where(`(
           -- Verificar permisos por asignaturas permitidas
           event.subject IN (
@@ -165,6 +166,7 @@ export class SchedulingService {
           (event as any).academic_name = academicData.academic_name;
           (event as any).academic_school_prog = academicData.academic_school_prog;
           (event as any).academic_code = academicData.academic_code;
+          (event as any).academic_level = academicData.academic_level;
         }
         return ScheduleEventDto.fromEntity(event);
       });
@@ -207,8 +209,8 @@ export class SchedulingService {
           .leftJoinAndSelect('event.bimestre', 'bimestre')
           .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
           .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-          .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+          .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+          .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
           .where('(event.start_date <= :endFilter AND event.end_date >= :startFilter)', {
             startFilter,
             endFilter
@@ -235,6 +237,7 @@ export class SchedulingService {
             (event as any).academic_name = academicData.academic_name;
             (event as any).academic_school_prog = academicData.academic_school_prog;
             (event as any).academic_code = academicData.academic_code;
+            (event as any).academic_level = academicData.academic_level;
           }
           return ScheduleEventDto.fromEntity(event);
         });
@@ -256,8 +259,8 @@ export class SchedulingService {
         .leftJoinAndSelect('event.bimestre', 'bimestre')
         .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
         .orderBy('event.start_date', 'ASC')
         .skip((page - 1) * limit)
         .take(limit);
@@ -573,8 +576,8 @@ export class SchedulingService {
         .leftJoinAndSelect('event.bimestre', 'bimestre')
         .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
         .where('event.bimestre_id = :bimestreId', { bimestreId })
         .andWhere('event.active = :active', { active: true })
         .andWhere(`(
@@ -610,6 +613,7 @@ export class SchedulingService {
           (event as any).academic_name = academicData.academic_name;
           (event as any).academic_school_prog = academicData.academic_school_prog;
           (event as any).academic_code = academicData.academic_code;
+          (event as any).academic_level = academicData.academic_level;
         }
         return ScheduleEventDto.fromEntity(event);
       });
@@ -631,8 +635,8 @@ export class SchedulingService {
         .leftJoinAndSelect('event.bimestre', 'bimestre')
         .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
         .where('event.bimestre_id = :bimestreId', { bimestreId })
         .andWhere('event.active = :active', { active: true })
         .andWhere('event.title LIKE :adolPrefix', { adolPrefix: 'ADOL%' })
@@ -648,6 +652,7 @@ export class SchedulingService {
           (event as any).academic_name = academicData.academic_name;
           (event as any).academic_school_prog = academicData.academic_school_prog;
           (event as any).academic_code = academicData.academic_code;
+          (event as any).academic_level = academicData.academic_level;
         }
         return ScheduleEventDto.fromEntity(event);
       });
@@ -666,11 +671,12 @@ export class SchedulingService {
         .leftJoinAndSelect('event.bimestre', 'bimestre')
         .leftJoinAndSelect('event.eventTeachers', 'eventTeachers')
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
-        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject')
-        .addSelect(['academic.name', 'academic.school_prog', 'academic.code'])
+        .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
+        .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
         .innerJoin('asignaturas_optativas_aprobadas', 'optativas', 
           'TRIM(SUBSTRING(event.title, 1, LOCATE(\' - \', event.title) - 1)) = TRIM(optativas.asignatura)')
         .addSelect('optativas.plan', 'optativas_plan')
+        .addSelect('optativas.nivel', 'optativas_nivel')
         .where('event.bimestre_id = :bimestreId', { bimestreId })
         .andWhere('event.active = :active', { active: true })
         .orderBy('event.start_date', 'ASC');
@@ -684,6 +690,7 @@ export class SchedulingService {
           (event as any).academic_name = academicData.academic_name;
           (event as any).academic_school_prog = academicData.academic_school_prog;
           (event as any).academic_code = academicData.academic_code;
+          (event as any).academic_level = academicData.optativas_nivel; // Usar nivel desde asignaturas_optativas_aprobadas
           (event as any).plan = academicData.optativas_plan;
         }
         return ScheduleEventDto.fromEntity(event);

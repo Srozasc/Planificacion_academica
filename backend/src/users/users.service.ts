@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -712,7 +712,7 @@ export class UsersService {
    */
   private async executePermissionScriptsForUser(): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      const scriptsDir = path.join(process.cwd(), '..', 'scripts', 'permissions');
+      const scriptsDir = path.join(__dirname, '..', '..', 'scripts', 'permissions');
       const resolvePermissionsScript = path.join(scriptsDir, 'resolve_permissions.js');
       
       // Verificar que el script existe
@@ -749,7 +749,7 @@ export class UsersService {
    */
   private async executePermissionScripts(tempFilePath: string, bimestreId?: number): Promise<void> {
     return new Promise(async (resolve, reject) => {
-      const scriptsDir = path.join(process.cwd(), '..', 'scripts', 'permissions');
+      const scriptsDir = path.join(__dirname, '..', '..', 'scripts', 'permissions');
       const loadUsersScript = path.join(scriptsDir, 'load_users.js');
       const resolvePermissionsScript = path.join(scriptsDir, 'resolve_permissions.js');
       

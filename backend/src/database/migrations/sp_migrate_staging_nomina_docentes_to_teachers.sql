@@ -10,7 +10,7 @@ DROP PROCEDURE IF EXISTS sp_migrate_staging_nomina_docentes_to_teachers;
 
 DELIMITER //
 
-CREATE PROCEDURE sp_migrate_staging_nomina_docentes_to_teachers()
+CREATE DEFINER=`root`@`localhost` PROCEDURE `planificacion_academica`.`sp_migrate_staging_nomina_docentes_to_teachers`()
 BEGIN
     INSERT INTO teachers (
         name,
@@ -43,9 +43,7 @@ BEGIN
         staging_nomina_docentes snd
     WHERE snd.docente IS NOT NULL 
       AND snd.docente != ''
-      AND snd.rut_docente IS NOT NULL 
-      AND snd.rut_docente != ''
-      AND snd.id_docente IS NOT NULL
+      AND snd.id_docente IS NOT NULL 
       AND snd.id_bimestre IS NOT NULL
     ON DUPLICATE KEY UPDATE
         name = VALUES(name),

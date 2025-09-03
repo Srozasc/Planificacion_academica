@@ -1,10 +1,5 @@
-¡Entendido perfectamente! Disculpa la confusión.
 
-Aquí tienes la guía depurada y enfocada exclusivamente en el despliegue del frontend, reflejando el proceso exacto que seguimos y que funcionó.
-
----
-
-### **Guía Definitiva para Desplegar un Frontend de React en AWS (S3 + CloudFront)**
+### **Guía para Desplegar un Frontend de React en AWS (S3 + CloudFront)**
 
 Este documento detalla el proceso completo para alojar una aplicación de React como un sitio web estático en Amazon S3 y distribuirlo globalmente a través de Amazon CloudFront, asegurando alto rendimiento, seguridad y correcto funcionamiento del enrutamiento.
 

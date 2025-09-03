@@ -18,6 +18,7 @@ import { ResponseService } from '../common/services/response.service';
 import { unlinkSync } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as path from 'path';
 
 const execAsync = promisify(exec);
 
@@ -1786,7 +1787,9 @@ export class UploadService {
 
       switch (uploadLog.uploadType) {
         case 'ADOL':
-          const adolData = await this.stagingAdolRepository.find();
+          const adolData = await this.stagingAdolRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
           validRecords = adolData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
@@ -1798,7 +1801,9 @@ export class UploadService {
           break;
 
         case 'DOL':
-          const dolData = await this.stagingDolRepository.find();
+          const dolData = await this.stagingDolRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
           validRecords = dolData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
@@ -1811,7 +1816,9 @@ export class UploadService {
           break;
 
         case 'Estructura Académica':
-          const estructuraData = await this.stagingEstructuraAcademicaRepository.find();
+          const estructuraData = await this.stagingEstructuraAcademicaRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
           validRecords = estructuraData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
@@ -1825,7 +1832,9 @@ export class UploadService {
           break;
 
         case 'Nómina Docentes':
-          const nominaData = await this.stagingNominaDocentesRepository.find();
+          const nominaData = await this.stagingNominaDocentesRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
           validRecords = nominaData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
@@ -1837,7 +1846,9 @@ export class UploadService {
           break;
 
         case 'Reporte Cursables':
-          const reporteData = await this.stagingReporteCursablesRepository.find();
+          const reporteData = await this.stagingReporteCursablesRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
           validRecords = reporteData.map((record, index) => ({
             rowNumber: index + 1,
             data: {
@@ -1870,6 +1881,33 @@ export class UploadService {
               'NIVEL': record.nivel,
               'CREDITOS': record.creditos,
               'VACANTES': record.vacantes
+            }
+          }));
+          this.logger.log(`Registros válidos mapeados: ${validRecords.length}`);
+          break;
+
+        case 'ASIGNATURAS_OPTATIVAS':
+          this.logger.log('=== PROCESANDO ASIGNATURAS_OPTATIVAS ===');
+          this.logger.log(`Buscando datos para bimestre: ${uploadLog.bimestreId}`);
+          const optativosData = await this.stagingOptativosRepository.find({
+            where: { id_bimestre: uploadLog.bimestreId }
+          });
+          this.logger.log(`Registros encontrados en BD: ${optativosData.length}`);
+          if (optativosData.length > 0) {
+            this.logger.log('Primer registro:', JSON.stringify(optativosData[0], null, 2));
+          }
+          validRecords = optativosData.map((record, index) => ({
+            rowNumber: index + 1,
+            data: {
+              'PLAN': record.plan,
+              'DESCRIPCION_PLAN': record.descripcion_plan,
+              'NIVEL': record.nivel,
+              'GRUPO_ASIGNATURA': record.grupo_asignatura,
+              'JORNADA': record.jornada,
+              'ASIGNATURA': record.asignatura,
+              'DESCRIPCION_ASIGNATURA': record.descripcion_asignatura,
+              'VACANTES': record.vacantes,
+              'HORAS': record.horas
             }
           }));
           this.logger.log(`Registros válidos mapeados: ${validRecords.length}`);
@@ -2094,9 +2132,8 @@ export class UploadService {
       if (upload.uploadType === 'Estructura Académica') {
         this.logger.log('=== EJECUTANDO LOAD_PLANS PARA ESTRUCTURA ACADÉMICA ===');
         try {
-          const { stdout, stderr } = await execAsync('node scripts/permissions/load_plans.js', {
-            cwd: process.cwd().replace('backend', '')
-          });
+          const loadPlansScriptPath = path.join(__dirname, '..', '..', 'scripts', 'permissions', 'load_plans.js');
+          const { stdout, stderr } = await execAsync(`node ${loadPlansScriptPath}`);
           
           if (stderr) {
             this.logger.warn('Load plans stderr:', stderr);
@@ -2108,9 +2145,8 @@ export class UploadService {
           // Ejecutar resolve_permissions.js después de load_plans.js
           this.logger.log('=== EJECUTANDO RESOLVE_PERMISSIONS DESPUÉS DE LOAD_PLANS ===');
           try {
-            const { stdout: resolveStdout, stderr: resolveStderr } = await execAsync('node scripts/permissions/resolve_permissions.js', {
-              cwd: process.cwd().replace('backend', '')
-            });
+            const resolvePermissionsScriptPath = path.join(__dirname, '..', '..', 'scripts', 'permissions', 'resolve_permissions.js');
+            const { stdout: resolveStdout, stderr: resolveStderr } = await execAsync(`node ${resolvePermissionsScriptPath}`);
             
             if (resolveStderr) {
               this.logger.warn('Resolve permissions stderr:', resolveStderr);

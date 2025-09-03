@@ -31,7 +31,7 @@ export class ScheduleEvent {
   @Column({ type: 'int', nullable: true })
   students?: number;
 
-  @Column({ type: 'decimal', precision: 4, scale: 2, nullable: true, comment: 'Cantidad de horas para eventos ADOL' })
+  @Column({ type: 'int', nullable: true, comment: 'Cantidad de horas para eventos ADOL' })
   horas?: number;
 
   @Column({ type: 'varchar', length: 7, nullable: true })
@@ -45,6 +45,9 @@ export class ScheduleEvent {
 
   @Column({ type: 'varchar', length: 15, nullable: true, comment: 'Usuario que creó o modificó el evento' })
   usuario?: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, comment: 'Plan académico asociado al evento' })
+  plan?: string;
 
   @CreateDateColumn()
   created_at: Date;

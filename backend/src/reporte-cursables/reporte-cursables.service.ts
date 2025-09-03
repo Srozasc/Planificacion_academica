@@ -22,9 +22,10 @@ export class ReporteCursablesService {
    * Obtiene el total de vacantes requeridas para una sigla específica
    * @param sigla - Sigla de la asignatura
    * @param bimestreId - ID del bimestre (opcional)
+   * @param plan - Código del plan (opcional, para filtrar asignaturas que existen en múltiples planes)
    * @returns Información de vacantes requeridas
    */
-  async getVacantesRequeridas(sigla: string, bimestreId?: number): Promise<VacantesRequeridas | null> {
+  async getVacantesRequeridas(sigla: string, bimestreId?: number, plan?: string): Promise<VacantesRequeridas | null> {
     const queryBuilder = this.reporteCursablesRepository
       .createQueryBuilder('rca')
       .select([
@@ -39,6 +40,11 @@ export class ReporteCursablesService {
 
     if (bimestreId) {
       queryBuilder.andWhere('rca.id_bimestre = :bimestreId', { bimestreId });
+    }
+
+    // Filtrar por plan si se proporciona (para resolver asignaturas en múltiples planes)
+    if (plan) {
+      queryBuilder.andWhere('rca.plan = :plan', { plan });
     }
 
     const result = await queryBuilder.getRawOne();

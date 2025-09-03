@@ -1,0 +1,18 @@
+# Archivos de Git
+.git
+.gitignore
+
+# Dependencias locales (se instalarán dentro del contenedor)
+node_modules
+
+# Artefactos de compilación locales (se generarán dentro del contenedor)
+dist
+
+# Archivos de entorno y logs locales
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Configuración del IDE
+.vscode

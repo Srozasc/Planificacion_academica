@@ -63,9 +63,6 @@ import { User } from '../users/entities/user.entity';
         synchronize: false, // Deshabilitado ahora que las tablas ya están creadas
         logging: process.env.NODE_ENV === 'development',
         autoLoadEntities: true, // Esto carga automáticamente las entidades registradas con forFeature
-        extra: {
-          authPlugin: 'sha256_password',
-        },
       }),
       inject: [ConfigService],
     }),    // Registrar entidades compartidas

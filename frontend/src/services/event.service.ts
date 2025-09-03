@@ -19,6 +19,7 @@ export interface Event {
     section?: string;
     plan_code?: string;
     plan?: string; // Plan desde asignaturas_optativas_aprobadas
+    nivel?: string; // Nivel desde asignaturas_optativas_aprobadas
   };
 }
 
@@ -104,6 +105,11 @@ class EventService {
         subject: eventData.subject
       };
       
+      // Incluir plan si está disponible
+      if (eventData.plan) {
+        event.plan = eventData.plan;
+      }
+      
       // Incluir bimestre_id si está disponible
       if (finalBimestreId) {
         event.bimestre_id = finalBimestreId;
@@ -154,6 +160,11 @@ class EventService {
         teacher_ids: eventData.teacher_ids || [], // Nuevo campo para múltiples docentes
         subject: eventData.subject
       };
+      
+      // Incluir plan si está disponible
+      if (eventData.plan) {
+        event.plan = eventData.plan;
+      }
       
       // Incluir bimestre_id si está disponible
       if (finalBimestreId) {

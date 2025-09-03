@@ -1,8 +1,19 @@
 const mysql = require('mysql2/promise');
 const path = require('path');
+const fs = require('fs');
 
-// Cargar variables de entorno desde el backend
-require('dotenv').config({ path: path.join(__dirname, '../../backend/.env') });
+// Cargar variables de entorno desde el backend usando ruta absoluta
+const envPath = path.resolve(process.cwd(), 'backend', '.env');
+console.log('🔍 Intentando cargar .env desde:', envPath);
+
+if (fs.existsSync(envPath)) {
+    require('dotenv').config();
+    console.log('✅ Archivo .env cargado exitosamente');
+} else {
+    console.log('⚠️  Archivo .env no encontrado, usando variables de entorno del sistema');
+    console.log('📂 Directorio de trabajo actual:', process.cwd());
+    console.log('📁 Directorio del script:', __dirname);
+}
 
 // Configuración de la base de datos
 const dbConfig = {
@@ -24,6 +35,13 @@ async function loadPlans() {
         console.log('🚀 Iniciando carga de planes de estudio desde staging_estructura_academica...');
         
         // Conectar a la base de datos
+        console.log('🔗 Configuración de base de datos:', {
+            host: dbConfig.host,
+            user: dbConfig.user,
+            database: dbConfig.database,
+            charset: dbConfig.charset
+        });
+        
         connection = await mysql.createConnection(dbConfig);
         console.log('✅ Conexión a base de datos establecida');
         

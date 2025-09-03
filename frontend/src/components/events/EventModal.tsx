@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { dropdownService, Teacher, Subject, Plan, Level } from '../../services/dropdownService';
 import { eventService } from '../../services/event.service';
 import { useBimestreStore } from '../../store/bimestre.store';
@@ -34,6 +34,8 @@ interface EventModalProps {
   } | null;
 }
 
+type TipoEvento = 'inicio' | 'continuidad' | 'adol' | 'optativo';
+
 export interface CreateEventData {
   title: string;
   startDate: string;
@@ -43,7 +45,8 @@ export interface CreateEventData {
   subject?: string;
   students?: number;
   horas?: number; // Campo para cantidad de horas (solo para ADOL)
-  tipoEvento?: 'inicio' | 'continuidad' | 'adol' | 'optativo'; // Nuevo campo para tipo de evento
+  tipoEvento: TipoEvento; // Nuevo campo para tipo de evento (requerido)
+  plan?: string; // Plan académico asociado al evento
 }
 
 const EventModal: React.FC<EventModalProps> = ({
@@ -121,7 +124,7 @@ const EventModal: React.FC<EventModalProps> = ({
       subject: '',
       students: 0,
       horas: 0,
-      tipoEvento: 'continuidad'
+      tipoEvento: 'continuidad' as TipoEvento
     };
   });
 
@@ -152,6 +155,39 @@ const EventModal: React.FC<EventModalProps> = ({
   const [isLoadingVacantes, setIsLoadingVacantes] = useState(false);
   const [teachersHours, setTeachersHours] = useState<Record<number, number>>({});
   const [isLoadingTeachersHours, setIsLoadingTeachersHours] = useState(false);
+
+  // Referencia para el scroll inteligente del modal
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Scroll inteligente cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      // Primer timeout: Asegurar que el DOM esté completamente renderizado
+      setTimeout(() => {
+        if (modalRef.current) {
+          modalRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'center'
+          });
+        }
+      }, 10);
+
+      // Segundo timeout: Fallback con window.scrollTo() si scrollIntoView() falla
+      setTimeout(() => {
+        if (modalRef.current) {
+          const rect = modalRef.current.getBoundingClientRect();
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const targetY = rect.top + scrollTop - (window.innerHeight / 2) + (rect.height / 2);
+          
+          window.scrollTo({
+            top: Math.max(0, targetY),
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [isOpen]);
 
   // Cargar datos de las listas desplegables cuando se abra el modal
   useEffect(() => {
@@ -206,6 +242,21 @@ const EventModal: React.FC<EventModalProps> = ({
       });
     }
   }, [bimestreSeleccionado, editingEvent, selectedDate, isOpen]);
+
+  // Resetear filtros cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && !editingEvent) {
+      console.log('Modal abierto - reseteando filtros');
+      setSelectedPlan(''); // Limpiar plan seleccionado
+      setSelectedLevel(''); // Limpiar nivel seleccionado
+      setSubjectSearchTerm(''); // Limpiar búsqueda de asignaturas
+      setPlanSearchTerm(''); // Limpiar búsqueda de planes
+      setLevelSearchTerm(''); // Limpiar búsqueda de niveles
+      setTeacherSearchTerm(''); // Limpiar búsqueda de docentes
+      setShowPlanDropdown(false); // Cerrar dropdown de planes
+      setShowLevelDropdown(false); // Cerrar dropdown de niveles
+    }
+  }, [isOpen, editingEvent]);
 
   const loadDropdownData = async () => {
     setIsLoadingDropdowns(true);
@@ -358,7 +409,7 @@ const EventModal: React.FC<EventModalProps> = ({
     updateTitle();
   }, [formData.subject, editingEvent]);
 
-  // Cargar vacantes requeridas cuando cambie la asignatura
+  // Cargar vacantes requeridas cuando cambie la asignatura, el bimestre o el plan
   useEffect(() => {
     const loadVacantesRequeridas = async () => {
       if (formData.subject && bimestreSeleccionado?.id) {
@@ -366,7 +417,8 @@ const EventModal: React.FC<EventModalProps> = ({
         try {
           const vacantes = await reporteCursablesService.getVacantesRequeridas(
             formData.subject,
-            bimestreSeleccionado.id
+            bimestreSeleccionado.id,
+            selectedPlan // Pasar el plan seleccionado para obtener información específica del plan
           );
           setVacantesRequeridas(vacantes);
         } catch (error) {
@@ -381,7 +433,7 @@ const EventModal: React.FC<EventModalProps> = ({
     };
     
     loadVacantesRequeridas();
-  }, [formData.subject, bimestreSeleccionado?.id]);
+  }, [formData.subject, bimestreSeleccionado?.id, selectedPlan]);
 
   // Cargar horas asignadas cuando cambien los docentes seleccionados
   useEffect(() => {
@@ -453,6 +505,8 @@ const EventModal: React.FC<EventModalProps> = ({
   useEffect(() => {
     if (!planSearchTerm || planSearchTerm.toString().trim() === '') {
       setFilteredPlans(plans);
+      // Resetear el plan seleccionado cuando se vacía el campo de búsqueda
+      setSelectedPlan('');
     } else {
       const filtered = plans.filter(plan => 
         plan.label.toString().toLowerCase().includes(planSearchTerm.toString().toLowerCase())
@@ -465,6 +519,8 @@ const EventModal: React.FC<EventModalProps> = ({
   useEffect(() => {
     if (!levelSearchTerm || levelSearchTerm.toString().trim() === '') {
       setFilteredLevels(levels);
+      // Resetear el nivel seleccionado cuando se vacía el campo de búsqueda
+      setSelectedLevel('');
     } else {
       const filtered = levels.filter(level => 
         level.label.toString().toLowerCase().includes(levelSearchTerm.toString().toLowerCase())
@@ -530,7 +586,7 @@ const EventModal: React.FC<EventModalProps> = ({
 
 
   // Función helper para determinar el tipo de evento basándose en los datos del evento
-  const determineEventType = (event: any): 'inicio' | 'continuidad' | 'adol' | 'optativo' => {
+  const determineEventType = (event: any): TipoEvento => {
     console.log('DEBUG determineEventType - Entrada:', {
       currentEventType,
       eventTitle: event.title,
@@ -554,7 +610,7 @@ const EventModal: React.FC<EventModalProps> = ({
     }
     
     // Si el título comienza con 'ADOL', es un evento ADOL
-    if (event.title && event.title.startsWith('ADOL')) {
+    if (event.title && event.title.toUpperCase().startsWith('ADOL')) {
       console.log('DEBUG determineEventType - Detectado como ADOL por título');
       return 'adol';
     }
@@ -635,7 +691,7 @@ const EventModal: React.FC<EventModalProps> = ({
           subject: editingEvent.extendedProps?.subject || '',
           students: editingEvent.extendedProps?.students || 0,
           horas: editingEvent.extendedProps?.horas || 0,
-          tipoEvento: eventType
+          tipoEvento: eventType as TipoEvento
         };
         
         console.log('✅ FormData establecido:', newFormData);
@@ -686,7 +742,7 @@ const EventModal: React.FC<EventModalProps> = ({
             subject: '',
             students: 0,
             horas: 0,
-            tipoEvento: 'continuidad'
+            tipoEvento: 'continuidad' as TipoEvento
           });
         }, 100);
       }
@@ -730,7 +786,10 @@ const EventModal: React.FC<EventModalProps> = ({
       if (enableMultipleEvents && eventQuantity > 1) {
         await handleMultipleEventCreation();
       } else {
-        onSave(formData);
+        onSave({
+          ...formData,
+          plan: selectedPlan // Incluir el plan seleccionado
+        });
       }
     }
   };
@@ -749,7 +808,8 @@ const EventModal: React.FC<EventModalProps> = ({
         
         const eventData = {
           ...formData,
-          title: eventTitle
+          title: eventTitle,
+          plan: selectedPlan // Incluir el plan seleccionado
         };
         
         console.log(`🚀 Creando evento ${i + 1}/${eventQuantity}:`, {
@@ -814,7 +874,7 @@ const EventModal: React.FC<EventModalProps> = ({
       subject: '',
       students: 0,
       horas: 0,
-      tipoEvento: 'continuidad'
+      tipoEvento: 'continuidad' as TipoEvento
     });
     setErrors({});
     setEventCounter(1);
@@ -842,7 +902,7 @@ const EventModal: React.FC<EventModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div ref={modalRef} className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">            <h2 className="text-xl font-semibold text-gray-900">
@@ -940,7 +1000,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     value="inicio"
                     checked={formData.tipoEvento === 'inicio'}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'inicio' }));
+                      setFormData(prev => ({ ...prev, tipoEvento: 'inicio' as TipoEvento }));
                     }}
                     className="border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -954,7 +1014,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     value="continuidad"
                     checked={formData.tipoEvento === 'continuidad'}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' }));
+                      setFormData(prev => ({ ...prev, tipoEvento: 'continuidad' as TipoEvento }));
                     }}
                     className="border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -968,7 +1028,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     value="adol"
                     checked={formData.tipoEvento === 'adol'}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'adol' }));
+                      setFormData(prev => ({ ...prev, tipoEvento: 'adol' as TipoEvento }));
                     }}
                     className="border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -982,7 +1042,7 @@ const EventModal: React.FC<EventModalProps> = ({
                     value="optativo"
                     checked={formData.tipoEvento === 'optativo'}
                     onChange={(e) => {
-                      setFormData(prev => ({ ...prev, tipoEvento: 'optativo' }));
+                      setFormData(prev => ({ ...prev, tipoEvento: 'optativo' as TipoEvento }));
                     }}
                     className="border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
@@ -1050,15 +1110,15 @@ const EventModal: React.FC<EventModalProps> = ({
                   }}
                   onFocus={() => setShowLevelDropdown(true)}
                   onBlur={() => setTimeout(() => setShowLevelDropdown(false), 200)}
-                  placeholder="Buscar nivel..."
+                  placeholder={(formData.tipoEvento as TipoEvento) === 'adol' ? "Buscar nivel..." : !selectedPlan ? "Seleccione un plan primero" : "Buscar nivel..."}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formData.tipoEvento === 'adol' || isLoadingDropdowns
+                    (formData.tipoEvento as TipoEvento) === 'adol' || isLoadingDropdowns || (!selectedPlan && (formData.tipoEvento as TipoEvento) !== 'adol')
                       ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
                       : 'border-gray-300'
                   }`}
-                  disabled={formData.tipoEvento === 'adol' || isLoadingDropdowns}
+                  disabled={(formData.tipoEvento as TipoEvento) === 'adol' || isLoadingDropdowns || (!selectedPlan && (formData.tipoEvento as TipoEvento) !== 'adol')}
                 />
-                {showLevelDropdown && filteredLevels.length > 0 && formData.tipoEvento !== 'adol' && (
+                {showLevelDropdown && filteredLevels.length > 0 && formData.tipoEvento !== 'adol' && selectedPlan && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
                     {filteredLevels.map((level) => (
                       <div
@@ -1090,17 +1150,27 @@ const EventModal: React.FC<EventModalProps> = ({
               <div className="mb-3">
                 <input
                   type="text"
-                  placeholder="Buscar asignatura por nombre o código..."
+                  placeholder={formData.tipoEvento === 'adol' ? "Buscar asignatura por nombre o código..." : !selectedPlan ? "Seleccione un plan primero" : "Buscar asignatura por nombre o código..."}
                   value={subjectSearchTerm}
                   onChange={(e) => setSubjectSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  disabled={isLoadingDropdowns}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                    isLoadingDropdowns || (!selectedPlan && formData.tipoEvento !== 'adol')
+                      ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200' 
+                      : 'border-gray-300'
+                  }`}
+                  disabled={isLoadingDropdowns || (!selectedPlan && formData.tipoEvento !== 'adol')}
                 />
               </div>
               
-              <div className="border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+              <div className={`border rounded-md p-3 max-h-40 overflow-y-auto ${
+                (!selectedPlan && formData.tipoEvento !== 'adol') 
+                  ? 'border-gray-200 bg-gray-50' 
+                  : 'border-gray-300'
+              }`}>
                 {isLoadingDropdowns ? (
                   <p className="text-gray-500 text-sm">Cargando asignaturas...</p>
+                ) : (!selectedPlan && formData.tipoEvento !== 'adol') ? (
+                  <p className="text-gray-400 text-sm italic">Seleccione un plan para ver las asignaturas disponibles</p>
                 ) : subjects.length === 0 ? (
                   <p className="text-gray-500 text-sm">No hay asignaturas disponibles</p>
                 ) : (
@@ -1113,17 +1183,28 @@ const EventModal: React.FC<EventModalProps> = ({
                                subject.course.toLowerCase().includes(searchLower);
                       })
                       .map((subject) => (
-                        <label key={subject.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <label key={subject.id} className={`flex items-center space-x-2 p-1 rounded ${
+                          (!selectedPlan && formData.tipoEvento !== 'adol') 
+                            ? 'cursor-not-allowed opacity-50' 
+                            : 'cursor-pointer hover:bg-gray-50'
+                        }`}>
                           <input
                             type="radio"
                             name="subject"
                             checked={formData.subject === subject.acronym}
                             onChange={() => {
-                              setFormData(prev => ({ ...prev, subject: subject.acronym }));
+                              if (selectedPlan || formData.tipoEvento === 'adol') {
+                                setFormData(prev => ({ ...prev, subject: subject.acronym }));
+                              }
                             }}
                             className="text-blue-600 focus:ring-blue-500"
+                            disabled={!selectedPlan && formData.tipoEvento !== 'adol'}
                           />
-                          <span className="text-sm text-gray-700">
+                          <span className={`text-sm ${
+                            (!selectedPlan && formData.tipoEvento !== 'adol') 
+                              ? 'text-gray-400' 
+                              : 'text-gray-700'
+                          }`}>
                             {subject.acronym} - {subject.course}
                           </span>
                         </label>

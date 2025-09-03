@@ -7,15 +7,16 @@ export class ReporteCursablesController {
 
   /**
    * Obtiene el total de vacantes requeridas para una sigla específica
-   * GET /reporte-cursables/vacantes/:sigla
+   * GET /reporte-cursables/vacantes/:sigla?bimestreId=X&plan=Y
    */
   @Get('vacantes/:sigla')
   async getVacantesRequeridas(
     @Param('sigla') sigla: string,
     @Query('bimestreId') bimestreId?: string,
+    @Query('plan') plan?: string,
   ): Promise<VacantesRequeridas | null> {
     const bimestreIdNum = bimestreId ? parseInt(bimestreId, 10) : undefined;
-    return this.reporteCursablesService.getVacantesRequeridas(sigla, bimestreIdNum);
+    return this.reporteCursablesService.getVacantesRequeridas(sigla, bimestreIdNum, plan);
   }
 
   /**

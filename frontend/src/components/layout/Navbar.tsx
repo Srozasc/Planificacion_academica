@@ -89,7 +89,7 @@ const Navbar: React.FC = () => {
                     const fechaInicio = parseLocalDate(bimestreSeleccionado.fechaInicio).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
                     const fechaFin = parseLocalDate(bimestreSeleccionado.fechaFin).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
                     return `${fechaInicio} - ${fechaFin}`;
-                  })()})
+                  })()}
                 </span>
               </div>
             ) : (

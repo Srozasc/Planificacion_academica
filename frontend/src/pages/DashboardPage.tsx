@@ -26,12 +26,14 @@ const DashboardPage: React.FC = () => {
     plan: '',
     evento: '',
     docente: '',
+    nivel: '',
     capacidad: ''
   });
   const [showFilters, setShowFilters] = useState({
     plan: false,
     evento: false,
     docente: false,
+    nivel: false,
     capacidad: false
   });
 
@@ -68,9 +70,10 @@ const DashboardPage: React.FC = () => {
     
     const eventoMatch = !filters.evento || event.title.toLowerCase().includes(filters.evento.toLowerCase());
     const docenteMatch = !filters.docente || (event.extendedProps?.teacher_names || event.extendedProps?.teacher || '').toLowerCase().includes(filters.docente.toLowerCase());
+    const nivelMatch = !filters.nivel || (event.extendedProps?.nivel || '').toLowerCase().includes(filters.nivel.toLowerCase());
     const capacidadMatch = !filters.capacidad || (event.extendedProps?.students || '').toString().includes(filters.capacidad);
     
-    return planMatch && eventoMatch && docenteMatch && capacidadMatch;
+    return planMatch && eventoMatch && docenteMatch && nivelMatch && capacidadMatch;
   });
 
 
@@ -446,6 +449,26 @@ const DashboardPage: React.FC = () => {
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
                           <div className="flex flex-col">
                             <button 
+                              onClick={() => toggleFilter('nivel')}
+                              className="text-left hover:text-gray-700 cursor-pointer"
+                            >
+                              Nivel
+                            </button>
+                            {showFilters.nivel && (
+                              <input
+                                type="text"
+                                placeholder="Filtrar..."
+                                value={filters.nivel}
+                                onChange={(e) => handleFilterChange('nivel', e.target.value)}
+                                className="mt-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
+                          <div className="flex flex-col">
+                            <button 
                               onClick={() => toggleFilter('capacidad')}
                               className="text-left hover:text-gray-700 cursor-pointer"
                             >
@@ -476,6 +499,7 @@ const DashboardPage: React.FC = () => {
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-900">{event.title}</td>
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.teacher_names || event.extendedProps?.teacher || '-'}</td>
+                          <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.nivel || '-'}</td>
                           <td className="px-3 py-2 text-sm text-gray-600">{event.extendedProps?.students || '-'}</td>
                           <td className="px-3 py-2 text-sm">
                             <div className="flex space-x-2">
