@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { uploadService, SystemStats } from './services/upload.service';
+import { templateService } from './services/template.service';
 import { useBimestreStore } from '../../store/bimestre.store';
 import DataViewModal from './components/DataViewModal';
 import RecentUploadsManager from './components/RecentUploadsManager';
@@ -180,6 +181,16 @@ const DataUploadPage: React.FC = () => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleDownloadTemplate = async (templateName: string) => {
+    try {
+      await templateService.downloadTemplate(templateName);
+      console.log(`Descargando plantilla: ${templateName}`);
+    } catch (error) {
+      console.error('Error al descargar la plantilla:', error);
+      alert('Error al descargar la plantilla');
     }
   };
 
@@ -409,8 +420,7 @@ const DataUploadPage: React.FC = () => {
           {fileTypes.map((type) => (
             <div
               key={type.id}
-              onClick={() => setSelectedFileType(type.id)}
-              className={`p-6 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+              className={`p-6 rounded-lg border-2 transition-all duration-200 ${
                 selectedFileType === type.id
                   ? 'border-uc-blue bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -420,6 +430,31 @@ const DataUploadPage: React.FC = () => {
                 <div className="text-3xl mb-3">{type.icon}</div>
                 <h3 className="font-semibold text-gray-900 mb-2">{type.name}</h3>
                 <p className="text-sm text-gray-600 mb-3">{type.description}</p>
+                
+                {/* Botones de acción */}
+                <div className="flex flex-col gap-2 mt-4">
+                  <button
+                    onClick={() => setSelectedFileType(type.id)}
+                    className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+                      selectedFileType === type.id
+                        ? 'bg-uc-blue text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {selectedFileType === type.id ? 'Seleccionado' : 'Seleccionar'}
+                  </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadTemplate(type.templateName);
+                    }}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    <span>📥</span>
+                    Descargar Plantilla
+                  </button>
+                </div>
               </div>
             </div>
           ))}
