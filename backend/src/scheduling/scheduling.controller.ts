@@ -13,6 +13,7 @@ import {
   Logger,
   ValidationPipe,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { SchedulingService } from './scheduling.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -23,7 +24,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
-@Controller('events')
+@Controller('scheduling')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SchedulingController {
   private readonly logger = new Logger(SchedulingController.name);
@@ -76,6 +77,72 @@ export class SchedulingController {
         'Error al obtener estadísticas',
         [error.message]
       );
+    }
+  }
+
+  @Get('hours-by-codes')
+  async getHoursByCodes(
+    @Query('eventPairs') eventPairs: string,
+    @Query('bimestreId', ParseIntPipe) bimestreId?: number
+  ) {
+    if (!eventPairs) {
+      throw new BadRequestException('Pares de eventos son requeridos');
+    }
+    
+    try {
+      const pairs = JSON.parse(eventPairs);
+      if (!Array.isArray(pairs)) {
+        throw new BadRequestException('Los pares de eventos deben ser un array');
+      }
+      return this.schedulingService.getHoursByEventPairs(pairs, bimestreId);
+    } catch (error) {
+      throw new BadRequestException('Formato de pares de eventos inválido');
+    }
+  }
+
+  @Get('hours-by-optativas-codes')
+  async getHoursByOptativasCodes(
+    @Query('eventPairs') eventPairs: string,
+    @Query('bimestreId', ParseIntPipe) bimestreId?: number
+  ) {
+    if (!eventPairs) {
+      throw new BadRequestException('Pares de eventos son requeridos');
+    }
+    
+    try {
+      const pairs = JSON.parse(eventPairs);
+      if (!Array.isArray(pairs)) {
+        throw new BadRequestException('Los pares de eventos deben ser un array');
+      }
+      return this.schedulingService.getHoursByOptativasEventPairs(pairs, bimestreId);
+    } catch (error) {
+      throw new BadRequestException('Formato de pares de eventos inválido');
+    }
+  }
+
+  @Get('hours-by-adol-events')
+  async getHoursByADOLEvents(
+    @Query('eventTitles') eventTitles: string,
+    @Query('bimestreId', ParseIntPipe) bimestreId?: number
+  ) {
+    if (!eventTitles) {
+      throw new BadRequestException('Títulos de eventos ADOL son requeridos');
+    }
+    
+    try {
+      const titles = JSON.parse(eventTitles);
+      if (!Array.isArray(titles)) {
+        throw new BadRequestException('Los títulos de eventos deben ser un array');
+      }
+      
+      this.logger.log(`Recibidos títulos ADOL: ${JSON.stringify(titles)}, bimestre: ${bimestreId}`);
+      this.logger.log(`Títulos individuales: ${titles.map((title, index) => `[${index}]: "${title}"`).join(', ')}`);
+      this.logger.log(`Controlador recibió títulos ADOL: ${JSON.stringify(titles)} para bimestre: ${bimestreId}`);
+      
+      return this.schedulingService.getHoursByADOLEvents(titles, bimestreId);
+    } catch (error) {
+      this.logger.error('Error en controlador ADOL:', error);
+      throw new BadRequestException('Formato de títulos de eventos inválido');
     }
   }
 
@@ -146,6 +213,26 @@ export class SchedulingController {
       return this.responseService.error(
         'Error al obtener eventos optativas',
         error.message
+      );
+    }
+  }
+
+  @Get('next-correlative/:subject')
+  async getNextCorrelativeForSubject(
+    @Param('subject') subject: string,
+    @Query('bimestreId', ParseIntPipe) bimestreId?: number
+  ) {
+    try {
+      const nextCorrelative = await this.schedulingService.getNextCorrelativeForSubject(subject, bimestreId);
+      return this.responseService.success(
+        { nextCorrelative },
+        'Siguiente correlativo obtenido exitosamente'
+      );
+    } catch (error) {
+      this.logger.error(`Error al obtener siguiente correlativo para ${subject}`, error);
+      return this.responseService.error(
+        'Error al obtener siguiente correlativo',
+        [error.message]
       );
     }
   }

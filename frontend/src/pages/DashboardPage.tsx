@@ -3,12 +3,14 @@ import BimestreSelector from '../components/bimestres/BimestreSelector';
 import EventModal from '../components/events/EventModal';
 import BimestreConfigurador from '../components/bimestres/BimestreConfigurador';
 import Toast from '../components/ui/Toast';
+import TotalHoursDisplay from '../components/dashboard/TotalHoursDisplay';
 import { CogIcon } from '@heroicons/react/24/outline';
 import { useBimestreStore } from '../store/bimestre.store';
 import { useAuthStore } from '../store/auth.store';
 import { eventService, Event } from '../services/event.service';
 import { CreateEventData } from '../components/events/EventModal';
 import { useToast } from '../hooks/useToast';
+import { useEventHours } from '../hooks/useEventHours';
 
 
 const DashboardPage: React.FC = () => {
@@ -43,7 +45,7 @@ const DashboardPage: React.FC = () => {
   // Verificar si el usuario es visualizador (solo lectura)
   const isVisualizador = user?.roleId === 1;
   const { toast, showToast, hideToast } = useToast();
-
+  
   // Función para manejar cambios en filtros
   const handleFilterChange = (column: string, value: string) => {
     setFilters(prev => ({
@@ -75,6 +77,9 @@ const DashboardPage: React.FC = () => {
     
     return planMatch && eventoMatch && docenteMatch && nivelMatch && capacidadMatch;
   });
+
+  // Hook para calcular horas totales de eventos filtrados
+  const eventHoursResult = useEventHours(filteredEvents);
 
 
 
@@ -268,20 +273,26 @@ const DashboardPage: React.FC = () => {
         <p className="text-sm sm:text-base text-gray-600">Gestiona y visualiza la programación académica en tiempo real</p>
       </div>
 
-      {/* Total de eventos */}
+      {/* Estadísticas de eventos */}
       <div className="mb-6">
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4 w-fit">
-          <div className="flex items-center space-x-4">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Eventos</p>
-              <p className="text-2xl font-bold text-gray-900">{events.length}</p>
-            </div>
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Total de eventos */}
+          <div className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
+            <div className="flex items-center space-x-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Total Eventos</p>
+                <p className="text-2xl font-bold text-gray-900">{events.length}</p>
+              </div>
+              <div className="bg-orange-100 p-3 rounded-lg">
+                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
             </div>
           </div>
+          
+          {/* Total de horas */}
+          <TotalHoursDisplay hoursResult={eventHoursResult} />
         </div>
       </div>
 

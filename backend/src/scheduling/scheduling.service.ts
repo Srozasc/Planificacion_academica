@@ -180,6 +180,63 @@ export class SchedulingService {
     }
   }
 
+  async getHoursByOptativasEventPairs(eventPairs: { acronym: string, plan: string }[], bimestreId?: number): Promise<{ totalHours: number, details: any[] }> {
+    this.logger.log(`Consultando horas para eventos Optativas con ${eventPairs.length} pares`);
+    
+    try {
+      if (eventPairs.length === 0) {
+        return { totalHours: 0, details: [] };
+      }
+      
+      // Construir consulta con condiciones OR para cada par específico (plan, asignatura)
+      const pairConditions = eventPairs.map(() => '(plan = ? AND asignatura = ?)').join(' OR ');
+      
+      let query = `
+        SELECT 
+          plan,
+          asignatura,
+          SUM(horas) as total_hours,
+          COUNT(*) as subject_count
+        FROM asignaturas_optativas_aprobadas 
+        WHERE (${pairConditions})`;
+      
+      // Crear parámetros para cada par (plan, asignatura)
+      const queryParams: string[] = [];
+      eventPairs.forEach(pair => {
+        queryParams.push(pair.plan, pair.acronym);
+      });
+      
+      // Agregar filtro por bimestre si se proporciona
+      if (bimestreId) {
+        query += ` AND id_bimestre = ?`;
+        queryParams.push(bimestreId.toString());
+      }
+      
+      query += ` GROUP BY plan, asignatura`;
+      
+      this.logger.log(`Ejecutando consulta Optativas con ${eventPairs.length} pares: ${eventPairs.map(p => `${p.plan}-${p.acronym}`).join(', ')}`);
+      
+      const result = await this.eventRepository.query(query, queryParams);
+      
+      const totalHours = result.reduce((sum, item) => sum + parseInt(item.total_hours || 0), 0);
+      
+      this.logger.log(`Total de horas Optativas encontradas: ${totalHours}`);
+      
+      return {
+        totalHours,
+        details: result.map(item => ({
+          plan: item.plan,
+          asignatura: item.asignatura,
+          hours: parseInt(item.total_hours || 0),
+          subjectCount: parseInt(item.subject_count || 0)
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error al consultar horas por pares de eventos Optativas:', error);
+      throw error;
+    }
+  }
+
   async findAll(query: GetEventsQueryDto): Promise<{ data: ScheduleEventDto[], total: number }> {
     try {
       const { start_date, end_date, bimestre_id, active, page = 1, limit = 50 } = query;
@@ -747,6 +804,232 @@ export class SchedulingService {
     } catch (error) {
       this.logger.error('Error al obtener estadísticas del dashboard', error);
       throw error;
+    }
+  }
+
+  // Método para obtener el siguiente correlativo para una asignatura
+  async getNextCorrelativeForSubject(subjectName: string, bimestreId?: number): Promise<number> {
+    try {
+      this.logger.log(`=== DEBUG getNextCorrelativeForSubject ===`);
+      this.logger.log(`Parámetro recibido - subjectName: "${subjectName}", bimestreId: ${bimestreId}`);
+      
+      // 1. Extraer el código limpio de la asignatura
+      // Si ya es un código limpio (ej: "ADOL001"), usarlo directamente
+      // Si es un título completo (ej: "ADOL001 - COORDINADOR DE LÍNEA ONLINE - 001"), extraer la primera parte
+      const cleanSubjectCode = subjectName.includes(' - ') ? subjectName.split(' - ')[0].trim() : subjectName.trim();
+      
+      this.logger.log(`Código extraído: "${cleanSubjectCode}"`);
+
+      // 2. Determinar el bimestre actual si no se proporciona
+      let targetBimestreId = bimestreId;
+      if (!targetBimestreId) {
+        const currentBimestre = await this.bimestreService.findBimestreActual();
+        targetBimestreId = currentBimestre.id;
+        this.logger.log(`Bimestre determinado automáticamente: ${targetBimestreId}`);
+      } else {
+        this.logger.log(`Bimestre proporcionado: ${targetBimestreId}`);
+      }
+
+      // 3. Consultar schedule_events para contar registros activos del bimestre actual
+      this.logger.log(`Buscando eventos con: subject="${cleanSubjectCode}", active=true, bimestre_id=${targetBimestreId}`);
+      
+      const existingEventsCount = await this.eventRepository.count({
+        where: {
+          subject: cleanSubjectCode,  // Coincidencia exacta en el campo subject
+          active: true,               // Estado ACTIVE = 1
+          bimestre_id: targetBimestreId // Del bimestre actual
+        }
+      });
+
+      this.logger.log(`Eventos encontrados: ${existingEventsCount}`);
+      
+      // También buscar todos los eventos para debug
+      const allEvents = await this.eventRepository.find({
+        where: {
+          bimestre_id: targetBimestreId,
+          active: true
+        },
+        select: ['id', 'title', 'subject']
+      });
+      
+      this.logger.log(`Todos los eventos activos en bimestre ${targetBimestreId}:`);
+      allEvents.forEach(event => {
+        this.logger.log(`  - ID: ${event.id}, Title: "${event.title}", Subject: "${event.subject}"`);
+      });
+
+      // 4. Generar el correlativo basado en el conteo
+      // n registros existentes → asignar correlativo n+1
+      const nextCorrelative = existingEventsCount + 1;
+
+      this.logger.log(`Correlativo calculado para ${cleanSubjectCode} en bimestre ${targetBimestreId}: ${nextCorrelative} (eventos existentes: ${existingEventsCount})`);
+      this.logger.log(`=== FIN DEBUG getNextCorrelativeForSubject ===`);
+
+      return nextCorrelative;
+    } catch (error) {
+      this.logger.error(`Error al obtener correlativo para ${subjectName}`, error);
+      throw error;
+    }
+  }
+
+  async getHoursByADOLEvents(eventTitles: string[], bimestreId?: number): Promise<{ totalHours: number, details: any[] }> {
+    this.logger.log(`Consultando horas para eventos ADOL: ${eventTitles.join(', ')} en bimestre: ${bimestreId}`);
+    
+    try {
+      if (eventTitles.length === 0) {
+        return { totalHours: 0, details: [] };
+      }
+      
+      // Construir consulta para buscar eventos por título (case insensitive)
+      let query = `
+        SELECT 
+          title,
+          horas,
+          COUNT(*) as event_count
+        FROM schedule_events 
+        WHERE UPPER(title) IN (${eventTitles.map(() => 'UPPER(?)').join(',')})`;
+      
+      const queryParams = [...eventTitles];
+      
+      // Agregar filtro por bimestre si se proporciona
+      if (bimestreId) {
+        query += ` AND bimestre_id = ?`;
+        queryParams.push(bimestreId.toString());
+      }
+      
+      query += ` GROUP BY title, horas`;
+      
+      this.logger.log(`Ejecutando consulta ADOL para títulos: ${eventTitles.join(', ')}`);
+      this.logger.log(`Query SQL: ${query}`);
+      this.logger.log(`Parámetros: ${JSON.stringify(queryParams)}`);
+      
+      const result = await this.eventRepository.query(query, queryParams);
+      
+      this.logger.log(`Resultado de consulta ADOL: ${JSON.stringify(result)}`);
+      
+      const totalHours = result.reduce((sum, item) => sum + (parseFloat(item.horas || 0) * parseInt(item.event_count || 1)), 0);
+      
+      this.logger.log(`Total de horas ADOL encontradas: ${totalHours}`);
+      
+      return {
+        totalHours,
+        details: result.map(item => ({
+          title: item.title,
+          hours: parseFloat(item.horas || 0),
+          eventCount: parseInt(item.event_count || 1),
+          totalHours: parseFloat(item.horas || 0) * parseInt(item.event_count || 1)
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error al consultar horas por eventos ADOL:', error);
+      throw error;
+    }
+  }
+
+  async getHoursByCodes(codes: string[], bimestreId?: number, plans?: string[]): Promise<{ totalHours: number, details: any[] }> {
+    this.logger.log(`Consultando horas para codigos: ${codes.join(', ')} en bimestre: ${bimestreId} con planes: ${plans?.join(', ') || 'todos'}`);
+    
+    try {
+      // Consultar la estructura academica para obtener las horas por codigo
+      let query = `
+        SELECT 
+          code,
+          acronym,
+          SUM(hours) as total_hours,
+          COUNT(*) as subject_count
+        FROM academic_structures 
+        WHERE acronym IN (${codes.map(() => '?').join(',')})`;
+      
+      const queryParams = [...codes];
+      
+      // Agregar filtro por bimestre si se proporciona
+      if (bimestreId) {
+        query += ` AND id_bimestre = ?`;
+        queryParams.push(bimestreId.toString());
+      }
+      
+      // Agregar filtro por planes si se proporciona
+      if (plans && plans.length > 0) {
+        query += ` AND code IN (${plans.map(() => '?').join(',')})`;
+        queryParams.push(...plans);
+      }
+      
+      query += ` GROUP BY code, acronym`;
+      
+      const result = await this.eventRepository.query(query, queryParams);
+      
+      const totalHours = result.reduce((sum, item) => sum + parseInt(item.total_hours || 0), 0);
+      
+      this.logger.log(`Total de horas encontradas: ${totalHours}`);
+      
+      return {
+        totalHours,
+        details: result.map(item => ({
+          code: item.code,
+          acronym: item.acronym,
+          hours: parseInt(item.total_hours || 0),
+          subjectCount: parseInt(item.subject_count || 0)
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error al consultar horas por codigos:', error);
+      throw new BadRequestException('Error al consultar horas de asignaturas');
+    }
+  }
+
+  async getHoursByEventPairs(eventPairs: { acronym: string, plan: string }[], bimestreId?: number): Promise<{ totalHours: number, details: any[] }> {
+    this.logger.log(`Consultando horas para ${eventPairs.length} pares específicos en bimestre: ${bimestreId}`);
+    
+    try {
+      if (eventPairs.length === 0) {
+        return { totalHours: 0, details: [] };
+      }
+      
+      // Construir consulta con condiciones OR para cada par específico
+      const pairConditions = eventPairs.map(() => '(acronym = ? AND code = ?)').join(' OR ');
+      
+      let query = `
+        SELECT 
+          code,
+          acronym,
+          SUM(hours) as total_hours,
+          COUNT(*) as subject_count
+        FROM academic_structures 
+        WHERE (${pairConditions})`;
+      
+      // Crear parámetros para cada par (acronym, plan)
+      const queryParams: string[] = [];
+      eventPairs.forEach(pair => {
+        queryParams.push(pair.acronym, pair.plan);
+      });
+      
+      // Agregar filtro por bimestre si se proporciona
+      if (bimestreId) {
+        query += ` AND id_bimestre = ?`;
+        queryParams.push(bimestreId.toString());
+      }
+      
+      query += ` GROUP BY code, acronym`;
+      
+      this.logger.log(`Ejecutando consulta con ${eventPairs.length} pares: ${eventPairs.map(p => `${p.acronym}-${p.plan}`).join(', ')}`);
+      
+      const result = await this.eventRepository.query(query, queryParams);
+      
+      const totalHours = result.reduce((sum, item) => sum + parseInt(item.total_hours || 0), 0);
+      
+      this.logger.log(`Total de horas encontradas: ${totalHours}`);
+      
+      return {
+        totalHours,
+        details: result.map(item => ({
+          code: item.code,
+          acronym: item.acronym,
+          hours: parseInt(item.total_hours || 0),
+          subjectCount: parseInt(item.subject_count || 0)
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Error al consultar horas por pares de eventos:', error);
+      throw new BadRequestException('Error al consultar horas de asignaturas por pares');
     }
   }
 }

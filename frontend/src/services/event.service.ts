@@ -24,7 +24,7 @@ export interface Event {
 }
 
 class EventService {
-  private baseUrl = '/events';
+  private baseUrl = '/scheduling';
 
   async getEvents(startDate?: string, endDate?: string): Promise<Event[]> {
     try {
@@ -269,28 +269,17 @@ class EventService {
     });
   }
 
-  async getNextCorrelativeForSubject(subject: string): Promise<number> {
+  async getNextCorrelativeForSubject(subject: string, bimestreId?: number): Promise<number> {
     try {
-      // Obtener todos los eventos
-      const events = await this.getEvents();
+      // Usar el nuevo endpoint del backend que consulta correctamente schedule_events
+      const url = `${this.baseUrl}/next-correlative/${encodeURIComponent(subject)}${
+        bimestreId ? `?bimestreId=${bimestreId}` : ''
+      }`;
       
-      // Filtrar eventos que pertenezcan a la misma asignatura
-      const subjectEvents = events.filter(event => 
-        event.extendedProps?.subject === subject
-      );
-      
-      // Extraer correlativos existentes del título
-      const correlativos = subjectEvents
-        .map(event => {
-          const match = event.title.match(/ - (\d{3})$/);
-          return match ? parseInt(match[1]) : 0;
-        })
-        .filter(num => num > 0);
-      
-      // Retornar el siguiente correlativo disponible
-      return correlativos.length > 0 ? Math.max(...correlativos) + 1 : 1;
+      const response = await apiClient.get(url);
+      return response.data.data.nextCorrelative;
     } catch (error) {
-      console.error('Error getting next correlative:', error);
+      console.error('Error getting next correlative from backend:', error);
       return 1; // Valor por defecto en caso de error
     }
   }

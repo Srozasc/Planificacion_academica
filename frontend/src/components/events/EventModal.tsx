@@ -390,9 +390,9 @@ const EventModal: React.FC<EventModalProps> = ({
   useEffect(() => {
     const updateTitle = async () => {
       // Solo generar título automáticamente para eventos nuevos
-      if (formData.subject && !editingEvent) {
+      if (formData.subject && !editingEvent && bimestreSeleccionado?.id) {
         try {
-          const nextCorrelative = await eventService.getNextCorrelativeForSubject(formData.subject);
+          const nextCorrelative = await eventService.getNextCorrelativeForSubject(formData.subject, bimestreSeleccionado.id);
           const newTitle = generateTitle(formData.subject, nextCorrelative);
           setFormData(prev => ({ ...prev, title: newTitle }));
           setEventCounter(nextCorrelative);
@@ -407,7 +407,7 @@ const EventModal: React.FC<EventModalProps> = ({
     };
     
     updateTitle();
-  }, [formData.subject, editingEvent]);
+  }, [formData.subject, bimestreSeleccionado?.id, editingEvent]);
 
   // Cargar vacantes requeridas cuando cambie la asignatura, el bimestre o el plan
   useEffect(() => {
@@ -803,7 +803,7 @@ const EventModal: React.FC<EventModalProps> = ({
       // Crear múltiples eventos secuencialmente con delays
       for (let i = 0; i < eventQuantity; i++) {
         // Obtener correlativo dinámicamente para cada evento para evitar conflictos
-        const currentCorrelative = await eventService.getNextCorrelativeForSubject(formData.subject!);
+        const currentCorrelative = await eventService.getNextCorrelativeForSubject(formData.subject!, bimestreSeleccionado?.id);
         const eventTitle = generateTitle(formData.subject!, currentCorrelative);
         
         const eventData = {

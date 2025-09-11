@@ -69,7 +69,7 @@ class ScheduleService {
   async getStats(): Promise<ScheduleStats> {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/events/stats`,
+        `${API_BASE_URL}/scheduling/stats`,
         this.getAuthHeaders()
       );
       return response.data;
