@@ -120,6 +120,7 @@ export class ScheduleEventDto {
         teacher_names: this.teacher_names, // Nombres de docentes concatenados
         room: this.room,
         students: this.students,
+        horas: this.horas, // Cantidad de horas para eventos ADOL
         subject: this.subject,
         bimestre: this.bimestre,
         course_name: this.course_name, // Nombre del curso
