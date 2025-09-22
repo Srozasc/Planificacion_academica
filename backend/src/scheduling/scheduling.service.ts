@@ -281,7 +281,7 @@ export class SchedulingService {
           queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
         }
 
-        queryBuilder.orderBy('event.start_date', 'ASC')
+        queryBuilder.orderBy('event.updated_at', 'DESC')
           .skip((page - 1) * limit)
           .take(limit);
 
@@ -318,7 +318,7 @@ export class SchedulingService {
         .leftJoinAndSelect('eventTeachers.teacher', 'teacher')
         .leftJoin('academic_structures', 'academic', 'academic.acronym = event.subject AND academic.id_bimestre = event.bimestre_id AND academic.code = event.plan')
         .addSelect(['academic.name', 'academic.school_prog', 'academic.code', 'academic.level'])
-        .orderBy('event.start_date', 'ASC')
+        .orderBy('event.updated_at', 'DESC')
         .skip((page - 1) * limit)
         .take(limit);
 
