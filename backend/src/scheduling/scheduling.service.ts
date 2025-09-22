@@ -659,7 +659,7 @@ export class SchedulingService {
             WHERE upcat.usuario_id = :userId AND upcat.categoria = 'INICIO' AND upcat.activo = 1 AND upcat.bimestre_id = :bimestreId
           )
         )`, { userId, bimestreId })
-        .orderBy('event.start_date', 'ASC');
+        .orderBy('event.updated_at', 'DESC');
 
       const result = await queryBuilder.getRawAndEntities();
       const events = result.entities;
@@ -698,7 +698,7 @@ export class SchedulingService {
         .andWhere('event.active = :active', { active: true })
         .andWhere('event.title LIKE :adolPrefix', { adolPrefix: 'ADOL%' })
         .andWhere('event.usuario = :userSubstring', { userSubstring })
-        .orderBy('event.start_date', 'ASC');
+        .orderBy('event.updated_at', 'DESC');
 
       const result = await queryBuilder.getRawAndEntities();
       const events = result.entities;
@@ -736,7 +736,7 @@ export class SchedulingService {
         .addSelect('optativas.nivel', 'optativas_nivel')
         .where('event.bimestre_id = :bimestreId', { bimestreId })
         .andWhere('event.active = :active', { active: true })
-        .orderBy('event.start_date', 'ASC');
+        .orderBy('event.updated_at', 'DESC');
 
       const result = await queryBuilder.getRawAndEntities();
       const events = result.entities;
@@ -766,7 +766,7 @@ export class SchedulingService {
       const events = await this.eventRepository.find({
         where: { bimestre_id: bimestreId, active: true },
         relations: ['bimestre', 'eventTeachers', 'eventTeachers.teacher'],
-        order: { start_date: 'ASC' },
+        order: { updated_at: 'DESC' },
       });
 
       return events.map(event => ScheduleEventDto.fromEntity(event));
