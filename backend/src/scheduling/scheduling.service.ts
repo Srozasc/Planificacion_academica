@@ -89,7 +89,7 @@ export class SchedulingService {
           queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
         }
 
-        queryBuilder.orderBy('event.start_date', 'ASC')
+        queryBuilder.orderBy('event.updated_at', 'DESC')
           .skip((page - 1) * limit)
           .take(limit);
 
@@ -153,7 +153,7 @@ export class SchedulingService {
         queryBuilder.andWhere('event.bimestre_id = :bimestre_id', { bimestre_id });
       }
 
-      queryBuilder.orderBy('event.start_date', 'ASC')
+      queryBuilder.orderBy('event.updated_at', 'DESC')
         .skip((page - 1) * limit)
         .take(limit);
 
