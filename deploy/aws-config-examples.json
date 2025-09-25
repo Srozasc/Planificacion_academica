@@ -1,0 +1,90 @@
+{
+  "s3BucketPolicy": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "PublicReadGetObject",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::mi-app-frontend-bucket/*"
+      }
+    ]
+  },
+  "cloudFrontErrorPages": [
+    {
+      "ErrorCode": 403,
+      "ResponsePagePath": "/index.html",
+      "ResponseCode": "200",
+      "ErrorCachingMinTTL": 300
+    },
+    {
+      "ErrorCode": 404,
+      "ResponsePagePath": "/index.html",
+      "ResponseCode": "200",
+      "ErrorCachingMinTTL": 300
+    }
+  ],
+  "appRunnerServiceConfig": {
+    "ServiceName": "planificacion-academica-backend",
+    "SourceConfiguration": {
+      "ImageRepository": {
+        "ImageIdentifier": "<account-id>.dkr.ecr.us-east-1.amazonaws.com/planificacion-backend:latest",
+        "ImageConfiguration": {
+          "Port": "3000",
+          "RuntimeEnvironmentVariables": {
+            "NODE_ENV": "production",
+            "PORT": "3000",
+            "HOST": "0.0.0.0"
+          }
+        },
+        "ImageRepositoryType": "ECR"
+      },
+      "AutoDeploymentsEnabled": false
+    },
+    "InstanceConfiguration": {
+      "Cpu": "0.25 vCPU",
+      "Memory": "0.5 GB"
+    },
+    "HealthCheckConfiguration": {
+      "Protocol": "HTTP",
+      "Path": "/health",
+      "Interval": 10,
+      "Timeout": 5,
+      "HealthyThreshold": 1,
+      "UnhealthyThreshold": 5
+    }
+  },
+  "rdsSecurityGroupRules": [
+    {
+      "Type": "Inbound",
+      "Protocol": "TCP",
+      "Port": 3306,
+      "Source": "App Runner Service Security Group",
+      "Description": "Allow MySQL access from App Runner"
+    }
+  ],
+  "secretsManagerExamples": {
+    "database-credentials": {
+      "username": "admin",
+      "password": "your-secure-password",
+      "engine": "mysql",
+      "host": "your-rds-endpoint.amazonaws.com",
+      "port": 3306,
+      "dbname": "planificacion_academica"
+    },
+    "jwt-secret": {
+      "secret": "your-jwt-secret-key-minimum-32-characters"
+    }
+  },
+  "cloudWatchLogGroups": [
+    {
+      "logGroupName": "/aws/apprunner/planificacion-academica-backend/application",
+      "retentionInDays": 30
+    },
+    {
+      "logGroupName": "/aws/apprunner/planificacion-academica-backend/service",
+      "retentionInDays": 30
+    }
+  ]
+}

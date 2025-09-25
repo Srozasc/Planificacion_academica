@@ -14,6 +14,7 @@ export interface Event {
     teacher_ids?: number[];
     teacher_names?: string;
     students?: number;
+    horas?: number; // Cantidad de horas para eventos ADOL
     subject?: string;
     course_name?: string;
     section?: string;

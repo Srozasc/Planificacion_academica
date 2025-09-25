@@ -10,9 +10,33 @@ export interface HoursDetail {
   subjectCount?: number;
 }
 
+export interface ADOLHoursDetail {
+  title: string;
+  totalHours: number;
+  eventCount: number;
+  hours?: number;
+}
+
+export interface OptativasHoursDetail {
+  asignatura: string;
+  plan: string;
+  hours: number;
+  subject?: string;
+}
+
 export interface HoursResponse {
   totalHours: number;
   details: HoursDetail[];
+}
+
+export interface ADOLHoursResponse {
+  totalHours: number;
+  details: ADOLHoursDetail[];
+}
+
+export interface OptativasHoursResponse {
+  totalHours: number;
+  details: OptativasHoursDetail[];
 }
 
 export interface EventHoursData {
@@ -192,17 +216,17 @@ export async function getEventsTotalHours(events: any[]): Promise<EventHoursData
       params.bimestreId = bimestreId;
     }
     
-    const response = await apiClient.get<HoursResponse>(endpoint, {
-      params
-    });
-    
     // Procesar respuesta según el tipo de evento
     let totalHours = 0;
     const adjustedDetails: HoursDetail[] = [];
     
     if (eventType === 'adol') {
-      // Para ADOL, la respuesta ya incluye el cálculo total
-      response.data.details.forEach(detail => {
+      // Para ADOL, usar el tipo específico
+      const adolResponse = await apiClient.get<ADOLHoursResponse>(endpoint, {
+        params
+      });
+      
+      adolResponse.data.details.forEach(detail => {
         totalHours += detail.totalHours || detail.hours || 0;
         adjustedDetails.push({
           acronym: detail.title,
@@ -212,25 +236,14 @@ export async function getEventsTotalHours(events: any[]): Promise<EventHoursData
           subjectCount: detail.eventCount || 1
         });
       });
-    } else {
-      // Para asignaturas y optativas, multiplicar por cantidad de eventos
-      response.data.details.forEach(detail => {
-        let pairKey: string;
-        let acronym: string;
-        let code: string;
-        
-        if (eventType === 'optativas') {
-          // Para optativas: plan y asignatura
-          acronym = detail.asignatura || detail.acronym;
-          code = detail.plan || detail.code;
-          pairKey = `${acronym}|${code}`;
-        } else {
-          // Para asignaturas: acronym y code
-          acronym = detail.acronym;
-          code = detail.code;
-          pairKey = `${acronym}|${code}`;
-        }
-        
+    } else if (eventType === 'optativas') {
+      // Para optativas, usar el tipo específico
+      const optativasResponse = await apiClient.get<OptativasHoursResponse>(endpoint, {
+        params
+      });
+      
+      optativasResponse.data.details.forEach(detail => {
+        const pairKey = `${detail.asignatura}|${detail.plan}`;
         const pairData = Array.from(pairCounts.values()).find(
           item => `${item.pair.acronym}|${item.pair.plan}` === pairKey
         );
@@ -240,8 +253,32 @@ export async function getEventsTotalHours(events: any[]): Promise<EventHoursData
         
         totalHours += adjustedHours;
         adjustedDetails.push({
-          acronym,
-          code,
+          acronym: detail.asignatura,
+          code: detail.plan,
+          hours: adjustedHours,
+          subject: detail.subject,
+          subjectCount: eventCount
+        });
+      });
+    } else {
+      // Para asignaturas, usar el tipo original
+      const response = await apiClient.get<HoursResponse>(endpoint, {
+        params
+      });
+      
+      response.data.details.forEach(detail => {
+        const pairKey = `${detail.acronym}|${detail.code}`;
+        const pairData = Array.from(pairCounts.values()).find(
+          item => `${item.pair.acronym}|${item.pair.plan}` === pairKey
+        );
+        
+        const eventCount = pairData ? pairData.count : 1;
+        const adjustedHours = detail.hours * eventCount;
+        
+        totalHours += adjustedHours;
+        adjustedDetails.push({
+          acronym: detail.acronym,
+          code: detail.code,
           hours: adjustedHours,
           subject: detail.subject,
           subjectCount: eventCount

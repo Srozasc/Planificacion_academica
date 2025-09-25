@@ -72,7 +72,7 @@ const DashboardPage: React.FC = () => {
     
     const eventoMatch = !filters.evento || event.title.toLowerCase().includes(filters.evento.toLowerCase());
     const docenteMatch = !filters.docente || (event.extendedProps?.teacher_names || event.extendedProps?.teacher || '').toLowerCase().includes(filters.docente.toLowerCase());
-    const nivelMatch = !filters.nivel || (event.extendedProps?.nivel || '').toLowerCase().includes(filters.nivel.toLowerCase());
+    const nivelMatch = !filters.nivel || (event.extendedProps?.nivel?.toString() || '').toLowerCase().includes(filters.nivel.toLowerCase());
     const capacidadMatch = !filters.capacidad || (event.extendedProps?.students || '').toString().includes(filters.capacidad);
     
     return planMatch && eventoMatch && docenteMatch && nivelMatch && capacidadMatch;
