@@ -201,6 +201,23 @@ bulk_load_*.json
 import_*.json
 export_*.json
 
+# ===== ARCHIVOS COMPRIMIDOS Y GRANDES =====
+# Archivos comprimidos que no deben estar en el repositorio
+*.rar
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+
+# Archivos de imagen Docker
+*.tar
+
+# Archivos de respaldo comprimidos
+*.rar.backup
+*.zip.backup
+
 # ===== ARCHIVOS DE CONTENIDO ESTÁTICO =====
 # Imágenes temporales y de prueba
 *.tmp.jpg
